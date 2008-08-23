@@ -150,7 +150,7 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
 		"movq 16(%%rax), %%rbp\n\t" "movq 8(%%rax), %%rsp\n\t"
 		"jmp *(%%rax)\n"
 		"1:\n"
-    : "+S" (from), "+D" (to) : : "rax", "memory", "cc");
+    : "+S" (from), "+D" (to) : : "rax", "rcx", "rdx", "r8", "r9", "r10", "r11", "memory", "cc");
 }
 
 #define COCO_CTX		coco_ctx
