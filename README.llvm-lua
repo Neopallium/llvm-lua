@@ -1,0 +1,14 @@
+README for llvm-lua
+
+Patches to lua/src:
+ * Emergency Garbage Collector: http://lua-users.org/wiki/EmergencyGarbageCollector
+ * LuaCoco-1.1.4: http://luajit.org/coco.html
+
+Requires:
+ * LLVM svn revision 54392 or higher, Might work with LLVM 2.3
+ * llvm-gcc 4.2.1
+
+Compile:
+ * cd llvm-lua
+ * make
+

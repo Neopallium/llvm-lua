@@ -1,0 +1,9 @@
+src/.libs
+src/*.o
+src/*.lo
+src/*.la
+src/*.a
+src/lua
+src/luac
+src/lua_test
+.*.swp
