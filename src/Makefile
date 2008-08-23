@@ -24,7 +24,7 @@ COCOCFLAGS=
 # Force use of setjmp (instead of gccasm).
 #COCOCFLAGS= -DCOCO_USE_SETJMP
 # Force use of ucontext (instead of gccasm or setjmp).
-COCOCFLAGS= -DCOCO_USE_UCONTEXT
+#COCOCFLAGS= -DCOCO_USE_UCONTEXT
 # Uncomment this if you want to disable support for Coco.
 #COCOCFLAGS= -DCOCO_DISABLE
 # -- Coco =========
