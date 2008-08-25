@@ -34,8 +34,7 @@ static void llvm_f_parser (lua_State *L, void *ud) {
   set_block_gc(L);  /* stop collector during parsing */
   tf = ((c == LUA_SIGNATURE[0]) ? luaU_undump : luaY_parser)(L, p->z,
                                                              &p->buff, p->name);
-	llvm_compiler_compile_all(tf, 0);
-	llvm_compiler_optimize_all(tf, 3);
+	llvm_compiler_compile_all(tf, 1);
   cl = luaF_newLclosure(L, tf->nups, hvalue(gt(L)));
   cl->l.p = tf;
   for (i = 0; i < tf->nups; i++)  /* initialize eventual upvalues */
@@ -99,9 +98,6 @@ static int llvm_precall_jit (lua_State *L, StkId func, int nresults) {
 }
 
 int llvm_precall_lua (lua_State *L, StkId func, int nresults) {
-#if 0
-	return luaD_precall_lua(L, func, nresults);
-#else
 	Closure *cl;
 	Proto *p;
 
@@ -113,12 +109,12 @@ int llvm_precall_lua (lua_State *L, StkId func, int nresults) {
 	}
 	if(p->jit_func == NULL) {
 		/* function didn't compile, fall-back to lua interpreter */
-		return llvm_precall_lua(L, func, nresults);
+		cl->l.precall = luaD_precall_lua;
+		return luaD_precall_lua(L, func, nresults);
 	} else {
 		cl->l.precall = llvm_precall_jit;
 	}
 	return llvm_precall_jit(L, func, nresults);
-#endif
 }
 
 #endif

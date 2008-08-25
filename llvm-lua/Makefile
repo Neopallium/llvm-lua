@@ -7,12 +7,15 @@ CXX= g++
 LLVM_CC= llvm-gcc
 LLVM_LD= llvm-link
 LD= g++
-COCOCFLAGS= -DCOCO_USE_UCONTEXT
-#COCOCFLAGS= -DCOCO_USE_UCONTEXT -DCOCO_DEFAULT_CSTACKSIZE=524288 -DUSE_VALGRIND
+COCOCFLAGS=
+#COCOCFLAGS= -DCOCO_DEFAULT_CSTACKSIZE=524288 -DUSE_VALGRIND
+
 #MYCFLAGS= -O0 -ggdb -Wall
-#MYCFLAGS= -O1 -Wall
 #MYCFLAGS= -march=athlon64 -O3 -fomit-frame-pointer -pipe -Wall
 MYCFLAGS= -O3 -fomit-frame-pointer -pipe -Wall
+
+OPS_CFLAGS= -O2 -Wall -DLUA_USE_LINUX $(COCOCFLAGS)
+
 LUA_CFLAGS= -I$(LUA_SRC) $(MYCFLAGS) -DLUA_USE_LINUX $(COCOCFLAGS)
 LLVM_CFLAGS=`llvm-config --cppflags`
 LLVM_LFLAGS=`llvm-config --ldflags --libs core jit native bitreader bitwriter ipo`
@@ -20,6 +23,10 @@ CFLAGS= $(MYCFLAGS)
 MYLDFLAGS= -Wl,-E
 MYLIBS= -lm -ldl
 RM= rm -f
+
+# disable debugging of compiled lua code.
+MYCFLAGS += -DLUA_NODEBUG
+OPS_CFLAGS += -DLUA_NODEBUG
 
 default: lua llvm-lua llvm-luac liblua_main.bc
 
@@ -36,7 +43,7 @@ lua_core.o: lua_core.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 	$(CC) -c $(LUA_CFLAGS) -o $@ lua_core.c
 
 lua_vm_ops.bc: lua_vm_ops.c
-	$(LLVM_CC) -emit-llvm -c -I$(LUA_SRC) -O2 -Wall -DLUA_USE_LINUX $(COCOCFLAGS) -o $@ $<
+	$(LLVM_CC) -emit-llvm -c -I$(LUA_SRC) $(OPS_CFLAGS) -o $@ $<
 
 liblua_main.bc: lua_core.bc lua_main.bc load_jit_proto.bc
 	$(LLVM_LD) -f -o $@ $^

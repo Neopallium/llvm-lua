@@ -32,6 +32,7 @@
 #include "llvm/Target/TargetData.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Support/IRBuilder.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Bitcode/ReaderWriter.h"
@@ -79,7 +80,6 @@ static llvm::Module *TheModule;
 static llvm::IRBuilder Builder;
 static std::map<std::string, llvm::Value*> NamedValues;
 static llvm::FunctionPassManager *TheFPM;
-static llvm::PassManager *ThePM;
 
 // struct types.
 static const llvm::Type *Ty_lua_State;
@@ -92,6 +92,9 @@ static llvm::FunctionType *lua_func_type;
 static llvm::Function *vm_func_state_init;
 // function for print each executed op.
 static llvm::Function *vm_print_OP;
+#ifndef LUA_NODEBUG
+static llvm::Function *vm_next_OP;
+#endif
 // list of op functions.
 static llvm::Function **vm_ops;
 
@@ -106,18 +109,7 @@ extern "C" void llvm_compiler_optimize(Proto *p, int optimize)
 	llvm::Function *func=(llvm::Function *)p->func_ref;
 	if(func == NULL) return;
 	if(optimize >= 1) {
-#if 0
-		fprintf(stderr, "after Function Pass:\n");
-		if(p->source) {
-			printf("optimize: %s\n", getstr(p->source));
-		} else {
-			printf("optimize: %p\n", p);
-		}
 		TheFPM->run(*func);
-		func->dump();
-#else
-		TheFPM->run(*func);
-#endif
 	}
 }
 
@@ -125,23 +117,12 @@ extern "C" void llvm_compiler_optimize(Proto *p, int optimize)
  * Optimize all jitted functions.
  */
 extern "C" void llvm_compiler_optimize_all(Proto *parent, int optimize) {
-	if(optimize >= 3) {
-#if 0
-		fprintf(stderr, "Run full Module Pass:\n");
-		ThePM->run(*TheModule);
-		//TheModule->dump();
-#else
-		ThePM->run(*TheModule);
-#endif
-	}
-#if 1
 	/* optimize parent */
 	llvm_compiler_optimize(parent, 2);
 	/* optimize all children */
 	for(int i = 0; i < parent->sizep; i++) {
 		llvm_compiler_optimize_all(parent->p[i], 2);
 	}
-#endif
 }
 
 /*
@@ -150,22 +131,10 @@ extern "C" void llvm_compiler_optimize_all(Proto *parent, int optimize) {
 extern "C" void llvm_compiler_compile_all(Proto *parent, int optimize) {
 	int i;
 	/* pre-compile parent */
-#if 0
-	if(parent->source) {
-		printf("pre-compile: %s\n", getstr(parent->source));
-	} else {
-		printf("pre-compile: %p\n", parent);
-	}
-#endif
-	llvm_compiler_compile(parent, 0);
+	llvm_compiler_compile(parent, optimize);
 	/* pre-compile all children */
 	for(i = 0; i < parent->sizep; i++) {
-		llvm_compiler_compile_all(parent->p[i], 0);
-	}
-	if(optimize > 2) {
-		fprintf(stderr, "Run full Module Pass:\n");
-		ThePM->run(*TheModule);
-		TheModule->dump();
+		llvm_compiler_compile_all(parent->p[i], optimize);
 	}
 }
 
@@ -176,53 +145,134 @@ extern "C" void llvm_compiler_compile(Proto *p, int optimize)
 	llvm::Function *func;
 	llvm::BasicBlock *true_block=NULL;
 	llvm::BasicBlock *false_block=NULL;
+	llvm::BasicBlock *current_block=NULL;
+	llvm::BasicBlock *entry_block=NULL;
 	llvm::Value *brcond=NULL;
+	llvm::Value *fs;
+	llvm::CallInst *call=NULL;
+	std::vector<llvm::CallInst *> inlineList;
 	std::string name;
 	char tmp[128];
 	int branch;
 	int op;
 	int i;
 
+	// don't JIT large functions.
+	if(code_len >= 800 && TheExecutionEngine != NULL) {
+		return;
+	}
 	// create function.
 	name = getstr(p->source);
-	snprintf(tmp,128,"_%d:%d",p->linedefined, p->lastlinedefined);
+	snprintf(tmp,128,"_%d_%d",p->linedefined, p->lastlinedefined);
 	name += tmp;
 	func = llvm::Function::Create(lua_func_type, llvm::Function::ExternalLinkage, name, TheModule);
 	// name arg1 = "L"
 	func->arg_begin()->setName("L");
 	// entry block
-	llvm::BasicBlock *entry_block = llvm::BasicBlock::Create("entry", func);
+	entry_block = llvm::BasicBlock::Create("entry", func);
 	Builder.SetInsertPoint(entry_block);
 	// setup func_state structure on stack.
-	llvm::Value *fs = Builder.CreateAlloca(Ty_func_state, 0, "fs");
-	// create local for return value.
-	llvm::Value *retval = Builder.CreateAlloca(llvm::Type::Int32Ty, 0, "retval");
+	fs = Builder.CreateAlloca(Ty_func_state, 0, "fs");
 	// call vm_func_state_init to initialize func_state.
-	Builder.CreateCall2(vm_func_state_init, func->arg_begin(), fs);
+	call=Builder.CreateCall2(vm_func_state_init, func->arg_begin(), fs);
+	inlineList.push_back(call);
 
 	// pre-create basic blocks.
 	llvm::BasicBlock *op_blocks[code_len];
+	bool need_op_block[code_len];
 	for(i = 0; i < code_len; i++) {
-		op_blocks[i] = llvm::BasicBlock::Create("op_block", func);
+		need_op_block[i] = false;
+	}
+	// find all jump/branch destinations and create a new basic block at that point.
+	for(i = 0; i < code_len; i++) {
+		branch = -1;
+		op = GET_OPCODE(code[i]);
+		switch (op) {
+			case OP_LOADBOOL:
+				// check C operand if C!=0 then skip over the next op_block.
+				if(GETARG_C(code[i]) != 0)
+					branch = i+2;
+				need_op_block[branch] = true;
+				break;
+			case OP_JMP:
+				// always branch to the offset stored in operand sBx
+				branch = i + 1 + GETARG_sBx(code[i]);
+				need_op_block[branch] = true;
+				break;
+			case OP_EQ:
+			case OP_LT:
+			case OP_LE:
+			case OP_TEST:
+			case OP_TESTSET:
+			case OP_TFORLOOP:
+				branch = i+1;
+				need_op_block[branch] = true;
+				need_op_block[branch+1] = true;
+				break;
+			case OP_FORLOOP:
+				branch = i+1;
+				need_op_block[branch] = true;
+				branch += GETARG_sBx(code[i]);
+				need_op_block[branch] = true;
+				break;
+			case OP_FORPREP:
+				branch = i + 1 + GETARG_sBx(code[i]);
+				need_op_block[branch] = true;
+				break;
+			case OP_SETLIST:
+				// if C == 0, then next code value is count value.
+				if(GETARG_C(code[i]) == 0) {
+					i++;
+				}
+				break;
+			default:
+				break;
+		}
+	}
+	name = "op_block";
+	for(i = 0; i < code_len; i++) {
+		if(need_op_block[i]) {
+			snprintf(tmp,128,"_%d",i);
+			op_blocks[i] = llvm::BasicBlock::Create(name + tmp, func);
+		} else {
+			op_blocks[i] = NULL;
+		}
 	}
 	// branch "entry" to first block.
-	Builder.CreateBr(op_blocks[0]);
-	// create return_block
-	llvm::BasicBlock *return_block = llvm::BasicBlock::Create("return", func);
-	Builder.SetInsertPoint(return_block);
-	Builder.CreateRet(Builder.CreateLoad(retval, "retval"));
+	if(need_op_block[0]) {
+		Builder.CreateBr(op_blocks[0]);
+	} else {
+		current_block = entry_block;
+	}
 	// gen op calls.
 	for(i = 0; i < code_len; i++) {
-		Builder.SetInsertPoint(op_blocks[i]);
+		if(op_blocks[i] != NULL) {
+			if(current_block) {
+				// add branch to new block.
+				Builder.CreateBr(op_blocks[i]);
+			}
+			Builder.SetInsertPoint(op_blocks[i]);
+			current_block = op_blocks[i];
+		}
+		// skip dead unreachable code.
+		if(current_block == NULL) {
+			continue;
+		}
 		branch = i+1;
 		op = GET_OPCODE(code[i]);
-		//fprintf(stderr, "'%s' (%d) = 0x%08X\n", luaP_opnames[op], op, code[i]);
+		//fprintf(stderr, "%d: '%s' (%d) = 0x%08X\n", i, luaP_opnames[op], op, code[i]);
 		//Builder.CreateCall2(vm_print_OP, fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])));
+#ifndef LUA_NODEBUG
+		Builder.CreateCall(vm_next_OP, fs);
+#endif
 		switch (op) {
 			case OP_LOADBOOL:
 				// check C operand if C!=0 then skip over the next op_block.
 				if(GETARG_C(code[i]) != 0) branch += 1;
-				// fall through.
+				else branch = -2;
+				call=Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])));
+				inlineList.push_back(call);
+				break;
 			case OP_MOVE:
 			case OP_LOADK:
 			case OP_LOADNIL:
@@ -244,17 +294,33 @@ extern "C" void llvm_compiler_compile(Proto *p, int optimize)
 			case OP_NOT:
 			case OP_LEN:
 			case OP_CONCAT:
-			case OP_CALL:
-			case OP_TAILCALL:
 			case OP_CLOSE:
+				call=Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])));
+				inlineList.push_back(call);
+				branch = -2;
+				break;
 			case OP_VARARG:
+			case OP_CALL:
 				Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])));
+				branch = -2;
+				break;
+			case OP_TAILCALL:
+				call=Builder.CreateCall3(vm_ops[op], fs,
+					llvm::ConstantInt::get(llvm::APInt(32,code[i])),
+					llvm::ConstantInt::get(llvm::APInt(32,code[i+1])),
+					"retval");
+				i++;
+				call->setTailCall(true);
+				Builder.CreateRet(call);
+				branch = -2;
+				current_block = NULL; // have terminator
 				break;
 			case OP_JMP:
 				// always branch to the offset stored in operand sBx
 				branch += GETARG_sBx(code[i]);
 				// call vm_OP_JMP just in case luai_threadyield is defined.
-				Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])));
+				call=Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])));
+				inlineList.push_back(call);
 				break;
 			case OP_EQ:
 			case OP_LT:
@@ -262,26 +328,29 @@ extern "C" void llvm_compiler_compile(Proto *p, int optimize)
 			case OP_TEST:
 			case OP_TESTSET:
 			case OP_TFORLOOP:
-				brcond=Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])),"ret");
+				call=Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])),"ret");
+				inlineList.push_back(call);
+				brcond=call;
 				brcond=Builder.CreateICmpNE(brcond, llvm::ConstantInt::get(llvm::APInt(32,0)), "brcond");
 				true_block=op_blocks[branch];
 				false_block=op_blocks[branch+1];
 				branch = -1; // do conditional branch
 				break;
 			case OP_FORLOOP:
-				brcond=Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])),"ret");
+				call=Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])),"ret");
+				inlineList.push_back(call);
+				brcond=call;
 				brcond=Builder.CreateICmpNE(brcond, llvm::ConstantInt::get(llvm::APInt(32,0)), "brcond");
 				true_block=op_blocks[branch + GETARG_sBx(code[i])];
 				false_block=op_blocks[branch];
 				branch = -1; // do conditional branch
 				break;
 			case OP_FORPREP:
-				Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])));
+				call=Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])));
+				inlineList.push_back(call);
 				branch += GETARG_sBx(code[i]);
 				break;
 			case OP_SETLIST: {
-				int a = GETARG_A(code[i]);
-				int b = GETARG_B(code[i]);
 				int c = GETARG_C(code[i]);
 				// if C == 0, then next code value is count value.
 				if(c == 0) {
@@ -290,12 +359,12 @@ extern "C" void llvm_compiler_compile(Proto *p, int optimize)
 						c = code[i];
 					}
 				}
-				Builder.CreateCall4(vm_ops[op],
+				Builder.CreateCall3(vm_ops[op],
 					fs,
-					llvm::ConstantInt::get(llvm::APInt(32,a)),
-					llvm::ConstantInt::get(llvm::APInt(32,b)),
+					llvm::ConstantInt::get(llvm::APInt(32,code[i])),
 					llvm::ConstantInt::get(llvm::APInt(32,c))
 				);
+				branch = -2;
 				break;
 			}
 			case OP_CLOSURE: {
@@ -307,45 +376,42 @@ extern "C" void llvm_compiler_compile(Proto *p, int optimize)
 					llvm::ConstantInt::get(llvm::APInt(32, i + 1))
 					);
 				if(nups > 0) {
-					branch = i + nups;
-					// skip pseudo MOVE/GETUPVAL ops.
-					while(i < branch) {
-						i++;
-						op_blocks[i]->eraseFromParent();
-						op_blocks[i] = NULL;
-					}
-					branch++;
+					i += nups;
 				}
+				branch = -2;
 				break;
 			}
 			case OP_RETURN: {
-				llvm::Value *tmp;
-				tmp=Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])),"tmp");
-				Builder.CreateStore(tmp,retval);
-				branch = code_len;// branch to return_block.
+				call=Builder.CreateCall2(vm_ops[op], fs, llvm::ConstantInt::get(llvm::APInt(32,code[i])),"retval");
+				call->setTailCall(true);
+				Builder.CreateRet(call);
+				branch = -2;
+				current_block = NULL; // have terminator
 				break;
 			}
 			default:
 				fprintf(stderr, "Bad opcode: opcode=%d\n", op);
 				break;
 		}
+		// branch to next block.
 		if(branch >= 0 && branch < code_len) {
 			Builder.CreateBr(op_blocks[branch]);
-		} else if(branch == code_len) {
-			// last op_block branch to return_block
-			Builder.CreateBr(return_block);
+			current_block = NULL; // have terminator
 		} else if(branch == -1) {
 			Builder.CreateCondBr(brcond, true_block, false_block);
-		} else {
-			fprintf(stderr, "Bad branch out-of-range: branch=%d\n", branch);
+			current_block = NULL; // have terminator
 		}
 	}
 	//func->dump();
-	// Validate the generated code, checking for consistency.
-	//verifyFunction(*func);
-	// Optimize the function.
-	if(optimize > 0) {
-		llvm_compiler_optimize(p, optimize);
+	// only run function inliner & optimization passes on same functions.
+	if(code_len < 500 && TheExecutionEngine != NULL && optimize > 0) {
+		for(std::vector<llvm::CallInst *>::iterator I=inlineList.begin(); I != inlineList.end() ; I++) {
+			InlineFunction(*I);
+		}
+		// Validate the generated code, checking for consistency.
+		//verifyFunction(*func);
+		// Optimize the function.
+		TheFPM->run(*func);
 	}
 
 	// finished.
@@ -412,6 +478,9 @@ int llvm_compiler_main(int useJIT, int argc, char ** argv) {
 	}
 	vm_func_state_init = TheModule->getFunction("vm_func_state_init");
 	vm_print_OP = TheModule->getFunction("vm_print_OP");
+#ifndef LUA_NODEBUG
+	vm_next_OP = TheModule->getFunction("vm_next_OP");
+#endif
 	// get important struct types.
 	Ty_lua_State = TheModule->getTypeByName("struct.lua_State");
 	Ty_lua_State_ptr = llvm::PointerType::getUnqual(Ty_lua_State);
@@ -443,9 +512,7 @@ int llvm_compiler_main(int useJIT, int argc, char ** argv) {
 		TheExecutionEngine = NULL;
 	}
 
-#if 1
 	TheFPM = new llvm::FunctionPassManager(MP);
-	ThePM = new llvm::PassManager();
 	
 	/*
 	 * Function Pass Manager.
@@ -457,34 +524,23 @@ int llvm_compiler_main(int useJIT, int argc, char ** argv) {
 	} else {
 		TheFPM->add(new llvm::TargetData(TheModule));
 	}
-	// Do simple "peephole" optimizations and bit-twiddling optzns.
-	TheFPM->add(llvm::createInstructionCombiningPass());
-	// Reassociate expressions.
-	TheFPM->add(llvm::createReassociatePass());
-	// Eliminate Common SubExpressions.
-	TheFPM->add(llvm::createGVNPass());
 	// Simplify the control flow graph (deleting unreachable blocks, etc).
 	TheFPM->add(llvm::createCFGSimplificationPass());
-	/*
-	 * Pass Manager.
-	 */
-	if(useJIT) {
-		ThePM->add(new llvm::TargetData(*TheExecutionEngine->getTargetData()));
-	} else {
-		ThePM->add(new llvm::TargetData(TheModule));
-	}
-	//ThePM->add(llvm::createVerifierPass());
-	ThePM->add(llvm::createLowerSetJmpPass());
-	ThePM->add(llvm::createRaiseAllocationsPass());
-	ThePM->add(llvm::createCFGSimplificationPass());
-	ThePM->add(llvm::createPromoteMemoryToRegisterPass());
-	ThePM->add(llvm::createGlobalOptimizerPass());
-	ThePM->add(llvm::createGlobalDCEPass());
-	ThePM->add(llvm::createFunctionInliningPass());
-#else
-	TheFPM = new llvm::FunctionPassManager(MP);
-	ThePM = new llvm::PassManager();
-#endif
+	// mem2reg
+	TheFPM->add(llvm::createPromoteMemoryToRegisterPass());
+	// Do simple "peephole" optimizations and bit-twiddling optzns.
+	TheFPM->add(llvm::createInstructionCombiningPass());
+
+	// TailDuplication
+	//TheFPM->add(llvm::createTailDuplicationPass());
+	// BlockPlacement
+	//TheFPM->add(llvm::createBlockPlacementPass());
+	// Reassociate expressions.
+	//TheFPM->add(llvm::createReassociatePass());
+	// Eliminate Common SubExpressions.
+	//TheFPM->add(llvm::createGVNPass());
+	// Dead code Elimination
+	//TheFPM->add(llvm::createDeadCodeEliminationPass());
 	
 	return 0;
 }
@@ -699,10 +755,8 @@ void llvm_compiler_dump(const char *output, Proto *p, int optimize, int strippin
 
 void llvm_compiler_cleanup() {
 	delete TheFPM;
-	delete ThePM;
 
 	TheFPM = NULL;
-	ThePM = NULL;
 
 	// Print out all of the generated code.
 	//TheModule->dump();

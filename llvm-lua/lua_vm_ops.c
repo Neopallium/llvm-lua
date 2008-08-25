@@ -23,12 +23,16 @@
 #include "ltm.h"
 #include "lvm.h"
 #include <stdio.h>
+#include <assert.h>
 
 typedef struct {
-	lua_State *L;
-	LClosure *cl;
-	StkId base;
-	TValue *k;
+  lua_State *L;
+  StkId base;
+  TValue *k;
+  LClosure *cl;
+#ifndef LUA_NODEBUG
+  const Instruction *pc;
+#endif
 } func_state;
 
 /*
@@ -48,13 +52,18 @@ typedef struct {
 #define KBx(i)  check_exp(getBMode(GET_OPCODE(i)) == OpArgK, fs->k+GETARG_Bx(i))
 
 
-/*
-#define dojump(L,pc,i)  {(pc) += (i); luai_threadyield(L);}
-*/
-#define dojump(L,pc,i)  {luai_threadyield(L);}
+#ifndef LUA_NODEBUG
+#define dojump(fs,i)  {(fs->pc) += (i); luai_threadyield(fs->L);}
+#else
+#define dojump(fs,i)  {luai_threadyield(fs->L);}
+#endif
 
 
+#ifndef LUA_NODEBUG
+#define Protect(x)  { fs->L->savedpc = fs->pc; {x;}; fs->base = fs->L->base; }
+#else
 #define Protect(x)  { {x;}; fs->base = fs->L->base; }
+#endif
 
 #define arith_op(op,tm) { \
         TValue *ra = RA(i); \
@@ -82,6 +91,9 @@ void vm_OP_LOADK(func_state *fs, const Instruction i) {
 void vm_OP_LOADBOOL(func_state *fs, const Instruction i) {
   TValue *ra = RA(i);
   setbvalue(ra, GETARG_B(i));
+#ifndef LUA_NODEBUG
+  if (GETARG_C(i)) fs->pc++;
+#endif
 }
 
 void vm_OP_LOADNIL(func_state *fs, const Instruction i) {
@@ -218,33 +230,33 @@ void vm_OP_CONCAT(func_state *fs, const Instruction i) {
 }
 
 void vm_OP_JMP(func_state *fs, const Instruction i) {
-  dojump(fs->L, pc, GETARG_sBx(i));
+  dojump(fs, GETARG_sBx(i));
 }
 
 int vm_OP_EQ(func_state *fs, const Instruction i) {
-	int ret;
+  int ret;
   TValue *rb = RKB(i);
   TValue *rc = RKC(i);
   Protect(
     ret = (equalobj(fs->L, rb, rc) == GETARG_A(i));
   )
-	return ret;
+  return ret;
 }
 
 int vm_OP_LT(func_state *fs, const Instruction i) {
-	int ret;
+  int ret;
   Protect(
     ret = (luaV_lessthan(fs->L, RKB(i), RKC(i)) == GETARG_A(i));
   )
-	return ret;
+  return ret;
 }
 
 int vm_OP_LE(func_state *fs, const Instruction i) {
-	int ret;
+  int ret;
   Protect(
     ret = (luaV_lessequal(fs->L, RKB(i), RKC(i)) == GETARG_A(i));
   )
-	return ret;
+  return ret;
 }
 
 int vm_OP_TEST(func_state *fs, const Instruction i) {
@@ -257,57 +269,38 @@ int vm_OP_TESTSET(func_state *fs, const Instruction i) {
   TValue *rb = RB(i);
   if (l_isfalse(rb) != GETARG_C(i)) {
     setobjs2s(fs->L, ra, rb);
-		return 1;
+    return 1;
   }
-	return 0;
+  return 0;
 }
 
 int vm_OP_CALL(func_state *fs, const Instruction i) {
-	TValue *ra=RA(i);
-	int b = GETARG_B(i);
-	int nresults = GETARG_C(i) - 1;
-	int ret;
-	if (b != 0) fs->L->top = ra+b;  /* else previous instruction set top */
-	ret = luaD_precall(fs->L, ra, nresults);
-	switch (ret) {
-		case PCRLUA: {
-			luaV_execute(fs->L, cast_int(fs->L->ci - fs->L->base_ci));
-			break;
-		}
-		case PCRC: {
-			/* it was a C function (`precall' called it); adjust results */
-			if (nresults >= 0) fs->L->top = fs->L->ci->top;
-			fs->base = fs->L->base;
-			break;
-		}
-    default: {
-			return PCRYIELD;
-    }
-	}
-	return 0;
-}
-
-int vm_OP_TAILCALL(func_state *fs, const Instruction i) {
-  TValue *ra = RA(i);
+  TValue *ra=RA(i);
   int b = GETARG_B(i);
-	int ret;
+  int nresults = GETARG_C(i) - 1;
+  int ret;
   if (b != 0) fs->L->top = ra+b;  /* else previous instruction set top */
-  lua_assert(GETARG_C(i) - 1 == LUA_MULTRET);
-  ret = luaD_precall(fs->L, ra, LUA_MULTRET);
-	switch (ret) {
+#ifndef LUA_NODEBUG
+  fs->L->savedpc = fs->pc;
+#endif
+  ret = luaD_precall(fs->L, ra, nresults);
+  switch (ret) {
     case PCRLUA: {
-			luaV_execute(fs->L, cast_int(fs->L->ci - fs->L->base_ci));
-			break;
+      luaV_execute(fs->L, 1);
+      fs->base = fs->L->base;
+      break;
     }
-    case PCRC: {  /* it was a C function (`precall' called it) */
+    case PCRC: {
+      /* it was a C function (`precall' called it); adjust results */
+      if (nresults >= 0) fs->L->top = fs->L->ci->top;
       fs->base = fs->L->base;
       break;
     }
     default: {
-			return PCRYIELD;
+      return PCRYIELD;
     }
   }
-	return 0;
+  return 0;
 }
 
 int vm_OP_RETURN(func_state *fs, const Instruction i) {
@@ -315,8 +308,54 @@ int vm_OP_RETURN(func_state *fs, const Instruction i) {
   int b = GETARG_B(i);
   if (b != 0) fs->L->top = ra+b-1;
   if (fs->L->openupval) luaF_close(fs->L, fs->base);
+#ifndef LUA_NODEBUG
+  fs->L->savedpc = fs->pc;
+#endif
   b = luaD_poscall(fs->L, ra);
-	return PCRC;
+  return PCRC;
+}
+
+int vm_OP_TAILCALL(func_state *fs, const Instruction i, const Instruction ret_i) {
+  TValue *ra = RA(i);
+  int b = GETARG_B(i);
+  int ret;
+  if (b != 0) fs->L->top = ra+b;  /* else previous instruction set top */
+#ifndef LUA_NODEBUG
+  fs->L->savedpc = fs->pc;
+#endif
+  lua_assert(GETARG_C(i) - 1 == LUA_MULTRET);
+  ret = luaD_precall(fs->L, ra, LUA_MULTRET);
+  switch (ret) {
+    case PCRLUA: {
+      /* tail call: put new frame in place of previous one */
+      CallInfo *ci = fs->L->ci - 1;  /* previous frame */
+      int aux;
+      StkId func = ci->func;
+      StkId pfunc = (ci+1)->func;  /* previous function index */
+      if (fs->L->openupval) luaF_close(fs->L, ci->base);
+      fs->L->base = ci->base = ci->func + ((ci+1)->base - pfunc);
+      for (aux = 0; pfunc+aux < fs->L->top; aux++)  /* move frame down */
+        setobjs2s(L, func+aux, pfunc+aux);
+      ci->top = fs->L->top = func+aux;  /* correct top */
+      lua_assert(fs->L->top == fs->L->base + clvalue(func)->l.p->maxstacksize);
+#ifndef LUA_NODEBUG
+      ci->savedpc = fs->L->savedpc;
+#endif
+      ci->tailcalls++;  /* one more call lost */
+      fs->L->ci--;  /* remove new frame */
+      luaV_execute(fs->L, 1);
+      fs->base = fs->L->base;
+      return PCRC;
+    }
+    case PCRC: {  /* it was a C function (`precall' called it) */
+      fs->base = fs->L->base;
+      break;
+    }
+    default: {
+      return PCRYIELD;
+    }
+  }
+  return vm_OP_RETURN(fs, ret_i);
 }
 
 int vm_OP_FORLOOP(func_state *fs, const Instruction i) {
@@ -326,12 +365,12 @@ int vm_OP_FORLOOP(func_state *fs, const Instruction i) {
   lua_Number limit = nvalue(ra+1);
   if (luai_numlt(0, step) ? luai_numle(idx, limit)
                           : luai_numle(limit, idx)) {
-    dojump(fs->L, pc, GETARG_sBx(i));  /* jump back */
+    dojump(fs, GETARG_sBx(i));  /* jump back */
     setnvalue(ra, idx);  /* update internal index... */
     setnvalue(ra+3, idx);  /* ...and external index */
-		return 1;
+    return 1;
   }
-	return 0;
+  return 0;
 }
 
 int vm_OP_FORPREP(func_state *fs, const Instruction i) {
@@ -339,6 +378,9 @@ int vm_OP_FORPREP(func_state *fs, const Instruction i) {
   const TValue *init = ra;
   const TValue *plimit = ra+1;
   const TValue *pstep = ra+2;
+#ifndef LUA_NODEBUG
+  fs->L->savedpc = fs->pc;
+#endif
   if (!tonumber(init, ra))
     luaG_runerror(fs->L, LUA_QL("for") " initial value must be a number");
   else if (!tonumber(plimit, ra+1))
@@ -346,8 +388,8 @@ int vm_OP_FORPREP(func_state *fs, const Instruction i) {
   else if (!tonumber(pstep, ra+2))
     luaG_runerror(fs->L, LUA_QL("for") " step must be a number");
   setnvalue(ra, luai_numsub(nvalue(ra), nvalue(pstep)));
-  dojump(fs->L, pc, GETARG_sBx(i));
-	return 1;
+  dojump(fs, GETARG_sBx(i));
+  return 1;
 }
 
 int vm_OP_TFORLOOP(func_state *fs, const Instruction i) {
@@ -362,15 +404,19 @@ int vm_OP_TFORLOOP(func_state *fs, const Instruction i) {
   cb = RA(i) + 3;  /* previous call may change the stack */
   if (!ttisnil(cb)) {  /* continue loop? */
     setobjs2s(fs->L, cb-1, cb);  /* save control variable */
-		return 1;
+    return 1;
   }
-	return 0;
+  return 0;
 }
 
-void vm_OP_SETLIST(func_state *fs, int a, int b, int c) {
-  TValue *ra = fs->base + a;/*RA(i);*/
+void vm_OP_SETLIST(func_state *fs, const Instruction i, int c) {
+  TValue *ra = RA(i);
+  int b=GETARG_B(i);
   int last;
   Table *h;
+#ifndef LUA_NODEBUG
+  if(GETARG_C(i) == 0) fs->pc++;
+#endif
   if (b == 0) {
     b = cast_int(fs->L->top - ra) - 1;
     fs->L->top = fs->L->ci->top;
@@ -393,14 +439,17 @@ void vm_OP_CLOSE(func_state *fs, const Instruction i) {
 }
 
 void vm_OP_CLOSURE(func_state *fs, const Instruction i, int pseudo_ops_offset) {
-	const Instruction *pc;
+  const Instruction *pc;
   TValue *ra = RA(i);
   Proto *p;
   Closure *ncl;
   int nup, j;
 
   p = fs->cl->p->p[GETARG_Bx(i)];
-	pc=fs->cl->p->code + pseudo_ops_offset;
+  pc=fs->cl->p->code + pseudo_ops_offset;
+#ifndef LUA_NODEBUG
+  assert(fs->pc == pc);
+#endif
   nup = p->nups;
   ncl = luaF_newLclosure(fs->L, nup, fs->cl->env);
   setclvalue(fs->L, ra, ncl);
@@ -413,6 +462,10 @@ void vm_OP_CLOSURE(func_state *fs, const Instruction i, int pseudo_ops_offset) {
       ncl->l.upvals[j] = luaF_findupval(fs->L, fs->base + GETARG_B(*pc));
     }
   }
+#ifndef LUA_NODEBUG
+  fs->pc += nup;
+  assert(fs->pc == pc);
+#endif
   Protect(luaC_checkGC(fs->L));
 }
 
@@ -438,15 +491,35 @@ void vm_OP_VARARG(func_state *fs, const Instruction i) {
   }
 }
 
+void vm_next_OP(func_state *fs) {
+#ifndef LUA_NODEBUG
+	fs->pc++;
+#if 0
+  if ((fs->L->hookmask & (LUA_MASKLINE | LUA_MASKCOUNT)) &&
+      (--fs->L->hookcount == 0 || fs->L->hookmask & LUA_MASKLINE)) {
+    traceexec(fs->L, fs->pc);
+    if (fs->L->status == LUA_YIELD) {  /* did hook yield? */
+      fs->L->savedpc = fs->pc - 1;
+      return;
+    }
+    fs->base = fs->L->base;
+  }
+#endif
+#endif
+}
+
 void vm_print_OP(func_state *fs, const Instruction i) {
-	int op = GET_OPCODE(i);
-	fprintf(stderr, "'%s' (%d) = 0x%08X\n", luaP_opnames[op], op, i);
+  int op = GET_OPCODE(i);
+  fprintf(stderr, "'%s' (%d) = 0x%08X\n", luaP_opnames[op], op, i);
 }
 
 void vm_func_state_init(lua_State *L, func_state *fs) {
-	fs->L = L;
-	fs->cl = &clvalue(L->ci->func)->l;
-	fs->base = L->base;
-	fs->k = fs->cl->p->k;
+  fs->L = L;
+  fs->cl = &clvalue(L->ci->func)->l;
+  fs->base = L->base;
+  fs->k = fs->cl->p->k;
+#ifndef LUA_NODEBUG
+  fs->pc = L->savedpc;
+#endif
 }
 
