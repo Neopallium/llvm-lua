@@ -44,7 +44,7 @@ typedef struct {
 	int type_length; /* top 2 bits used for type, buttom 30 bits used for string length */
 	union {
 		/* nil doesn't need a value. */
-		unsigned char b; /* Lua boolean */
+		int b; /* Lua boolean */
 		LUA_NUMBER num; /* Lua numbers */
 		char *str; /* Lua string. */
 	} val; /* value of Lua nil/boolean/number/string. */

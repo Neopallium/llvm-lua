@@ -553,6 +553,7 @@ static const llvm::Type *Ty_constant_type_ptr;
 static const llvm::StructType *Ty_jit_proto;
 static const llvm::Type *Ty_jit_proto_ptr;
 static const llvm::Type *lua_func_type_ptr;
+static int max_alignment = sizeof(void *) * 8;
 
 llvm::Constant *get_ptr(llvm::Constant *val) {
 	std::vector<llvm::Constant *> idxList;
@@ -589,7 +590,7 @@ llvm::GlobalVariable *llvm_compiler_dump_constants(Proto *p) {
 			case LUA_TBOOLEAN:
 				type_length = constant_type_len(TYPE_BOOLEAN, 0);
 				type = Ty_constant_bool_type;
-				tmp_struct.push_back(llvm::ConstantInt::get(llvm::APInt(8, !l_isfalse(tval))));
+				tmp_struct.push_back(llvm::ConstantInt::get(llvm::APInt(max_alignment, !l_isfalse(tval))));
 				value = llvm::ConstantStruct::get(tmp_struct, false);
 				break;
 			case LUA_TNUMBER:
@@ -602,7 +603,7 @@ llvm::GlobalVariable *llvm_compiler_dump_constants(Proto *p) {
 			default:
 				type_length = constant_type_len(TYPE_NIL, 0);
 				type = Ty_constant_bool_type;
-				tmp_struct.push_back(llvm::ConstantInt::get(llvm::APInt(8, 0)));
+				tmp_struct.push_back(llvm::ConstantInt::get(llvm::APInt(max_alignment, 0)));
 				value = llvm::ConstantStruct::get(tmp_struct, false);
 				break;
 		}
@@ -681,6 +682,8 @@ llvm::Constant *llvm_compiler_dump_proto(Proto *p) {
 }
 
 void llvm_compiler_dump_protos(Proto *p) {
+	int double_size = sizeof(double) * 8;
+	if(max_alignment < double_size) max_alignment = double_size;
 	//
 	// create constant_type structure type.
 	//
@@ -689,8 +692,7 @@ void llvm_compiler_dump_protos(Proto *p) {
 	value_type = llvm::StructType::get(llvm::Type::DoubleTy, NULL);
 	Ty_constant_num_type = llvm::StructType::get(llvm::Type::Int32Ty, value_type, NULL);
 	TheModule->addTypeName("struct.constant_num_type", Ty_constant_num_type);
-	value_type = llvm::StructType::get(llvm::Type::Int8Ty,
-		llvm::ArrayType::get(llvm::Type::Int8Ty, 7) , NULL);
+	value_type = llvm::StructType::get(llvm::IntegerType::get(max_alignment), NULL);
 	Ty_constant_bool_type = llvm::StructType::get(llvm::Type::Int32Ty, value_type, NULL);
 	TheModule->addTypeName("struct.constant_bool_type", Ty_constant_bool_type);
 	value_type = llvm::StructType::get(Ty_str_ptr, NULL);
