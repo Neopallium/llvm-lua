@@ -77,7 +77,7 @@ void dumpConstantType(const std::vector<llvm::Constant *> &V) {
 //===----------------------------------------------------------------------===//
 
 static llvm::Module *TheModule;
-static llvm::IRBuilder Builder;
+static llvm::IRBuilder<> Builder;
 static std::map<std::string, llvm::Value*> NamedValues;
 static llvm::FunctionPassManager *TheFPM;
 

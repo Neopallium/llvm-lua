@@ -28,6 +28,11 @@ RM= rm -f
 MYCFLAGS += -DLUA_NODEBUG
 OPS_CFLAGS += -DLUA_NODEBUG
 
+all: default
+
+macosx:
+	$(MAKE) default MYLDFLAGS="" MYLIBS="-lm"
+
 default: lua llvm-lua llvm-luac liblua_main.bc
 
 %.o: %.c
@@ -58,10 +63,10 @@ lua: lua_normal.o
 	$(LD) -o $@ $^ $(MYLIBS)
 
 llvm-lua: llvm-lua.o llvm-compiler.o lua_core.o lua_interpreter.o lua_vm_ops.bc
-	$(LD) $(MYLDFLAGS) -export-dynamic -o $@ llvm-lua.o llvm-compiler.o lua_core.o lua_interpreter.o -L$(LUA_SRC) -llua $(LLVM_LFLAGS)
+	$(LD) $(MYLDFLAGS) -o $@ llvm-lua.o llvm-compiler.o lua_core.o lua_interpreter.o -L$(LUA_SRC) -llua $(LLVM_LFLAGS)
 
 llvm-luac: llvm-luac.o llvm-compiler.o lua_core.o lua_compiler.o lua_vm_ops.bc
-	$(LD) $(MYLDFLAGS) -export-dynamic -o $@ llvm-luac.o llvm-compiler.o lua_core.o lua_compiler.o -L$(LUA_SRC) -llua $(LLVM_LFLAGS)
+	$(LD) $(MYLDFLAGS) -o $@ llvm-luac.o llvm-compiler.o lua_core.o lua_compiler.o -L$(LUA_SRC) -llua $(LLVM_LFLAGS)
 
 clean:
 	$(RM) *.bc *.o lua llvm-lua llvm-luac
