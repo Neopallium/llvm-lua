@@ -22,6 +22,7 @@
 	(ttype(o1) == ttype(o2) && luaV_equalval(L, o1, o2))
 
 
+LUAI_FUNC void luaV_traceexec (lua_State *L, const Instruction *pc);
 LUAI_FUNC int luaV_call_binTM (lua_State *L, const TValue *p1, const TValue *p2,
                                              StkId res, TMS event);
 LUAI_FUNC int luaV_lessthan (lua_State *L, const TValue *l, const TValue *r);

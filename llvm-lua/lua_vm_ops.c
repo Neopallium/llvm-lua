@@ -494,17 +494,15 @@ void vm_OP_VARARG(func_state *fs, const Instruction i) {
 void vm_next_OP(func_state *fs) {
 #ifndef LUA_NODEBUG
 	fs->pc++;
-#if 0
   if ((fs->L->hookmask & (LUA_MASKLINE | LUA_MASKCOUNT)) &&
       (--fs->L->hookcount == 0 || fs->L->hookmask & LUA_MASKLINE)) {
-    traceexec(fs->L, fs->pc);
+    luaV_traceexec(fs->L, fs->pc);
     if (fs->L->status == LUA_YIELD) {  /* did hook yield? */
       fs->L->savedpc = fs->pc - 1;
       return;
     }
     fs->base = fs->L->base;
   }
-#endif
 #endif
 }
 

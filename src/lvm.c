@@ -57,7 +57,7 @@ int luaV_tostring (lua_State *L, StkId obj) {
 }
 
 
-static void traceexec (lua_State *L, const Instruction *pc) {
+void luaV_traceexec (lua_State *L, const Instruction *pc) {
   lu_byte mask = L->hookmask;
   const Instruction *oldpc = L->savedpc;
   L->savedpc = pc;
@@ -389,7 +389,7 @@ void luaV_execute (lua_State *L, int nexeccalls) {
     StkId ra;
     if ((L->hookmask & (LUA_MASKLINE | LUA_MASKCOUNT)) &&
         (--L->hookcount == 0 || L->hookmask & LUA_MASKLINE)) {
-      traceexec(L, pc);
+      luaV_traceexec(L, pc);
       if (L->status == LUA_YIELD) {  /* did hook yield? */
         L->savedpc = pc - 1;
         return;
