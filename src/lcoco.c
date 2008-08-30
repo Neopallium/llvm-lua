@@ -144,8 +144,8 @@ __asm__ (
 "\t.type coco_wrap_main, @function\n"
 "coco_wrap_main:\n"
 "\n"
-"\tmovq %rbp, %rax\n"
-"\tmovq %rbx, %rdi\n"
+"\tmovq %r12, %rax\n"
+"\tmovq %r13, %rdi\n"
 "\tjmpq *%rax\n"
 );
 
@@ -170,10 +170,10 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
 #define COCO_MAKECTX(coco, buf, func, stack, a0) \
   buf[0] = (void *)(coco_wrap_main); /* rip == wrap function */ \
   buf[1] = (void *)(stack); /* rsp == top of stack */ \
-  buf[2] = (void *)(func); /* rbp == coco_main function */ \
-  buf[3] = (void *)(a0); /* rbx == lua_State */ \
-  buf[4] = (void *)0; \
-  buf[5] = (void *)0; \
+  buf[2] = (void *)0; \
+  buf[3] = (void *)0; \
+  buf[4] = (void *)(func); /* r12 == coco_main function */ \
+  buf[5] = (void *)(a0); /* r13 == lua_State */ \
   buf[6] = (void *)0; \
   buf[7] = (void *)0; \
   stack[0] = 0xdeadc0c0deadc0c0;  /* Dummy return address. */ \
