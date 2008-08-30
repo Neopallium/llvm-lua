@@ -136,19 +136,31 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
 
 #elif defined(__x86_64__)
 
-typedef void *coco_ctx[9];  /* rip, rsp, rbp, rbx, r12, r13, r14, r15, rdi */
+/* wrap function to set register %rdi == lua_State */
+void coco_wrap_main();
+__asm__ (
+"\t.text\n"
+".local coco_wrap_main\n"
+"\t.type coco_wrap_main, @function\n"
+"coco_wrap_main:\n"
+"\n"
+"\tmovq %rbp, %rax\n"
+"\tmovq %rbx, %rdi\n"
+"\tjmpq *%rax\n"
+);
+
+typedef void *coco_ctx[8];  /* rip, rsp, rbp, rbx, r12, r13, r14, r15 */
 static inline void coco_switch(coco_ctx from, coco_ctx to)
 {
   __asm__ __volatile__ (
     "leaq 1f(%%rip), %%rax\n\t"
     "movq %%rax, (%0)\n\t" "movq %%rsp, 8(%0)\n\t" "movq %%rbp, 16(%0)\n\t"
 		"movq %%rbx, 24(%0)\n\t" "movq %%r12, 32(%0)\n\t" "movq %%r13, 40(%0)\n\t"
-		"movq %%r14, 48(%0)\n\t" "movq %%r15, 56(%0)\n\t" "movq %%rdi, 64(%0)\n\t"
-		"movq %1, %%rax\n\t"
-    "movq 64(%%rax), %%rdi\n\t" "movq 56(%%rax), %%r15\n\t" "movq 48(%%rax), %%r14\n\t"
-    "movq 40(%%rax), %%r13\n\t" "movq 32(%%rax), %%r12\n\t" "movq 24(%%rax), %%rbx\n\t"
-		"movq 16(%%rax), %%rbp\n\t" "movq 8(%%rax), %%rsp\n\t"
-		"jmp *(%%rax)\n"
+		"movq %%r14, 48(%0)\n\t" "movq %%r15, 56(%0)\n\t"
+    "movq 56(%1), %%r15\n\t" "movq 48(%1), %%r14\n\t" "movq 40(%1), %%r13\n\t"
+		"movq 32(%1), %%r12\n\t" "movq 24(%1), %%rbx\n\t" "movq 16(%1), %%rbp\n\t"
+		"movq 8(%1), %%rsp\n\t"
+		"jmpq *(%1)\n"
 		"1:\n"
     : "+S" (from), "+D" (to) : : "rax", "rcx", "rdx", "r8", "r9", "r10", "r11", "memory", "cc");
 }
@@ -156,15 +168,14 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
 #define COCO_CTX		coco_ctx
 #define COCO_SWITCH(from, to)	coco_switch(from, to);
 #define COCO_MAKECTX(coco, buf, func, stack, a0) \
-  buf[0] = (void *)(func); \
-  buf[1] = (void *)(stack); \
-  buf[2] = (void *)0; \
-  buf[3] = (void *)0; \
+  buf[0] = (void *)(coco_wrap_main); /* rip == wrap function */ \
+  buf[1] = (void *)(stack); /* rsp == top of stack */ \
+  buf[2] = (void *)(func); /* rbp == coco_main function */ \
+  buf[3] = (void *)(a0); /* rbx == lua_State */ \
   buf[4] = (void *)0; \
   buf[5] = (void *)0; \
   buf[6] = (void *)0; \
   buf[7] = (void *)0; \
-  buf[8] = (void *)a0; /* rdi == argument 0 */\
   stack[0] = 0xdeadc0c0deadc0c0;  /* Dummy return address. */ \
 
 #elif __mips && _MIPS_SIM == _MIPS_SIM_ABI32 && !defined(__mips_eabi)
