@@ -140,10 +140,14 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
 void coco_wrap_main();
 __asm__ (
 "\t.text\n"
+#ifdef __MACH__
+"\t.private_extern _coco_wrap_main\n"
+"_coco_wrap_main:\n"
+#else
 ".local coco_wrap_main\n"
 "\t.type coco_wrap_main, @function\n"
 "coco_wrap_main:\n"
-"\n"
+#endif
 "\tmovq %r12, %rax\n"
 "\tmovq %r13, %rdi\n"
 "\tjmpq *%rax\n"
