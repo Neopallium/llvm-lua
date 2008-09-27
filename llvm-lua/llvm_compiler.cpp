@@ -22,21 +22,50 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
-#include "llvm-luac.h"
-#include "llvm_compiler.h"
-#include "lua_compiler.h"
+#include "LLVMCompiler.h"
+#include "LLVMDumper.h"
 
-/*
- *
- */
-int main(int argc, char ** argv) {
-	int ret;
-	// initialize the Lua to LLVM compiler.
-	ret = llvm_compiler_main(0, argc, argv);
-	// Run the main Lua compiler
-	ret = luac_main(argc, argv);
-	// cleanup Lua to LLVM compiler.
-	llvm_compiler_cleanup();
-	return ret;
+extern "C" {
+
+static LLVMCompiler *compiler = NULL;
+static LLVMDumper *dumper = NULL;
+
+int llvm_compiler_main(int useJIT, int argc, char ** argv) {
+	compiler = new LLVMCompiler(useJIT, argc, argv);
+	return 0;
 }
+
+void llvm_compiler_cleanup() {
+	if(dumper) delete dumper;
+	delete compiler;
+	dumper = NULL;
+	compiler = NULL;
+}
+
+void llvm_compiler_optimize(Proto *p, int optimize) {
+	compiler->optimize(p, optimize);
+}
+
+void llvm_compiler_optimize_all(Proto *p, int optimize) {
+	compiler->optimizeAll(p, optimize);
+}
+
+void llvm_compiler_compile(Proto *p, int optimize) {
+	compiler->compile(p, optimize);
+}
+
+void llvm_compiler_compile_all(Proto *p, int optimize) {
+	compiler->compileAll(p, optimize);
+}
+
+void llvm_compiler_dump(const char *output, Proto *p, int optimize, int stripping) {
+	if(dumper == NULL) dumper = new LLVMDumper(compiler);
+	dumper->dump(output, p, optimize, stripping);
+}
+
+void llvm_compiler_free(Proto *p) {
+	compiler->free(p);
+}
+
+}// end: extern "C"
 

@@ -23,7 +23,7 @@
 */
 
 #include "llvm-lua.h"
-#include "llvm-compiler.h"
+#include "llvm_compiler.h"
 #include "lua_interpreter.h"
 
 /*

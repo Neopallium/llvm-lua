@@ -37,8 +37,6 @@ Proto *load_jit_proto(lua_State *L, jit_proto *p) {
 	Proto *f = luaF_newproto(L);
 	int i;
 
-	setptvalue2s(L,L->top,f);
-	incr_top(L);
 	/* proto source */
 	f->source = luaS_new(L, p->name);
 	/* jit_func */

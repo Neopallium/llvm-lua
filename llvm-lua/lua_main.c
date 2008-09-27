@@ -145,13 +145,16 @@ static int load_compiled_jit(lua_State *L) {
   Proto *tf;
   int i;
 
+  luaC_checkGC(L);
+  set_block_gc(L);  /* stop collector during jit function loading. */
   tf = load_jit_proto(L, &jit_proto_init);
   cl = luaF_newLclosure(L, tf->nups, hvalue(gt(L)));
-  setclvalue(L, L->top, cl);
-  incr_top(L);
   cl->l.p = tf;
   for (i = 0; i < tf->nups; i++)  /* initialize eventual upvalues */
     cl->l.upvals[i] = luaF_newupval(L);
+  setclvalue(L, L->top, cl);
+  incr_top(L);
+  unset_block_gc(L);
   return 0;
 }
 

@@ -22,21 +22,54 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
-#include "llvm-luac.h"
-#include "llvm_compiler.h"
-#include "lua_compiler.h"
+#include "llvm/Module.h"
+#include "llvm/ModuleProvider.h"
 
-/*
- *
- */
-int main(int argc, char ** argv) {
-	int ret;
-	// initialize the Lua to LLVM compiler.
-	ret = llvm_compiler_main(0, argc, argv);
-	// Run the main Lua compiler
-	ret = luac_main(argc, argv);
-	// cleanup Lua to LLVM compiler.
-	llvm_compiler_cleanup();
-	return ret;
+#ifdef USE_BITCODE_FILE
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Bitcode/ReaderWriter.h"
+#endif
+
+#include <string>
+
+using namespace llvm;
+
+#include "load_vm_ops.h"
+
+#ifndef USE_BITCODE_FILE
+#include "lua_vm_ops_module.h"
+#endif
+
+ModuleProvider *load_vm_ops(bool NoLazyCompilation) {
+	ModuleProvider *MP = NULL;
+	Module *theModule = NULL;
+	std::string error;
+
+#ifdef USE_BITCODE_FILE
+	const char *ops_file="lua_vm_ops.bc";
+	// Load in the bitcode file containing the functions for each
+	// bytecode operation.
+	if(llvm::MemoryBuffer* buffer = llvm::MemoryBuffer::getFile(ops_file, &error)) {
+		MP = llvm::getBitcodeModuleProvider(buffer, &error);
+		if(!MP) delete buffer;
+	}
+	if(!MP) {
+		printf("Failed to parse %s file: %s\n", ops_file, error.c_str());
+		exit(1);
+	}
+	// Get Module from ModuleProvider.
+	if(NoLazyCompilation) {
+		theModule = MP->materializeModule(&error);
+		if(!theModule) {
+			printf("Failed to read %s file: %s\n", ops_file, error.c_str());
+			exit(1);
+		}
+	}
+#else
+	theModule = make_lua_vm_ops();
+	MP = new llvm::ExistingModuleProvider(theModule);
+#endif
+
+	return MP;
 }
 

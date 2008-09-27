@@ -14,7 +14,7 @@
 
 #include "lua_core.h"
 #include "lua_interpreter.h"
-#include "llvm-compiler.h"
+#include "llvm_compiler.h"
 
 #include "lua.h"
 #include "lauxlib.h"

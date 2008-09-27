@@ -9,6 +9,8 @@ if [[ $DEBUG == "1" ]]; then
 else
 	CFLAGS=" -march=athlon64 -O3 -fomit-frame-pointer -pipe -Wall "
 	OPT_FLAGS=" -std-compile-opts "
+	#CFLAGS=" -march=athlon64 -O2 -pipe -Wall "
+	#OPT_FLAGS=" -disable-opt -tailcallelim "
 	LLC_FLAGS=" -tailcallopt "
 fi
 
@@ -18,5 +20,5 @@ fi
 	llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_run.s ${FILE}_opt.bc && \
 	g++ $CFLAGS -o ${FILE} ${FILE}_run.s -lm -ldl
 
-rm -f ${FILE}.bc ${FILE}.ll ${FILE}_opt.bc ${FILE}_run.bc ${FILE}_run.s
+rm -f ${FILE}.bc ${FILE}_opt.bc ${FILE}_run.bc ${FILE}_run.s
 

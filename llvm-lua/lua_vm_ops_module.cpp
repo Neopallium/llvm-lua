@@ -22,21 +22,30 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
-#include "llvm-luac.h"
-#include "llvm_compiler.h"
-#include "lua_compiler.h"
+#include <llvm/Module.h>
+#include <llvm/DerivedTypes.h>
+#include <llvm/Constants.h>
+#include <llvm/GlobalVariable.h>
+#include <llvm/Function.h>
+#include <llvm/CallingConv.h>
+#include <llvm/BasicBlock.h>
+#include <llvm/Instructions.h>
+#include <llvm/InlineAsm.h>
+#include <llvm/Support/MathExtras.h>
+#include <llvm/Pass.h>
+#include <llvm/PassManager.h>
+#include <llvm/ADT/SmallVector.h>
+#include <llvm/Analysis/Verifier.h>
+#include <llvm/Assembly/PrintModulePass.h>
+#include <algorithm>
+#include <iostream>
 
-/*
- *
- */
-int main(int argc, char ** argv) {
-	int ret;
-	// initialize the Lua to LLVM compiler.
-	ret = llvm_compiler_main(0, argc, argv);
-	// Run the main Lua compiler
-	ret = luac_main(argc, argv);
-	// cleanup Lua to LLVM compiler.
-	llvm_compiler_cleanup();
-	return ret;
+using namespace llvm;
+
+#include "lua_vm_ops.inc.cpp"
+
+Module* make_lua_vm_ops() {
+	return makeLLVMModule();
 }
+
 

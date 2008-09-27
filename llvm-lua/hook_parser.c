@@ -18,7 +18,7 @@ int llvm_precall_lua (lua_State *L, StkId func, int nresults) {
 
 #else
 
-#include "llvm-compiler.h"
+#include "llvm_compiler.h"
 
 #define luaD_protectedparser luaD_protectedparser_old
 #include "ldo.c"

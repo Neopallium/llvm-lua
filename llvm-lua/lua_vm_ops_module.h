@@ -22,21 +22,10 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
-#include "llvm-luac.h"
-#include "llvm_compiler.h"
-#include "lua_compiler.h"
+#ifndef lua_vm_ops_module_h
+#define lua_vm_ops_module_h
 
-/*
- *
- */
-int main(int argc, char ** argv) {
-	int ret;
-	// initialize the Lua to LLVM compiler.
-	ret = llvm_compiler_main(0, argc, argv);
-	// Run the main Lua compiler
-	ret = luac_main(argc, argv);
-	// cleanup Lua to LLVM compiler.
-	llvm_compiler_cleanup();
-	return ret;
-}
+llvm::Module* make_lua_vm_ops();
+
+#endif
 

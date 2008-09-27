@@ -1,6 +1,4 @@
 /*
-  lua_core.c -- Lua core, libraries and JIT hooks compiled into a single file
-
   Copyright (c) 2008 Robert G. Jakabosky
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,58 +22,65 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
+#ifndef LLVMDUMPER_h
+#define LLVMDUMPER_h
+
 #include "lua_core.h"
-#include "lua_vm_ops.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "lobject.h"
-#include "llvm_compiler.h"
 
-extern int llvm_precall_lua (lua_State *L, StkId func, int nresults);
-void llvm_newproto (lua_State *L, Proto *f);
-void llvm_freeproto (lua_State *L, Proto *f);
+#ifdef __cplusplus
+}
+#endif
 
-/* functions */
-#define JIT_NEWPROTO(L,f) llvm_newproto(L,f)
-#define JIT_FREEPROTO(L,f) llvm_freeproto(L,f)
-#define JIT_PRECALL llvm_precall_lua
-
-#include "lapi.c"
-#include "lcode.c"
-#include "ldebug.c"
-#include "ldump.c"
-#include "lfunc.c"
-#include "lgc.c"
-#include "llex.c"
-#include "lmem.c"
-#include "lobject.c"
-#include "lopcodes.c"
-#include "lparser.c"
-#include "lstate.c"
-#include "lstring.c"
-#include "ltable.c"
-#include "ltm.c"
-#include "lundump.c"
-#include "lvm.c"
-#include "lzio.c"
-
-#include "lbaselib.c"
-#include "lcoco.c"
-#include "ldblib.c"
-#include "liolib.c"
-#include "linit.c"
-#include "lmathlib.c"
-#include "loadlib.c"
-#include "loslib.c"
-#include "lstrlib.c"
-#include "ltablib.c"
-
-#include "lauxlib.c"
-
-void llvm_newproto (lua_State *L, Proto *f) {
-	f->jit_func = NULL;
-	f->func_ref = NULL;
+namespace llvm {
+class Module;
+class Type;
+class StructType;
+class FunctionType;
+class Constant;
+class GlobalVariable;
 }
 
-void llvm_freeproto (lua_State *L, Proto *f) {
-	llvm_compiler_free(f);
-}
+class LLVMCompiler;
+
+class LLVMDumper {
+private:
+	LLVMCompiler *compiler;
+	llvm::Module *TheModule;
+
+	// types.
+	const llvm::Type *Ty_str_ptr;
+	const llvm::StructType *Ty_constant_num_type;
+	const llvm::StructType *Ty_constant_bool_type;
+	const llvm::StructType *Ty_constant_str_type;
+	const llvm::Type *Ty_constant_type_ptr;
+	const llvm::StructType *Ty_jit_proto;
+	const llvm::Type *Ty_jit_proto_ptr;
+	const llvm::FunctionType *lua_func_type;
+	const llvm::Type *lua_func_type_ptr;
+	int max_alignment;
+
+public:
+	LLVMDumper(LLVMCompiler *compiler);
+
+	void dump(const char *output, Proto *p, int optimize, int stripping);
+
+private:
+	llvm::Constant *get_ptr(llvm::Constant *val);
+
+	llvm::Constant *get_global_str(const char *str);
+
+	llvm::GlobalVariable *dump_constants(Proto *p);
+
+	llvm::Constant *dump_proto(Proto *p);
+
+	void dump_protos(Proto *p);
+
+};
+#endif
 
