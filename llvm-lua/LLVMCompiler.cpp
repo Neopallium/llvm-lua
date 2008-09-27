@@ -34,6 +34,7 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Support/IRBuilder.h"
 #include "llvm/Support/Timer.h"
+#include "llvm/Support/CommandLine.h"
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -103,7 +104,10 @@ LLVMCompiler::LLVMCompiler(int useJIT, int argc, char ** argv) {
 	if(use_timers) load_jit.startTimer();
 	// Create the JIT.
 	if(useJIT) {
-		TheExecutionEngine = llvm::ExecutionEngine::create(MP);
+		TheExecutionEngine = llvm::ExecutionEngine::create(MP, false, &error, true);
+		if(!TheExecutionEngine && !error.empty()) {
+			printf("Error creating JIT engine: %s\n", error.c_str());
+		}
 		if (NoLazyCompilation)
 			TheExecutionEngine->DisableLazyCompilation();
 

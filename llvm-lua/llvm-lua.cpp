@@ -25,14 +25,88 @@
 #include "llvm-lua.h"
 #include "llvm_compiler.h"
 #include "lua_interpreter.h"
+#include "llvm/Support/CommandLine.h"
+
+namespace {
+  llvm::cl::opt<std::string>
+  InputFile(llvm::cl::desc("<script>"), llvm::cl::Positional, llvm::cl::init("-"));
+
+  llvm::cl::list<std::string>
+  InputArgv(llvm::cl::ConsumeAfter, llvm::cl::desc("<script arguments>..."));
+
+  llvm::cl::opt<std::string>
+  Execute("e",
+            llvm::cl::desc("execuate string 'stat'"),
+              llvm::cl::value_desc("stat"));
+
+  llvm::cl::opt<std::string>
+  Library("l",
+            llvm::cl::desc("require library 'name'"),
+              llvm::cl::value_desc("name"));
+
+  llvm::cl::opt<std::string>
+  MemLimit("m",
+            llvm::cl::desc("set memory limit. (units ar in Kbytes)"),
+              llvm::cl::value_desc("limit"));
+
+  llvm::cl::opt<bool>
+  Interactive("i",
+            llvm::cl::desc("enter interactive mode after executing 'script'"));
+
+  llvm::cl::opt<bool>
+  ShowVersion("v",
+            llvm::cl::desc("show version information"));
+
+}
+
+void print_version() {
+	printf("llvm-lua 0.2  Copyright (C) 2008 Robert G. Jakabosky\n");
+	printf(LUA_RELEASE "  " LUA_COPYRIGHT "\n");
+	llvm::cl::PrintVersionMessage();
+}
 
 /*
  *
  */
 int main(int argc, char ** argv) {
+	std::vector<std::string> arg_list;
+	int new_argc=0;
 	int ret;
+
+	llvm::cl::SetVersionPrinter(print_version);
+	llvm::cl::ParseCommandLineOptions(argc, argv, 0, true);
+	// Show version?
+	if(ShowVersion) {
+		print_version();
+		return 0;
+	}
+	// recreate arg list.
+	arg_list.push_back(argv[0]);
+	if(!Execute.empty()) {
+		arg_list.push_back("-e");
+		arg_list.push_back(Execute);
+	}
+	if(!Library.empty()) {
+		arg_list.push_back("-l");
+		arg_list.push_back(Library);
+	}
+	if(!MemLimit.empty()) {
+		arg_list.push_back("-m");
+		arg_list.push_back(MemLimit);
+	}
+	if(Interactive) {
+		arg_list.push_back("-i");
+	}
+	arg_list.push_back(InputFile);
+	arg_list.insert(arg_list.end(),InputArgv.begin(), InputArgv.end());
+	for(std::vector<std::string>::iterator I=arg_list.begin(); I != arg_list.end(); I++) {
+		if(new_argc == argc) break;
+		argv[new_argc] = (char *)(*I).c_str();
+		new_argc++;
+	}
+
 	// initialize the Lua to LLVM compiler.
-	ret = llvm_compiler_main(1, argc, argv);
+	ret = llvm_compiler_main(1, new_argc, argv);
 	// Run the main "interpreter loop" now.
 	ret = lua_main(argc, argv);
 	// cleanup Lua to LLVM compiler.
