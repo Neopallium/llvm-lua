@@ -42,7 +42,7 @@
 
 using namespace llvm;
 
-#include "lua_vm_ops.inc.cpp"
+#include "lua_vm_ops_module.inc.cpp"
 
 Module* make_lua_vm_ops() {
 	return makeLLVMModule();
