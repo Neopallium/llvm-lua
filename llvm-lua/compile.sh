@@ -20,5 +20,7 @@ fi
 	llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_run.s ${FILE}_opt.bc && \
 	g++ $CFLAGS -o ${FILE} ${FILE}_run.s -lm -ldl
 
-rm -f ${FILE}.bc ${FILE}_opt.bc ${FILE}_run.bc ${FILE}_run.s
+rm -f ${FILE}_opt.bc ${FILE}_run.bc
+rm -f ${FILE}.bc ${FILE}_run.s
+#mv ${FILE}_opt.bc ${FILE}_run.bc
 

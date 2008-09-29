@@ -35,15 +35,16 @@ extern "C" {
 
 #include "lobject.h"
 
+#include "lua_vm_ops.h"
+
 #ifdef __cplusplus
 }
 #endif
 
 namespace llvm {
-//class Module;
 class FunctionPassManager;
 class ExecutionEngine;
-//class IRBuilder;
+class Timer;
 }
 
 class LLVMCompiler {
@@ -64,9 +65,14 @@ private:
 	llvm::Function *vm_func_state_init;
 	// function for print each executed op.
 	llvm::Function *vm_print_OP;
+	// function for handling count/line debug hooks.
+	llvm::Function *vm_next_OP;
 	// list of op functions.
 	llvm::Function **vm_ops;
 
+	// timers
+	llvm::Timer *lua_to_llvm;
+	llvm::Timer *codegen;
 public:
 	LLVMCompiler(int useJIT, int argc, char ** argv);
 	~LLVMCompiler();
@@ -81,6 +87,8 @@ public:
 	llvm::FunctionType *get_lua_func_type() {
 		return lua_func_type;
 	}
+	
+	const llvm::Type *get_var_type(var_type type);
 	
 	void optimize(Proto *p, int opt);
 	

@@ -25,7 +25,6 @@
 */
 
 #include "lua_core.h"
-#include "lua_vm_ops.h"
 #include "lobject.h"
 #include "llvm_compiler.h"
 

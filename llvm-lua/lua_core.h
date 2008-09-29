@@ -23,8 +23,6 @@ extern "C" {
 #undef LUAI_FUNC
 #define LUAI_FUNC extern
 
-typedef unsigned int LuaInstruction;
-
 #ifdef __cplusplus
 }
 #endif
