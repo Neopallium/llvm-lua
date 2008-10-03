@@ -41,9 +41,8 @@
 //===----------------------------------------------------------------------===//
 
 LLVMDumper::LLVMDumper(LLVMCompiler *compiler) : compiler(compiler) {
-	int void_size = sizeof(void *) * 8;
-	int double_size = sizeof(double) * 8;
-	max_alignment = (void_size < double_size) ? double_size : void_size;
+	max_alignment = (sizeof(void *) < sizeof(LUA_NUMBER)) ? sizeof(LUA_NUMBER) : sizeof(void *);
+	max_alignment *= 8;
 
 	TheModule = compiler->getModule();
 	lua_func_type = compiler->get_lua_func_type();
@@ -52,6 +51,7 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler) : compiler(compiler) {
 	//
 	Ty_str_ptr=llvm::PointerType::get(llvm::Type::Int8Ty, 0);
 	const llvm::Type *value_type;
+	// TODO: handle LUA_NUMBER types other then 'double'.
 	value_type = llvm::StructType::get(llvm::Type::DoubleTy, NULL);
 	Ty_constant_num_type = llvm::StructType::get(llvm::Type::Int32Ty, value_type, NULL);
 	TheModule->addTypeName("struct.constant_num_type", Ty_constant_num_type);
@@ -59,6 +59,15 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler) : compiler(compiler) {
 	Ty_constant_bool_type = llvm::StructType::get(llvm::Type::Int32Ty, value_type, NULL);
 	TheModule->addTypeName("struct.constant_bool_type", Ty_constant_bool_type);
 	value_type = llvm::StructType::get(Ty_str_ptr, NULL);
+	if(sizeof(void *) < sizeof(LUA_NUMBER)) {
+		const llvm::ArrayType *pad_type;
+		pad_type = llvm::ArrayType::get(llvm::Type::Int8Ty, sizeof(LUA_NUMBER) - sizeof(void *));
+		padding_constant = llvm::Constant::getNullValue(pad_type);
+		value_type = llvm::StructType::get(Ty_str_ptr, pad_type, NULL);
+	} else {
+		padding_constant = NULL;
+		value_type = llvm::StructType::get(Ty_str_ptr, NULL);
+	}
 	Ty_constant_str_type = llvm::StructType::get(llvm::Type::Int32Ty, value_type, NULL);
 	TheModule->addTypeName("struct.constant_str_type", Ty_constant_str_type);
 	lua_func_type_ptr = llvm::PointerType::get(lua_func_type, 0);
@@ -140,6 +149,9 @@ llvm::GlobalVariable *LLVMDumper::dump_constants(Proto *p) {
 				type_length = constant_type_len(TYPE_STRING, tsvalue(tval)->len);
 				type = Ty_constant_str_type;
 				tmp_struct.push_back(get_global_str(svalue(tval)));
+				if(padding_constant != NULL) {
+					tmp_struct.push_back(padding_constant);
+				}
 				value = llvm::ConstantStruct::get(tmp_struct, false);
 				break;
 			case LUA_TBOOLEAN:
@@ -242,8 +254,7 @@ void LLVMDumper::dump_protos(Proto *p) {
 	//
 	llvm::Constant *jit_proto = dump_proto(p);
 	llvm::GlobalVariable *gjit_proto_init = new llvm::GlobalVariable(Ty_jit_proto, false,
-		llvm::GlobalValue::InternalLinkage, jit_proto, "jit_proto_init", TheModule);
+		llvm::GlobalValue::ExternalLinkage, jit_proto, "jit_proto_init", TheModule);
 	gjit_proto_init->setAlignment(32);
-	gjit_proto_init->setLinkage(llvm::GlobalVariable::ExternalLinkage);
 }
 

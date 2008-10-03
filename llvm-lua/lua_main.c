@@ -139,7 +139,6 @@ static int dostring (lua_State *L, const char *s, const char *name) {
 }
 
 
-extern jit_proto jit_proto_init;
 static int load_compiled_jit(lua_State *L) {
   Closure *cl;
   Proto *tf;

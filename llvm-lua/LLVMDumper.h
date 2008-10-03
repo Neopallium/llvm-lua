@@ -63,6 +63,7 @@ private:
 	const llvm::Type *Ty_jit_proto_ptr;
 	const llvm::FunctionType *lua_func_type;
 	const llvm::Type *lua_func_type_ptr;
+	llvm::Constant *padding_constant;
 	int max_alignment;
 
 public:
