@@ -105,7 +105,7 @@ extern int vm_OP_CALL(lua_State *L, const Instruction i);
 
 extern int vm_OP_RETURN(lua_State *L, const Instruction i);
 
-extern int vm_OP_TAILCALL(lua_State *L, const Instruction i, const Instruction ret_i);
+extern int vm_OP_TAILCALL(lua_State *L, const Instruction i);
 
 extern int vm_OP_FORLOOP(lua_State *L, const Instruction i);
 

@@ -115,7 +115,7 @@ const vm_func_info vm_op_functions[] = {
     {VAR_T_LUA_STATE_PTR, VAR_T_INSTRUCTION, VAR_T_VOID},
   },
   { VAR_T_INT, "vm_OP_TAILCALL",
-    {VAR_T_LUA_STATE_PTR, VAR_T_INSTRUCTION, VAR_T_NEXT_INSTRUCTION, VAR_T_VOID},
+    {VAR_T_LUA_STATE_PTR, VAR_T_INSTRUCTION, VAR_T_VOID},
   },
   { VAR_T_INT, "vm_OP_RETURN",
     {VAR_T_LUA_STATE_PTR, VAR_T_INSTRUCTION, VAR_T_VOID},
@@ -221,7 +221,7 @@ int vm_OP_RETURN(lua_State *L, const Instruction i) {
 /*
  * TODO: move this function outside of lua_vm_ops.c
  */
-static int vm_OP_TAILCALL_lua(lua_State *L, const Instruction i, const Instruction ret_i) {
+static int vm_OP_TAILCALL_lua(lua_State *L, const Instruction i) {
   TValue *base = L->base;
   TValue *ra = RA(i);
   int b = GETARG_B(i);
@@ -254,7 +254,7 @@ static int vm_OP_TAILCALL_lua(lua_State *L, const Instruction i, const Instructi
 /*
  * TODO: move this function outside of lua_vm_ops.c
  */
-int vm_OP_TAILCALL(lua_State *L, const Instruction i, const Instruction ret_i) {
+int vm_OP_TAILCALL(lua_State *L, const Instruction i) {
   TValue *base = L->base;
   TValue *func = RA(i);
   int b = GETARG_B(i);
@@ -276,7 +276,7 @@ int vm_OP_TAILCALL(lua_State *L, const Instruction i, const Instruction ret_i) {
       llvm_compiler_compile(p, 1);
       if(p->jit_func == NULL) {
         /* Can't tailcall into non-compiled lua functions. YET! */
-        return vm_OP_TAILCALL_lua(L, i, ret_i);
+        return vm_OP_TAILCALL_lua(L, i);
       }
     }
   }
