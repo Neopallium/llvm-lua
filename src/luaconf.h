@@ -377,7 +377,7 @@
 #if 0
 #define LUA_USE_APICHECK
 #define lua_assert(c) assert(c)
-#define HARDSTACKTESTS
+//#define HARDSTACKTESTS
 #endif
 #if defined(LUA_USE_APICHECK)
 #include <assert.h>

@@ -39,6 +39,7 @@ typedef void (*Pfunc) (lua_State *L, void *ud);
 
 LUAI_FUNC int luaD_protectedparser (lua_State *L, ZIO *z, const char *name);
 LUAI_FUNC void luaD_callhook (lua_State *L, int event, int line);
+LUAI_FUNC StkId luaD_tryfuncTM (lua_State *L, StkId func);
 LUAI_FUNC int luaD_precall (lua_State *L, StkId func, int nresults);
 LUAI_FUNC int luaD_precall_lua (lua_State *L, StkId func, int nresults);
 LUAI_FUNC int luaD_precall_c (lua_State *L, StkId func, int nresults);

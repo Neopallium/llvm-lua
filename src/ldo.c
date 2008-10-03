@@ -247,7 +247,7 @@ static StkId adjust_varargs (lua_State *L, Proto *p, int actual) {
 }
 
 
-static StkId tryfuncTM (lua_State *L, StkId func) {
+StkId luaD_tryfuncTM (lua_State *L, StkId func) {
   const TValue *tm = luaT_gettmbyobj(L, func, TM_CALL);
   StkId p;
   ptrdiff_t funcr = savestack(L, func);
@@ -340,7 +340,7 @@ int luaD_precall_c (lua_State *L, StkId func, int nresults) {
 int luaD_precall (lua_State *L, StkId func, int nresults) {
   Closure *cl;
   if (!ttisfunction(func)) /* `func' is not a function? */
-    func = tryfuncTM(L, func);  /* check the `function' tag method */
+    func = luaD_tryfuncTM(L, func);  /* check the `function' tag method */
   cl = clvalue(func);
   return cl->l.precall(L,func,nresults);
 }
