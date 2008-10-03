@@ -5,7 +5,7 @@
 # == CHANGE THE SETTINGS BELOW TO SUIT YOUR ENVIRONMENT =======================
 
 # Your platform. See PLATS for possible values.
-PLAT= linux
+PLAT= none
 
 # Where to install. The installation starts in the src and doc directories,
 # so take care if INSTALL_TOP is not an absolute path.
@@ -53,20 +53,20 @@ R= 5.1.4
 all:	$(PLAT)
 
 $(PLATS) clean:
-	cd src && $(MAKE) $@
+	cd llvm-lua && $(MAKE) $@
 
 test:	dummy
-	src/lua test/hello.lua
+	llvm-lua/llvm-lua test/hello.lua
 
 install: dummy
-	cd src && $(MKDIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB) $(INSTALL_MAN) $(INSTALL_LMOD) $(INSTALL_CMOD)
-	cd src && $(INSTALL_EXEC) $(TO_BIN) $(INSTALL_BIN)
-	cd src && $(INSTALL_DATA) $(TO_INC) $(INSTALL_INC)
-	cd src && $(INSTALL_DATA) $(TO_LIB) $(INSTALL_LIB)
+	cd llvm-lua && $(MKDIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB) $(INSTALL_MAN) $(INSTALL_LMOD) $(INSTALL_CMOD)
+	cd llvm-lua && $(INSTALL_EXEC) $(TO_BIN) $(INSTALL_BIN)
+	cd llvm-lua && $(INSTALL_DATA) $(TO_INC) $(INSTALL_INC)
+	cd llvm-lua && $(INSTALL_DATA) $(TO_LIB) $(INSTALL_LIB)
 	cd doc && $(INSTALL_DATA) $(TO_MAN) $(INSTALL_MAN)
 
 ranlib:
-	cd src && cd $(INSTALL_LIB) && $(RANLIB) $(TO_LIB)
+	cd llvm-lua && cd $(INSTALL_LIB) && $(RANLIB) $(TO_LIB)
 
 local:
 	$(MAKE) install INSTALL_TOP=..
@@ -84,9 +84,9 @@ dummy:
 # echo config parameters
 echo:
 	@echo ""
-	@echo "These are the parameters currently set in src/Makefile to build Lua $R:"
+	@echo "These are the parameters currently set in llvm-lua/Makefile to build Lua $R:"
 	@echo ""
-	@cd src && $(MAKE) -s echo
+	@cd llvm-lua && $(MAKE) -s echo
 	@echo ""
 	@echo "These are the parameters currently set in Makefile to install Lua $R:"
 	@echo ""
@@ -101,7 +101,7 @@ echo:
 	@echo "INSTALL_EXEC = $(INSTALL_EXEC)"
 	@echo "INSTALL_DATA = $(INSTALL_DATA)"
 	@echo ""
-	@echo "See also src/luaconf.h ."
+	@echo "See also llvm-lua/luaconf.h ."
 	@echo ""
 
 # echo private config parameters

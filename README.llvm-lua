@@ -1,14 +1,24 @@
 README for llvm-lua
 
-Patches to lua/src:
- * Emergency Garbage Collector: http://lua-users.org/wiki/EmergencyGarbageCollector
- * LuaCoco-1.1.4: http://luajit.org/coco.html
-
 Requires:
- * LLVM svn revision 54392 or higher, Might work with LLVM 2.3
+ * LLVM latest svn revision
  * llvm-gcc 4.2.1
 
 Compile:
- * cd llvm-lua
- * make
+ * make linux
+
+Install:
+ * requires manual install:
+ * copy llvm-lua to /usr/bin or /usr/local/bin
+ * set environment variable 'LLVM_LIB_SEARCH_PATH' to include the path to 'lua_vm_ops.bc'
+
+Patches to lua/src:
+ * Emergency Garbage Collector: http://lua-users.org/wiki/EmergencyGarbageCollector
+ * LuaCoco-1.1.4: http://luajit.org/coco.html + (x86_64 support added)
+ * a few hooks where added to support JIT compiled functions.
+
+Programs:
+ * llvm-lua: This command can be used to run Lua script.  It uses the LLVM backend to JIT Lua scripts to machine code for faster execution.
+ * llvm-luac: This command compiles Lua scripts into LLVM bitcode files that can then be linked with liblua_main.bc and compiled into a standalone binary.
+ * compile.sh: This is a bash script that wraps llvm-luac to compile Lua scripts into standalone executable binaries.
 
