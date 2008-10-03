@@ -9,6 +9,8 @@ LLVM_CXX= llvm-g++
 LLVM_LD= llvm-link
 LLC= llc
 LD= g++
+AR= ar rcu
+RANLIB = ranlib
 COCOCFLAGS=
 #COCOCFLAGS= -DCOCO_DEFAULT_CSTACKSIZE=524288 -DUSE_VALGRIND
 
@@ -16,8 +18,9 @@ ifdef DEBUG
 MYCFLAGS= -O0 -ggdb -Wall
 OPS_CFLAGS= -O0 -DLUA_USE_LINUX $(COCOCFLAGS)
 else
-#MYCFLAGS= -march=athlon64 -O3 -fomit-frame-pointer -pipe -Wall
-MYCFLAGS= -O3 -fomit-frame-pointer -pipe -Wall
+MYCFLAGS= -march=athlon64 -O3 -fomit-frame-pointer -foptimize-sibling-calls -pipe -Wall
+#MYCFLAGS= -O3 -fomit-frame-pointer -pipe -Wall
+#MYCFLAGS= -ggdb -O3 -pipe -Wall
 OPS_CFLAGS= $(MYCFLAGS) -DLUA_USE_LINUX $(COCOCFLAGS)
 endif
 
@@ -54,7 +57,7 @@ all: default
 macosx:
 	$(MAKE) default MYLDFLAGS="" MYLIBS="-lm"
 
-default: llvm-lua llvm-luac liblua_main.bc
+default: llvm-lua llvm-luac
 
 %.o: %.c
 	$(CC) -c $(LUA_CFLAGS) -o $@ $<
@@ -80,6 +83,10 @@ lua_vm_ops_module.o: lua_vm_ops_module.cpp lua_vm_ops_module.inc.cpp
 liblua_main.bc: lua_core.bc lua_main.bc load_jit_proto.bc lua_vm_ops_static.bc
 	$(LLVM_LD) -f -o $@ $^
 
+liblua_main.a: lua_core.o lua_main.o load_jit_proto.o lua_vm_ops_static.o
+	$(AR) $@ $?
+	$(RANLIB) $@
+
 lua_normal.o: lua_normal.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 	$(CC) -c $(LUA_CFLAGS) -o $@ lua_normal.c
 
@@ -89,10 +96,10 @@ lua: lua_normal.o
 llvm-lua: $(INTERPRETER_OBJS) lua_vm_ops.bc
 	$(LD) $(MYLDFLAGS) -o $@ $(INTERPRETER_OBJS) -L$(LUA_SRC) -llua $(LLVM_LFLAGS)
 
-llvm-luac: $(COMPILER_OBJS) lua_vm_ops.bc
+llvm-luac: $(COMPILER_OBJS) lua_vm_ops.bc liblua_main.bc liblua_main.a
 	$(LD) $(MYLDFLAGS) -o $@ $(COMPILER_OBJS) -L$(LUA_SRC) -llua $(LLVM_LFLAGS)
 
 clean:
-	$(RM) *.bc *.o lua llvm-lua llvm-luac lua_vm_ops_module.inc.cpp
+	$(RM) *.bc *.o lib*.a lua llvm-lua llvm-luac lua_vm_ops_module.inc.cpp
 
 .PHONY:	default clean

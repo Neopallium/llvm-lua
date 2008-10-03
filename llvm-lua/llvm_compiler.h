@@ -42,6 +42,10 @@ void llvm_compiler_compile_all(Proto *p, int optimize);
 void llvm_compiler_dump(const char *output, Proto *p, int optimize, int stripping);
 void llvm_compiler_free(Proto *p);
 
+extern int llvm_precall_jit (lua_State *L, StkId func, int nresults);
+extern int llvm_precall_lua (lua_State *L, StkId func, int nresults);
+
+
 #ifdef __cplusplus
 }
 #endif

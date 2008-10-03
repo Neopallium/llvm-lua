@@ -55,7 +55,7 @@ int luaD_protectedparser (lua_State *L, ZIO *z, const char *name) {
   return status;
 }
 
-static int llvm_precall_jit (lua_State *L, StkId func, int nresults) {
+int llvm_precall_jit (lua_State *L, StkId func, int nresults) {
 	Closure *cl;
 	ptrdiff_t funcr;
 	CallInfo *ci;

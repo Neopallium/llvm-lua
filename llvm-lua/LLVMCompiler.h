@@ -55,26 +55,31 @@ private:
 	llvm::ExecutionEngine *TheExecutionEngine;
 
 	// struct types.
+	const llvm::Type *Ty_TValue;
+	const llvm::Type *Ty_TValue_ptr;
+	const llvm::Type *Ty_LClosure;
+	const llvm::Type *Ty_LClosure_ptr;
 	const llvm::Type *Ty_lua_State;
 	const llvm::Type *Ty_lua_State_ptr;
-	const llvm::Type *Ty_func_state;
-	const llvm::Type *Ty_func_state_ptr;
 	// common function types.
 	llvm::FunctionType *lua_func_type;
-	// function for inializing func_state.
-	llvm::Function *vm_func_state_init;
+	// functions to get LClosure & constants pointer.
+	llvm::Function *vm_get_current_closure;
+	llvm::Function *vm_get_current_constants;
 	// function for print each executed op.
 	llvm::Function *vm_print_OP;
 	// function for handling count/line debug hooks.
 	llvm::Function *vm_next_OP;
 	// list of op functions.
 	llvm::Function **vm_ops;
+	// count compiled opcodes.
+	int *opcode_stats;
 
 	// timers
 	llvm::Timer *lua_to_llvm;
 	llvm::Timer *codegen;
 public:
-	LLVMCompiler(int useJIT, int argc, char ** argv);
+	LLVMCompiler(int useJIT);
 	~LLVMCompiler();
 
 	/*
@@ -88,7 +93,7 @@ public:
 		return lua_func_type;
 	}
 	
-	const llvm::Type *get_var_type(var_type type);
+	const llvm::Type *get_var_type(val_t type);
 	
 	void optimize(Proto *p, int opt);
 	

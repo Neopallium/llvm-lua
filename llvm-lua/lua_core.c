@@ -28,7 +28,6 @@
 #include "lobject.h"
 #include "llvm_compiler.h"
 
-extern int llvm_precall_lua (lua_State *L, StkId func, int nresults);
 void llvm_newproto (lua_State *L, Proto *f);
 void llvm_freeproto (lua_State *L, Proto *f);
 

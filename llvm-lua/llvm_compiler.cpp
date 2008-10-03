@@ -31,7 +31,7 @@ static LLVMCompiler *compiler = NULL;
 static LLVMDumper *dumper = NULL;
 
 int llvm_compiler_main(int useJIT, int argc, char ** argv) {
-	compiler = new LLVMCompiler(useJIT, argc, argv);
+	compiler = new LLVMCompiler(useJIT);
 	return 0;
 }
 
