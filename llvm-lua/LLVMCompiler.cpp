@@ -224,6 +224,7 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 
 	// create prototype for vm_* functions.
 	vm_op_funcs = new OPFunc *[NUM_OPCODES];
+	for(int i = 0; i < NUM_OPCODES; i++) vm_op_funcs[i] = NULL; // clear list.
 	for(int i = 0; true; i++) {
 		func_info = &vm_op_functions[i];
 		op = func_info->opcode;
@@ -260,8 +261,6 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		TheExecutionEngine->runStaticConstructorsDestructors(false);
 
 		if (NoLazyCompilation) {
-			TheExecutionEngine->getPointerToFunction(vm_next_OP);
-			TheExecutionEngine->getPointerToFunction(vm_print_OP);
 			TheExecutionEngine->getPointerToFunction(vm_get_current_closure);
 			TheExecutionEngine->getPointerToFunction(vm_get_current_constants);
 		}
@@ -347,7 +346,7 @@ LLVMCompiler::~LLVMCompiler() {
 	for(int i = 0; i < NUM_OPCODES; i++) {
 		if(vm_op_funcs[i]) delete vm_op_funcs[i];
 	}
-	delete vm_op_funcs;
+	delete[] vm_op_funcs;
 
 	TheFPM = NULL;
 
@@ -778,7 +777,7 @@ void LLVMCompiler::compile(Proto *p, int opt)
 	}
 	if(DumpFunctions) func->dump();
 	// only run function inliner & optimization passes on same functions.
-	if(opt > 0) {
+	if(opt > 0 && !DontInlineOpcodes) {
 		for(std::vector<llvm::CallInst *>::iterator I=inlineList.begin(); I != inlineList.end() ; I++) {
 			InlineFunction(*I);
 		}

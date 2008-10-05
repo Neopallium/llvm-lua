@@ -197,7 +197,11 @@ llvm::Constant *LLVMDumper::dump_proto(Proto *p) {
 	// name
 	jit_proto_fields.push_back(get_global_str(getstr(p->source)));
 	// jit_func
-	jit_proto_fields.push_back(func);
+	if(func) {
+		jit_proto_fields.push_back(func);
+	} else {
+		jit_proto_fields.push_back(llvm::Constant::getNullValue(lua_func_type_ptr));
+	}
 	// nups
 	jit_proto_fields.push_back(llvm::ConstantInt::get(llvm::APInt(8,p->nups)));
 	// numparams

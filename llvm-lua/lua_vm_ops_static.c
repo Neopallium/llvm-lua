@@ -190,7 +190,7 @@ void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i) {
  */
 void vm_next_OP(lua_State *L, LClosure *cl) {
 #ifndef LUA_NODEBUG
-  //vm_print_OP(fs, L->savedpc[0]);
+  //vm_print_OP(L, cl, L->savedpc[0]);
   lua_assert(L->savedpc >= cl->p->code && (L->savedpc < &(cl->p->code[cl->p->sizecode])));
   L->savedpc++;
   if ((L->hookmask & (LUA_MASKLINE | LUA_MASKCOUNT)) &&
@@ -271,8 +271,7 @@ static int vm_OP_TAILCALL_lua(lua_State *L, int a, int b, int c) {
 #endif
   ci->tailcalls++;  /* one more call lost */
   L->ci--;  /* remove new frame */
-  luaV_execute(L, 1);
-  return PCRC;
+  return PCRLUA;
 }
 
 /*
@@ -298,7 +297,7 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b, int c) {
     if(p->jit_func == NULL) {
       llvm_compiler_compile(p, 1);
       if(p->jit_func == NULL) {
-        /* Can't tailcall into non-compiled lua functions. YET! */
+        /* Prepare Lua call and return. */
         return vm_OP_TAILCALL_lua(L, a, b, c);
       }
     }
