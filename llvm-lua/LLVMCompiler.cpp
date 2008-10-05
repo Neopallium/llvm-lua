@@ -413,6 +413,7 @@ void LLVMCompiler::compile(Proto *p, int opt)
 	std::vector<llvm::CallInst *> inlineList;
 	std::string name;
 	char tmp[128];
+	bool inline_call=false;
 	int branch;
 	int op;
 	int i;
@@ -650,17 +651,14 @@ void LLVMCompiler::compile(Proto *p, int opt)
 		} else {
 			call=Builder.CreateCall(opfunc->func, args.begin(), args.end());
 		}
-		if(!opfunc->compiled) {
-			opfunc->compiled = true;
-			TheExecutionEngine->getPointerToFunction(opfunc->func);
-		}
+		inline_call = false;
 		// handle retval from opcode function.
 		switch (op) {
 			case OP_LOADBOOL:
 				// check C operand if C!=0 then skip over the next op_block.
 				if(GETARG_C(code[i]) != 0) branch += 1;
 				else branch = -2;
-				inlineList.push_back(call);
+				inline_call = true;
 				break;
 			case OP_LOADK:
 			case OP_LOADNIL:
@@ -682,12 +680,12 @@ void LLVMCompiler::compile(Proto *p, int opt)
 			case OP_CONCAT:
 			case OP_GETUPVAL:
 			case OP_MOVE:
-				inlineList.push_back(call);
+				inline_call = true;
 				branch = -2;
 				break;
 			case OP_CLOSE:
 			case OP_SETUPVAL:
-				//inlineList.push_back(call);
+				inline_call = false;
 				branch = -2;
 				break;
 			case OP_VARARG:
@@ -705,7 +703,7 @@ void LLVMCompiler::compile(Proto *p, int opt)
 				// always branch to the offset stored in operand sBx
 				branch += GETARG_sBx(code[i]);
 				// call vm_OP_JMP just in case luai_threadyield is defined.
-				inlineList.push_back(call);
+				inline_call = true;
 				break;
 			case OP_EQ:
 			case OP_LT:
@@ -713,7 +711,7 @@ void LLVMCompiler::compile(Proto *p, int opt)
 			case OP_TEST:
 			case OP_TESTSET:
 			case OP_TFORLOOP:
-				inlineList.push_back(call);
+				inline_call = true;
 				brcond=call;
 				brcond=Builder.CreateICmpNE(brcond, llvm::ConstantInt::get(llvm::APInt(32,0)), "brcond");
 				false_block=op_blocks[branch+1];
@@ -724,7 +722,7 @@ void LLVMCompiler::compile(Proto *p, int opt)
 				branch = -1; // do conditional branch
 				break;
 			case OP_FORLOOP:
-				inlineList.push_back(call);
+				inline_call = true;
 				brcond=call;
 				brcond=Builder.CreateICmpNE(brcond, llvm::ConstantInt::get(llvm::APInt(32,0)), "brcond");
 				true_block=op_blocks[branch + GETARG_sBx(code[i])];
@@ -732,7 +730,7 @@ void LLVMCompiler::compile(Proto *p, int opt)
 				branch = -1; // do conditional branch
 				break;
 			case OP_FORPREP:
-				inlineList.push_back(call);
+				inline_call = true;
 				branch += GETARG_sBx(code[i]);
 				break;
 			case OP_SETLIST:
@@ -762,6 +760,13 @@ void LLVMCompiler::compile(Proto *p, int opt)
 				fprintf(stderr, "Bad opcode: opcode=%d\n", op);
 				break;
 		}
+		if(inline_call && !DontInlineOpcodes) {
+			inlineList.push_back(call);
+		} else if(!opfunc->compiled) {
+			// only compile opcode functions that are not inlined.
+			opfunc->compiled = true;
+			TheExecutionEngine->getPointerToFunction(opfunc->func);
+		}
 		// branch to next block.
 		if(branch >= 0 && branch < code_len) {
 			Builder.CreateBr(op_blocks[branch]);
@@ -773,12 +778,12 @@ void LLVMCompiler::compile(Proto *p, int opt)
 	}
 	if(DumpFunctions) func->dump();
 	// only run function inliner & optimization passes on same functions.
-	if(opt > 0 && !DontInlineOpcodes) {
+	if(opt > 0) {
 		for(std::vector<llvm::CallInst *>::iterator I=inlineList.begin(); I != inlineList.end() ; I++) {
 			InlineFunction(*I);
 		}
 		// Validate the generated code, checking for consistency.
-		//if(VerifyFunctions) verifyFunction(*func);
+		if(VerifyFunctions) verifyFunction(*func);
 		// Optimize the function.
 		TheFPM->run(*func);
 	}

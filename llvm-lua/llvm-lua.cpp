@@ -60,7 +60,7 @@ namespace {
 }
 
 void print_version() {
-	printf("llvm-lua 0.2  Copyright (C) 2008 Robert G. Jakabosky\n");
+	printf(LLVM_LUA_VERSION " " LLVM_LUA_COPYRIGHT "\n");
 	printf(LUA_RELEASE "  " LUA_COPYRIGHT "\n");
 	llvm::cl::PrintVersionMessage();
 }

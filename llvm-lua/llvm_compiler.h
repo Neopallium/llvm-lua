@@ -27,6 +27,9 @@
 
 #include "lua_core.h"
 
+#define LLVM_LUA_VERSION "llvm-lua 0.3"
+#define LLVM_LUA_COPYRIGHT "Copyright (C) 2008 Robert G. Jakabosky"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,0 +1,2 @@
+* LUA_HOOKTAILRET is broken for tail-calls from JIT functions.
+
