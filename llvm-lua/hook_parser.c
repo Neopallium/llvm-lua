@@ -13,7 +13,7 @@
 #include "ldo.c"
 
 int llvm_precall_lua (lua_State *L, StkId func, int nresults) {
-	return luaD_precall_lua(L, func, nresults);
+  return luaD_precall_lua(L, func, nresults);
 }
 
 #else
@@ -34,7 +34,7 @@ static void llvm_f_parser (lua_State *L, void *ud) {
   set_block_gc(L);  /* stop collector during parsing */
   tf = ((c == LUA_SIGNATURE[0]) ? luaU_undump : luaY_parser)(L, p->z,
                                                              &p->buff, p->name);
-	llvm_compiler_compile_all(tf, 1);
+  llvm_compiler_compile_all(tf, 1);
   cl = luaF_newLclosure(L, tf->nups, hvalue(gt(L)));
   cl->l.p = tf;
   for (i = 0; i < tf->nups; i++)  /* initialize eventual upvalues */
@@ -56,65 +56,65 @@ int luaD_protectedparser (lua_State *L, ZIO *z, const char *name) {
 }
 
 int llvm_precall_jit (lua_State *L, StkId func, int nresults) {
-	Closure *cl;
-	ptrdiff_t funcr;
-	CallInfo *ci;
-	StkId st, base;
-	Proto *p;
+  Closure *cl;
+  ptrdiff_t funcr;
+  CallInfo *ci;
+  StkId st, base;
+  Proto *p;
 
-	funcr = savestack(L, func);
-	cl = clvalue(func);
-	L->ci->savedpc = L->savedpc;
-	p = cl->l.p;
-	luaD_checkstack(L, p->maxstacksize);
-	func = restorestack(L, funcr);
-	if (!p->is_vararg) {	/* no varargs? */
-		base = func + 1;
-		if (L->top > base + p->numparams)
-			L->top = base + p->numparams;
-	}
-	else {	/* vararg function */
-		int nargs = cast_int(L->top - func) - 1;
-		base = adjust_varargs(L, p, nargs);
-		func = restorestack(L, funcr);	/* previous call may change the stack */
-	}
-	ci = inc_ci(L);	/* now `enter' new function */
-	ci->func = func;
-	L->base = ci->base = base;
-	ci->top = L->base + p->maxstacksize;
-	lua_assert(ci->top <= L->stack_last);
-	L->savedpc = p->code;	/* starting point */
-	ci->tailcalls = 0;
-	ci->nresults = nresults;
-	for (st = L->top; st < ci->top; st++)
-		setnilvalue(st);
-	L->top = ci->top;
-	if (L->hookmask & LUA_MASKCALL) {
-		L->savedpc++;	/* hooks assume 'pc' is already incremented */
-		luaD_callhook(L, LUA_HOOKCALL, -1);
-		L->savedpc--;	/* correct 'pc' */
-	}
-	return (p->jit_func)(L); /* do the actual call */
+  funcr = savestack(L, func);
+  cl = clvalue(func);
+  L->ci->savedpc = L->savedpc;
+  p = cl->l.p;
+  luaD_checkstack(L, p->maxstacksize);
+  func = restorestack(L, funcr);
+  if (!p->is_vararg) {	/* no varargs? */
+    base = func + 1;
+    if (L->top > base + p->numparams)
+      L->top = base + p->numparams;
+  }
+  else {	/* vararg function */
+    int nargs = cast_int(L->top - func) - 1;
+    base = adjust_varargs(L, p, nargs);
+    func = restorestack(L, funcr);	/* previous call may change the stack */
+  }
+  ci = inc_ci(L);	/* now `enter' new function */
+  ci->func = func;
+  L->base = ci->base = base;
+  ci->top = L->base + p->maxstacksize;
+  lua_assert(ci->top <= L->stack_last);
+  L->savedpc = p->code;	/* starting point */
+  ci->tailcalls = 0;
+  ci->nresults = nresults;
+  for (st = L->top; st < ci->top; st++)
+    setnilvalue(st);
+  L->top = ci->top;
+  if (L->hookmask & LUA_MASKCALL) {
+    L->savedpc++;	/* hooks assume 'pc' is already incremented */
+    luaD_callhook(L, LUA_HOOKCALL, -1);
+    L->savedpc--;	/* correct 'pc' */
+  }
+  return (p->jit_func)(L); /* do the actual call */
 }
 
 int llvm_precall_lua (lua_State *L, StkId func, int nresults) {
-	Closure *cl;
-	Proto *p;
+  Closure *cl;
+  Proto *p;
 
-	cl = clvalue(func);
-	p = cl->l.p;
-	/* check if Function needs to be compiled. */
-	if(p->jit_func == NULL) {
-		llvm_compiler_compile(p, 1);
-	}
-	if(p->jit_func == NULL) {
-		/* function didn't compile, fall-back to lua interpreter */
-		cl->l.precall = luaD_precall_lua;
-		return luaD_precall_lua(L, func, nresults);
-	} else {
-		cl->l.precall = llvm_precall_jit;
-	}
-	return llvm_precall_jit(L, func, nresults);
+  cl = clvalue(func);
+  p = cl->l.p;
+  /* check if Function needs to be compiled. */
+  if(p->jit_func == NULL) {
+    llvm_compiler_compile(p, 1);
+  }
+  if(p->jit_func == NULL) {
+    /* function didn't compile, fall-back to lua interpreter */
+    cl->l.precall = luaD_precall_lua;
+    return luaD_precall_lua(L, func, nresults);
+  } else {
+    cl->l.precall = llvm_precall_jit;
+  }
+  return llvm_precall_jit(L, func, nresults);
 }
 
 #endif

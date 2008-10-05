@@ -32,6 +32,7 @@
 #define PCRLUA		0	/* initiated a call to a Lua function */
 #define PCRC		1	/* did a call to a C function */
 #define PCRYIELD	2	/* C funtion yielded */
+#define PCRTAILCALL	3	/* JIT function tail-calling into another function. */
 
 
 /* type of protected functions, to be ran by `runprotected' */

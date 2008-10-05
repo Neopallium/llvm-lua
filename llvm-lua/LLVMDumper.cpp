@@ -107,7 +107,7 @@ void LLVMDumper::dump(const char *output, Proto *p, int optimize, int stripping)
 				Fn->setLinkage(llvm::Function::LinkOnceLinkage);
 		}
 		// Compile all Lua prototypes to LLVM IR
-		compiler->compileAll(p,0);
+		compiler->compileAll(p,2);
 		//TheModule->dump();
 		// Run optimization passes on the whole module and each function.
 		compiler->optimizeAll(p,optimize);

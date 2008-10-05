@@ -49,6 +49,20 @@ class Timer;
 
 class LLVMCompiler {
 private:
+	class OPFunc {
+	public:
+		const vm_func_info *info;
+		bool compiled;
+		llvm::Function *func;
+		OPFunc *next;
+
+		OPFunc(const vm_func_info *info, OPFunc *next) :
+				info(info), compiled(false), func(NULL), next(next) {}
+		~OPFunc() {
+			if(next) delete next;
+		}
+	};
+private:
 	llvm::Module *TheModule;
 	llvm::IRBuilder<> Builder;
 	llvm::FunctionPassManager *TheFPM;
@@ -66,12 +80,14 @@ private:
 	// functions to get LClosure & constants pointer.
 	llvm::Function *vm_get_current_closure;
 	llvm::Function *vm_get_current_constants;
+	// function for counting each executed op.
+	llvm::Function *vm_count_OP;
 	// function for print each executed op.
 	llvm::Function *vm_print_OP;
 	// function for handling count/line debug hooks.
 	llvm::Function *vm_next_OP;
-	// list of op functions.
-	llvm::Function **vm_ops;
+	// available op function for each opcode.
+	OPFunc **vm_op_funcs;
 	// count compiled opcodes.
 	int *opcode_stats;
 
@@ -94,6 +110,8 @@ public:
 	}
 	
 	const llvm::Type *get_var_type(val_t type);
+	
+	llvm::Value *get_proto_constant(TValue *constant);
 	
 	void optimize(Proto *p, int opt);
 	

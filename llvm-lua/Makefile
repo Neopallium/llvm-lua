@@ -17,10 +17,10 @@ RANLIB = ranlib
 LIBS= -lm $(MYLIBS)
 ifdef DEBUG
 CFLAGS= -O0 -ggdb -Wall
+#CFLAGS= -ggdb -O3 -fomit-frame-pointer -pipe -Wall
 else
-CFLAGS= -march=athlon64 -O3 -fomit-frame-pointer -foptimize-sibling-calls -pipe -Wall
-#CFLAGS= -O3 -fomit-frame-pointer -pipe -Wall
-#CFLAGS= -ggdb -O3 -pipe -Wall
+#CFLAGS= -march=athlon64 -O3 -fomit-frame-pointer -foptimize-sibling-calls -pipe -Wall
+CFLAGS= -O3 -fomit-frame-pointer -pipe -Wall
 #CFLAGS= -O2 -Wall
 endif
 
