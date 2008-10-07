@@ -104,11 +104,12 @@ int main(int argc, char ** argv) {
 		argv[new_argc] = (char *)(*I).c_str();
 		new_argc++;
 	}
+	argv[new_argc] = NULL;
 
 	// initialize the Lua to LLVM compiler.
-	ret = llvm_compiler_main(1, new_argc, argv);
+	ret = llvm_compiler_main(1);
 	// Run the main "interpreter loop" now.
-	ret = lua_main(argc, argv);
+	ret = lua_main(new_argc, argv);
 	// cleanup Lua to LLVM compiler.
 	llvm_compiler_cleanup();
 	return ret;

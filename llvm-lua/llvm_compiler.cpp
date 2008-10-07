@@ -30,7 +30,7 @@ extern "C" {
 static LLVMCompiler *compiler = NULL;
 static LLVMDumper *dumper = NULL;
 
-int llvm_compiler_main(int useJIT, int argc, char ** argv) {
+int llvm_compiler_main(int useJIT) {
 	compiler = new LLVMCompiler(useJIT);
 	return 0;
 }
@@ -42,25 +42,17 @@ void llvm_compiler_cleanup() {
 	compiler = NULL;
 }
 
-void llvm_compiler_optimize(Proto *p, int optimize) {
-	compiler->optimize(p, optimize);
+void llvm_compiler_compile(Proto *p) {
+	compiler->compile(p);
 }
 
-void llvm_compiler_optimize_all(Proto *p, int optimize) {
-	compiler->optimizeAll(p, optimize);
+void llvm_compiler_compile_all(Proto *p) {
+	compiler->compileAll(p);
 }
 
-void llvm_compiler_compile(Proto *p, int optimize) {
-	compiler->compile(p, optimize);
-}
-
-void llvm_compiler_compile_all(Proto *p, int optimize) {
-	compiler->compileAll(p, optimize);
-}
-
-void llvm_compiler_dump(const char *output, Proto *p, int optimize, int stripping) {
+void llvm_compiler_dump(const char *output, Proto *p, int stripping) {
 	if(dumper == NULL) dumper = new LLVMDumper(compiler);
-	dumper->dump(output, p, optimize, stripping);
+	dumper->dump(output, p, stripping);
 }
 
 void llvm_compiler_free(Proto *p) {

@@ -69,7 +69,7 @@ private:
 public:
 	LLVMDumper(LLVMCompiler *compiler);
 
-	void dump(const char *output, Proto *p, int optimize, int stripping);
+	void dump(const char *output, Proto *p, int stripping);
 
 private:
 	llvm::Constant *get_ptr(llvm::Constant *val);

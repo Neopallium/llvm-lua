@@ -96,7 +96,7 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler) : compiler(compiler) {
 	Ty_jit_proto_ptr = llvm::PointerType::get(Ty_jit_proto, 0);
 }
 
-void LLVMDumper::dump(const char *output, Proto *p, int optimize, int stripping) {
+void LLVMDumper::dump(const char *output, Proto *p, int stripping) {
 	std::ofstream OS(output, std::ios_base::out|std::ios::trunc|std::ios::binary);
 	std::string error;
 	if(!OS.fail()) {
@@ -107,10 +107,8 @@ void LLVMDumper::dump(const char *output, Proto *p, int optimize, int stripping)
 				Fn->setLinkage(llvm::Function::LinkOnceLinkage);
 		}
 		// Compile all Lua prototypes to LLVM IR
-		compiler->compileAll(p,2);
+		compiler->compileAll(p);
 		//TheModule->dump();
-		// Run optimization passes on the whole module and each function.
-		compiler->optimizeAll(p,optimize);
 		// Dump proto info to global for reloading.
 		dump_protos(p);
 		//TheModule->dump();

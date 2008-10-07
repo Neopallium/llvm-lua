@@ -32,11 +32,9 @@
  * Lua script.
  */
 void llvm_compiler_cleanup() {}
-void llvm_compiler_optimize(Proto *p, int optimize) {}
-void llvm_compiler_optimize_all(Proto *parent, int optimize) {}
-void llvm_compiler_compile(Proto *p, int optimize) {}
-void llvm_compiler_compile_all(Proto *p, int optimize) {}
-void llvm_compiler_dump(const char *output, Proto *p, int optimize, int stripping) {}
+void llvm_compiler_compile(Proto *p) {}
+void llvm_compiler_compile_all(Proto *p) {}
+void llvm_compiler_dump(const char *output, Proto *p, int stripping) {}
 void llvm_compiler_free(Proto *p) {}
 
 

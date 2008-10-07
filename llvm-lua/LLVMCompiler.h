@@ -80,6 +80,7 @@ private:
 	// functions to get LClosure & constants pointer.
 	llvm::Function *vm_get_current_closure;
 	llvm::Function *vm_get_current_constants;
+	llvm::Function *vm_get_number;
 	// function for counting each executed op.
 	llvm::Function *vm_count_OP;
 	// function for print each executed op.
@@ -113,19 +114,12 @@ public:
 	
 	llvm::Value *get_proto_constant(TValue *constant);
 	
-	void optimize(Proto *p, int opt);
-	
-	/*
-	 * Optimize all jitted functions.
-	 */
-	void optimizeAll(Proto *parent, int opt);
-	
 	/*
 	 * Pre-Compile all loaded functions.
 	 */
-	void compileAll(Proto *parent, int opt);
+	void compileAll(Proto *parent);
 
-	void compile(Proto *p, int opt);
+	void compile(Proto *p);
 
 	void free(Proto *p);
 };

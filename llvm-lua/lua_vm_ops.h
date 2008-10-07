@@ -14,10 +14,15 @@ typedef struct {
   LClosure *cl;
 } func_state;
 
-typedef enum {
-	HINT_T_NONE = 0,
-	HINT_T_C_NUM_CONSTANT,
-} hint_t;
+typedef unsigned int hint_t;
+#define HINT_NONE							0
+#define HINT_C_NUM_CONSTANT		(1<<0)
+#define HINT_NOT							(1<<1)
+#define HINT_FOR_M_N_N				(1<<2)
+#define HINT_FOR_N_M_N				(1<<3)
+#define HINT_FOR_N_N_N				(1<<4)
+#define HINT_FOR_N_N					(1<<5)
+#define HINT_SKIP_OP					(1<<6)
 
 typedef enum {
 	VAR_T_VOID = 0,
@@ -39,6 +44,9 @@ typedef enum {
 	VAR_T_LUA_STATE_PTR,
 	VAR_T_K,
 	VAR_T_CL,
+	VAR_T_OP_VALUE_0,
+	VAR_T_OP_VALUE_1,
+	VAR_T_OP_VALUE_2,
 } val_t;
 
 typedef struct {
@@ -112,7 +120,8 @@ extern void vm_OP_CONCAT(lua_State *L, int a, int b, int c);
 extern void vm_OP_JMP(lua_State *L, int sbx);
 
 extern int vm_OP_EQ(lua_State *L, TValue *k, int a, int b, int c);
-extern int vm_OP_EQ_NC(lua_State *L, TValue *k, int a, int b, lua_Number nc, int c);
+extern int vm_OP_EQ_NC(lua_State *L, TValue *k, int b, lua_Number nc);
+extern int vm_OP_NOT_EQ_NC(lua_State *L, TValue *k, int b, lua_Number nc);
 
 extern int vm_OP_LT(lua_State *L, TValue *k, int a, int b, int c);
 
@@ -129,8 +138,14 @@ extern int vm_OP_RETURN(lua_State *L, int a, int b);
 extern int vm_OP_TAILCALL(lua_State *L, int a, int b, int c);
 
 extern int vm_OP_FORLOOP(lua_State *L, int a, int sbx);
+extern int vm_OP_FORLOOP_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step);
+extern int vm_OP_FORLOOP_N_N_N(lua_State *L, int a, int sbx, lua_Number idx, lua_Number limit, lua_Number step);
 
-extern int vm_OP_FORPREP(lua_State *L, int a, int sbx);
+extern void vm_OP_FORPREP_slow(lua_State *L, int a, int sbx);
+extern void vm_OP_FORPREP(lua_State *L, int a, int sbx);
+extern void vm_OP_FORPREP_M_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step);
+extern void vm_OP_FORPREP_N_M_N(lua_State *L, int a, int sbx, lua_Number init, lua_Number step);
+extern void vm_OP_FORPREP_N_N_N(lua_State *L, int a, int sbx, lua_Number init, lua_Number step);
 
 extern int vm_OP_TFORLOOP(lua_State *L, int a, int c);
 
@@ -145,6 +160,8 @@ extern void vm_OP_VARARG(lua_State *L, LClosure *cl, int a, int b);
 extern LClosure *vm_get_current_closure(lua_State *L);
 
 extern TValue *vm_get_current_constants(LClosure *cl);
+
+extern lua_Number vm_get_number(lua_State *L, int idx);
 
 /*
 ** some macros for common tasks in `vm_OP_*' functions.

@@ -36,13 +36,11 @@ extern "C" {
 
 #include "lobject.h"
 
-int llvm_compiler_main(int useJIT, int argc, char ** argv);
+int llvm_compiler_main(int useJIT);
 void llvm_compiler_cleanup();
-void llvm_compiler_optimize(Proto *p, int optimize);
-void llvm_compiler_optimize_all(Proto *parent, int optimize);
-void llvm_compiler_compile(Proto *p, int optimize);
-void llvm_compiler_compile_all(Proto *p, int optimize);
-void llvm_compiler_dump(const char *output, Proto *p, int optimize, int stripping);
+void llvm_compiler_compile(Proto *p);
+void llvm_compiler_compile_all(Proto *p);
+void llvm_compiler_dump(const char *output, Proto *p, int stripping);
 void llvm_compiler_free(Proto *p);
 
 extern int llvm_precall_jit (lua_State *L, StkId func, int nresults);

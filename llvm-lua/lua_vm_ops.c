@@ -237,18 +237,32 @@ int vm_OP_EQ(lua_State *L, TValue *k, int a, int b, int c) {
   return ret;
 }
 
-int vm_OP_EQ_NC(lua_State *L, TValue *k, int a, int b, lua_Number nc, int c) {
+int vm_OP_EQ_NC(lua_State *L, TValue *k, int b, lua_Number nc) {
   TValue *base = L->base;
   int ret;
   TValue *rb = RK(b);
   if (ttisnumber(rb)) {
-    ret = (luai_numeq(nvalue(rb), nc) == a);
+    ret = !luai_numeq(nvalue(rb), nc);
     if(ret)
       dojump(GETARG_sBx(*L->savedpc));
     skip_op();
     return ret;
   }
-  return vm_OP_EQ(L, k, a, b, c);
+  return 1;
+}
+
+int vm_OP_NOT_EQ_NC(lua_State *L, TValue *k, int b, lua_Number nc) {
+  TValue *base = L->base;
+  int ret;
+  TValue *rb = RK(b);
+  if (ttisnumber(rb)) {
+    ret = luai_numeq(nvalue(rb), nc);
+    if(ret)
+      dojump(GETARG_sBx(*L->savedpc));
+    skip_op();
+    return ret;
+  }
+  return 0;
 }
 
 int vm_OP_LT(lua_State *L, TValue *k, int a, int b, int c) {
@@ -296,6 +310,75 @@ int vm_OP_TESTSET(lua_State *L, int a, int b, int c) {
   return 0;
 }
 
+/*
+ * Generic number FORPREP
+ *
+ * Test if init/plimit/pstep are numbers, fallback to slower FORPREP
+ * if one ore more of then are not numbers.
+ *
+ */
+void vm_OP_FORPREP(lua_State *L, int a, int sbx) {
+  TValue *ra = L->base + a;
+  const TValue *init = ra;
+  const TValue *plimit = ra+1;
+  const TValue *pstep = ra+2;
+	int valid=1;
+	valid &= ttisnumber(init);
+	valid &= ttisnumber(plimit);
+	valid &= ttisnumber(pstep);
+	if(!valid) {
+		vm_OP_FORPREP_slow(L,a,sbx);
+		return;
+	}
+	// subtract pstep from init.
+  setnvalue(ra, luai_numsub(nvalue(init), nvalue(pstep)));
+  dojump(sbx);
+}
+
+/*
+ * limit & step are number constants.  Only test if init is a number.
+ */
+void vm_OP_FORPREP_M_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step) {
+  TValue *ra = L->base + a;
+  const TValue *init = ra;
+	if(!ttisnumber(init)) {
+		setnvalue(ra+1, limit);
+		setnvalue(ra+2, step);
+		vm_OP_FORPREP_slow(L,a,sbx);
+		return;
+	}
+	// subtract pstep from init.
+  setnvalue(ra, luai_numsub(nvalue(init), step));
+  dojump(sbx);
+}
+
+/*
+ * init & pstep are number constants.  Only test if plimit is a number.
+ */
+void vm_OP_FORPREP_N_M_N(lua_State *L, int a, int sbx, lua_Number init, lua_Number step) {
+  TValue *ra = L->base + a;
+  const TValue *plimit = ra+1;
+	if(!ttisnumber(plimit)) {
+		setnvalue(ra, init);
+		setnvalue(ra+2, step);
+		vm_OP_FORPREP_slow(L,a,sbx);
+		return;
+	}
+	// subtract pstep from init.
+  setnvalue(ra, luai_numsub(init, step));
+  dojump(sbx);
+}
+
+/*
+ * init, plimit & pstep are number constants.
+ */
+void vm_OP_FORPREP_N_N_N(lua_State *L, int a, int sbx, lua_Number init, lua_Number step) {
+  TValue *ra = L->base + a;
+	// subtract pstep from init.
+  setnvalue(ra, luai_numsub(init, step));
+  dojump(sbx);
+}
+
 int vm_OP_FORLOOP(lua_State *L, int a, int sbx) {
   TValue *ra = L->base + a;
   lua_Number step = nvalue(ra+2);
@@ -305,6 +388,30 @@ int vm_OP_FORLOOP(lua_State *L, int a, int sbx) {
                           : luai_numle(limit, idx)) {
     dojump(sbx);  /* jump back */
     setnvalue(ra, idx);  /* update internal index... */
+    setnvalue(ra+3, idx);  /* ...and external index */
+    return 1;
+  }
+  return 0;
+}
+
+int vm_OP_FORLOOP_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step) {
+  TValue *ra = L->base + a;
+  lua_Number idx = luai_numadd(nvalue(ra), step); /* increment index */
+  if (luai_numlt(0, step) ? luai_numle(idx, limit)
+                          : luai_numle(limit, idx)) {
+    dojump(sbx);  /* jump back */
+    setnvalue(ra, idx);  /* update internal index... */
+    setnvalue(ra+3, idx);  /* ...and external index */
+    return 1;
+  }
+  return 0;
+}
+
+int vm_OP_FORLOOP_N_N_N(lua_State *L, int a, int sbx, lua_Number idx, lua_Number limit, lua_Number step) {
+  TValue *ra = L->base + a;
+  if (luai_numlt(0, step) ? luai_numle(idx, limit)
+                          : luai_numle(limit, idx)) {
+    dojump(sbx);  /* jump back */
     setnvalue(ra+3, idx);  /* ...and external index */
     return 1;
   }
@@ -321,5 +428,9 @@ LClosure *vm_get_current_closure(lua_State *L) {
 
 TValue *vm_get_current_constants(LClosure *cl) {
   return cl->p->k;
+}
+
+lua_Number vm_get_number(lua_State *L, int idx) {
+	return nvalue(L->base + idx);
 }
 

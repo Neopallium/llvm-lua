@@ -27,142 +27,160 @@
 #include "llvm_compiler.h"
 
 const vm_func_info vm_op_functions[] = {
-  { OP_MOVE, HINT_T_NONE, VAR_T_VOID, "vm_OP_MOVE",
+  { OP_MOVE, HINT_NONE, VAR_T_VOID, "vm_OP_MOVE",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
-  { OP_LOADK, HINT_T_NONE, VAR_T_VOID, "vm_OP_LOADK",
+  { OP_LOADK, HINT_NONE, VAR_T_VOID, "vm_OP_LOADK",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
   },
-  { OP_LOADBOOL, HINT_T_NONE, VAR_T_VOID, "vm_OP_LOADBOOL",
+  { OP_LOADBOOL, HINT_NONE, VAR_T_VOID, "vm_OP_LOADBOOL",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_LOADNIL, HINT_T_NONE, VAR_T_VOID, "vm_OP_LOADNIL",
+  { OP_LOADNIL, HINT_NONE, VAR_T_VOID, "vm_OP_LOADNIL",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
-  { OP_GETUPVAL, HINT_T_NONE, VAR_T_VOID, "vm_OP_GETUPVAL",
+  { OP_GETUPVAL, HINT_NONE, VAR_T_VOID, "vm_OP_GETUPVAL",
     {VAR_T_LUA_STATE_PTR, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
-  { OP_GETGLOBAL, HINT_T_NONE, VAR_T_VOID, "vm_OP_GETGLOBAL",
+  { OP_GETGLOBAL, HINT_NONE, VAR_T_VOID, "vm_OP_GETGLOBAL",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
   },
-  { OP_GETTABLE, HINT_T_NONE, VAR_T_VOID, "vm_OP_GETTABLE",
+  { OP_GETTABLE, HINT_NONE, VAR_T_VOID, "vm_OP_GETTABLE",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_SETGLOBAL, HINT_T_NONE, VAR_T_VOID, "vm_OP_SETGLOBAL",
+  { OP_SETGLOBAL, HINT_NONE, VAR_T_VOID, "vm_OP_SETGLOBAL",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
   },
-  { OP_SETUPVAL, HINT_T_NONE, VAR_T_VOID, "vm_OP_SETUPVAL",
+  { OP_SETUPVAL, HINT_NONE, VAR_T_VOID, "vm_OP_SETUPVAL",
     {VAR_T_LUA_STATE_PTR, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
-  { OP_SETTABLE, HINT_T_NONE, VAR_T_VOID, "vm_OP_SETTABLE",
+  { OP_SETTABLE, HINT_NONE, VAR_T_VOID, "vm_OP_SETTABLE",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_NEWTABLE, HINT_T_NONE, VAR_T_VOID, "vm_OP_NEWTABLE",
+  { OP_NEWTABLE, HINT_NONE, VAR_T_VOID, "vm_OP_NEWTABLE",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_SELF, HINT_T_NONE, VAR_T_VOID, "vm_OP_SELF",
+  { OP_SELF, HINT_NONE, VAR_T_VOID, "vm_OP_SELF",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_ADD, HINT_T_NONE, VAR_T_VOID, "vm_OP_ADD",
+  { OP_ADD, HINT_NONE, VAR_T_VOID, "vm_OP_ADD",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_ADD, HINT_T_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_ADD_NC",
+  { OP_ADD, HINT_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_ADD_NC",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C_NUM_CONSTANT, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_SUB, HINT_T_NONE, VAR_T_VOID, "vm_OP_SUB",
+  { OP_SUB, HINT_NONE, VAR_T_VOID, "vm_OP_SUB",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_SUB, HINT_T_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_SUB_NC",
+  { OP_SUB, HINT_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_SUB_NC",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C_NUM_CONSTANT, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_MUL, HINT_T_NONE, VAR_T_VOID, "vm_OP_MUL",
+  { OP_MUL, HINT_NONE, VAR_T_VOID, "vm_OP_MUL",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_MUL, HINT_T_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_MUL_NC",
+  { OP_MUL, HINT_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_MUL_NC",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C_NUM_CONSTANT, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_DIV, HINT_T_NONE, VAR_T_VOID, "vm_OP_DIV",
+  { OP_DIV, HINT_NONE, VAR_T_VOID, "vm_OP_DIV",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_DIV, HINT_T_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_DIV_NC",
+  { OP_DIV, HINT_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_DIV_NC",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C_NUM_CONSTANT, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_MOD, HINT_T_NONE, VAR_T_VOID, "vm_OP_MOD",
+  { OP_MOD, HINT_NONE, VAR_T_VOID, "vm_OP_MOD",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_MOD, HINT_T_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_MOD_NC",
+  { OP_MOD, HINT_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_MOD_NC",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C_NUM_CONSTANT, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_POW, HINT_T_NONE, VAR_T_VOID, "vm_OP_POW",
+  { OP_POW, HINT_NONE, VAR_T_VOID, "vm_OP_POW",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_POW, HINT_T_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_POW_NC",
+  { OP_POW, HINT_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_POW_NC",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C_NUM_CONSTANT, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_UNM, HINT_T_NONE, VAR_T_VOID, "vm_OP_UNM",
+  { OP_UNM, HINT_NONE, VAR_T_VOID, "vm_OP_UNM",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
-  { OP_NOT, HINT_T_NONE, VAR_T_VOID, "vm_OP_NOT",
+  { OP_NOT, HINT_NONE, VAR_T_VOID, "vm_OP_NOT",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
-  { OP_LEN, HINT_T_NONE, VAR_T_VOID, "vm_OP_LEN",
+  { OP_LEN, HINT_NONE, VAR_T_VOID, "vm_OP_LEN",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
-  { OP_CONCAT, HINT_T_NONE, VAR_T_VOID, "vm_OP_CONCAT",
+  { OP_CONCAT, HINT_NONE, VAR_T_VOID, "vm_OP_CONCAT",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_JMP, HINT_T_NONE, VAR_T_VOID, "vm_OP_JMP",
+  { OP_JMP, HINT_NONE, VAR_T_VOID, "vm_OP_JMP",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_sBx, VAR_T_VOID},
   },
-  { OP_EQ, HINT_T_NONE, VAR_T_INT, "vm_OP_EQ",
+  { OP_EQ, HINT_NONE, VAR_T_INT, "vm_OP_EQ",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_EQ, HINT_T_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_EQ_NC",
-    {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C_NUM_CONSTANT, VAR_T_ARG_C, VAR_T_VOID},
+  { OP_EQ, HINT_C_NUM_CONSTANT, VAR_T_VOID, "vm_OP_EQ_NC",
+    {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_B, VAR_T_ARG_C_NUM_CONSTANT, VAR_T_VOID},
   },
-  { OP_LT, HINT_T_NONE, VAR_T_INT, "vm_OP_LT",
+  { OP_EQ, HINT_C_NUM_CONSTANT|HINT_NOT, VAR_T_VOID, "vm_OP_NOT_EQ_NC",
+    {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_B, VAR_T_ARG_C_NUM_CONSTANT, VAR_T_VOID},
+  },
+  { OP_LT, HINT_NONE, VAR_T_INT, "vm_OP_LT",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_LE, HINT_T_NONE, VAR_T_INT, "vm_OP_LE",
+  { OP_LE, HINT_NONE, VAR_T_INT, "vm_OP_LE",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_TEST, HINT_T_NONE, VAR_T_INT, "vm_OP_TEST",
+  { OP_TEST, HINT_NONE, VAR_T_INT, "vm_OP_TEST",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_TESTSET, HINT_T_NONE, VAR_T_INT, "vm_OP_TESTSET",
+  { OP_TESTSET, HINT_NONE, VAR_T_INT, "vm_OP_TESTSET",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_CALL, HINT_T_NONE, VAR_T_INT, "vm_OP_CALL",
+  { OP_CALL, HINT_NONE, VAR_T_INT, "vm_OP_CALL",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_TAILCALL, HINT_T_NONE, VAR_T_INT, "vm_OP_TAILCALL",
+  { OP_TAILCALL, HINT_NONE, VAR_T_INT, "vm_OP_TAILCALL",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_RETURN, HINT_T_NONE, VAR_T_INT, "vm_OP_RETURN",
+  { OP_RETURN, HINT_NONE, VAR_T_INT, "vm_OP_RETURN",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
-  { OP_FORLOOP, HINT_T_NONE, VAR_T_INT, "vm_OP_FORLOOP",
+  { OP_FORLOOP, HINT_NONE, VAR_T_INT, "vm_OP_FORLOOP",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_VOID},
   },
-  { OP_FORPREP, HINT_T_NONE, VAR_T_INT, "vm_OP_FORPREP",
+  { OP_FORLOOP, HINT_FOR_N_N, VAR_T_INT, "vm_OP_FORLOOP_N_N",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_OP_VALUE_1, VAR_T_OP_VALUE_2, VAR_T_VOID},
+  },
+  { OP_FORLOOP, HINT_FOR_N_N_N, VAR_T_INT, "vm_OP_FORLOOP_N_N_N",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_OP_VALUE_0, VAR_T_OP_VALUE_1, VAR_T_OP_VALUE_2, VAR_T_VOID},
+  },
+  { OP_FORPREP, HINT_NONE, VAR_T_VOID, "vm_OP_FORPREP",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_VOID},
   },
-  { OP_TFORLOOP, HINT_T_NONE, VAR_T_INT, "vm_OP_TFORLOOP",
+  { OP_FORPREP, HINT_FOR_M_N_N, VAR_T_VOID, "vm_OP_FORPREP_M_N_N",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_OP_VALUE_1, VAR_T_OP_VALUE_2, VAR_T_VOID},
+  },
+  { OP_FORPREP, HINT_FOR_N_M_N, VAR_T_VOID, "vm_OP_FORPREP_N_M_N",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_OP_VALUE_0, VAR_T_OP_VALUE_2, VAR_T_VOID},
+  },
+  { OP_FORPREP, HINT_FOR_N_N_N, VAR_T_VOID, "vm_OP_FORPREP_N_N_N",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_OP_VALUE_0, VAR_T_OP_VALUE_2, VAR_T_VOID},
+  },
+  { OP_TFORLOOP, HINT_NONE, VAR_T_INT, "vm_OP_TFORLOOP",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_SETLIST, HINT_T_NONE, VAR_T_VOID, "vm_OP_SETLIST",
+  { OP_SETLIST, HINT_NONE, VAR_T_VOID, "vm_OP_SETLIST",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C_NEXT_INSTRUCTION, VAR_T_ARG_C, VAR_T_VOID},
   },
-  { OP_CLOSE, HINT_T_NONE, VAR_T_VOID, "vm_OP_CLOSE",
+  { OP_CLOSE, HINT_NONE, VAR_T_VOID, "vm_OP_CLOSE",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_VOID},
   },
-  { OP_CLOSURE, HINT_T_NONE, VAR_T_VOID, "vm_OP_CLOSURE",
+  { OP_CLOSURE, HINT_NONE, VAR_T_VOID, "vm_OP_CLOSURE",
     {VAR_T_LUA_STATE_PTR, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_PC_OFFSET, VAR_T_VOID},
   },
-  { OP_VARARG, HINT_T_NONE, VAR_T_VOID, "vm_OP_VARARG",
+  { OP_VARARG, HINT_NONE, VAR_T_VOID, "vm_OP_VARARG",
     {VAR_T_LUA_STATE_PTR, VAR_T_CL, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
-  { -1, HINT_T_NONE, VAR_T_VOID, NULL, {VAR_T_VOID} }
+  { -1, HINT_NONE, VAR_T_VOID, NULL, {VAR_T_VOID} }
 };
 
 int vm_op_run_count[NUM_OPCODES];
@@ -171,9 +189,6 @@ void vm_count_OP(const Instruction i) {
 	vm_op_run_count[GET_OPCODE(i)]++;
 }
 
-/*
- * TODO: move this function outside of lua_vm_ops.c
- */
 void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i) {
   int op = GET_OPCODE(i);
 #ifndef LUA_NODEBUG
@@ -185,9 +200,6 @@ void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i) {
 #endif
 }
 
-/*
- * TODO: move this function outside of lua_vm_ops.c
- */
 void vm_next_OP(lua_State *L, LClosure *cl) {
 #ifndef LUA_NODEBUG
   //vm_print_OP(L, cl, L->savedpc[0]);
@@ -204,9 +216,6 @@ void vm_next_OP(lua_State *L, LClosure *cl) {
 #endif
 }
 
-/*
- * TODO: move this function outside of lua_vm_ops.c
- */
 int vm_OP_CALL(lua_State *L, int a, int b, int c) {
   TValue *base = L->base;
   TValue *ra=base + a;
@@ -231,9 +240,6 @@ int vm_OP_CALL(lua_State *L, int a, int b, int c) {
   return 0;
 }
 
-/*
- * TODO: move this function outside of lua_vm_ops.c
- */
 int vm_OP_RETURN(lua_State *L, int a, int b) {
   TValue *base = L->base;
   TValue *ra = base + a;
@@ -243,74 +249,52 @@ int vm_OP_RETURN(lua_State *L, int a, int b) {
   return PCRC;
 }
 
-/*
- * TODO: move this function outside of lua_vm_ops.c
- */
-static int vm_OP_TAILCALL_lua(lua_State *L, int a, int b, int c) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  int ret;
-  if (b != 0) L->top = ra+b;  /* else previous instruction set top */
-  lua_assert(c - 1 == LUA_MULTRET);
-
-  ret = luaD_precall(L, ra, LUA_MULTRET);
-  lua_assert(ret == PCRLUA);
-  /* tail call: put new frame in place of previous one */
-  CallInfo *ci = L->ci - 1;  /* previous frame */
-  int aux;
-  StkId func = ci->func;
-  StkId pfunc = (ci+1)->func;  /* previous function index */
-  if (L->openupval) luaF_close(L, ci->base);
-  L->base = ci->base = ci->func + ((ci+1)->base - pfunc);
-  for (aux = 0; pfunc+aux < L->top; aux++)  /* move frame down */
-    setobjs2s(L, func+aux, pfunc+aux);
-  ci->top = L->top = func+aux;  /* correct top */
-  lua_assert(L->top == L->base + clvalue(func)->l.p->maxstacksize);
-#ifndef LUA_NODEBUG
-  ci->savedpc = L->savedpc;
-#endif
-  ci->tailcalls++;  /* one more call lost */
-  L->ci--;  /* remove new frame */
-  return PCRLUA;
-}
-
-/*
- * TODO: move this function outside of lua_vm_ops.c
- */
 int vm_OP_TAILCALL(lua_State *L, int a, int b, int c) {
-  TValue *base = L->base;
-  TValue *func = base + a;
+  TValue *func = L->base + a;
   Closure *cl;
+  Closure *cur_cl;
   CallInfo *ci;
-  StkId cfunc;
+  StkId st, cur_func;
   Proto *p;
   int aux;
+	int tail_recur=0;
+
   if (b != 0) L->top = func+b;  /* else previous instruction set top */
   lua_assert(c - 1 == LUA_MULTRET);
   if (!ttisfunction(func)) /* `func' is not a function? */
     func = luaD_tryfuncTM(L, func);  /* check the `function' tag method */
   cl = clvalue(func);
 
-  if(cl_isLua(cl)) {
-    /* check if Lua function was compiled. */
-    p = cl->l.p;
-    if(p->jit_func == NULL) {
-      llvm_compiler_compile(p, 1);
-      if(p->jit_func == NULL) {
-        /* Prepare Lua call and return. */
-        return vm_OP_TAILCALL_lua(L, a, b, c);
-      }
-    }
-  }
-  /* clean up current frame to prepare to tailcall into next function. */
+  /* current function index */
   ci = L->ci;
-  cfunc = ci->func; /* current function index */
+  cur_func = ci->func;
+#if 1
+  /* check for tail recursive call */
+  if(cl_isLua(cl)) {
+		p = cl->l.p;
+    cur_cl = clvalue(cur_func);
+		/* if the prototype matches and it is not a vararg function. */
+		if(cur_cl->l.p == p && !p->is_vararg) {
+  		L->savedpc = p->code;
+			ci->top = L->base + p->maxstacksize;
+			tail_recur = 1;
+		}
+  }
+#endif
+
+  /* clean up current frame to prepare to tailcall into next function. */
   if (L->openupval) luaF_close(L, ci->base);
-  L->base = cfunc + 1;
+  L->base = cur_func + 1;
   for (aux = 0; func+aux < L->top; aux++)  /* move frame down */
-    setobjs2s(L, cfunc+aux, func+aux);
-  L->top = cfunc+aux;
-  func = cfunc;
+    setobjs2s(L, cur_func+aux, func+aux);
+  L->top = cur_func+aux;
+  func = cur_func;
+	/* JIT function calling it's self. */
+	if(tail_recur) {
+		for (st = L->top; st < ci->top; st++)
+			setnilvalue(st);
+		return PCRTAILRECUR;
+	}
   //ci->tailcalls++;  /* one more call lost */
   L->ci--;  /* remove new frame */
   L->savedpc = L->ci->savedpc;
@@ -324,7 +308,7 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b, int c) {
  * Notes: split function into two copies, one with number checks + (init - step) + jmp,
  * and the other with the same number checks + slow error throwing code.
  */
-int vm_OP_FORPREP(lua_State *L, int a, int sbx) {
+void vm_OP_FORPREP_slow(lua_State *L, int a, int sbx) {
   TValue *base = L->base;
   TValue *ra = base + a;
   const TValue *init = ra;
@@ -338,12 +322,8 @@ int vm_OP_FORPREP(lua_State *L, int a, int sbx) {
     luaG_runerror(L, LUA_QL("for") " step must be a number");
   setnvalue(ra, luai_numsub(nvalue(ra), nvalue(pstep)));
   dojump(sbx);
-  return 1;
 }
 
-/*
- * TODO: move this function outside of lua_vm_ops.c
- */
 int vm_OP_TFORLOOP(lua_State *L, int a, int c) {
   TValue *base = L->base;
   TValue *ra = base + a;
@@ -365,9 +345,6 @@ int vm_OP_TFORLOOP(lua_State *L, int a, int c) {
   return 0;
 }
 
-/*
- * TODO: move this function outside of lua_vm_ops.c
- */
 void vm_OP_SETLIST(lua_State *L, int a, int b, int c, int c_next) {
   TValue *base = L->base;
   TValue *ra = base + a;
@@ -392,9 +369,6 @@ void vm_OP_SETLIST(lua_State *L, int a, int b, int c, int c_next) {
   }
 }
 
-/*
- * TODO: move this function outside of lua_vm_ops.c
- */
 void vm_OP_CLOSURE(lua_State *L, LClosure *cl, int a, int bx, int pseudo_ops_offset) {
   TValue *base = L->base;
   const Instruction *pc;

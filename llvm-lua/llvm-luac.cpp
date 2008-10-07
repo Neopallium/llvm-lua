@@ -106,9 +106,10 @@ int main(int argc, char ** argv) {
 		argv[new_argc] = (char *)(*I).c_str();
 		new_argc++;
 	}
+	argv[new_argc] = NULL;
 
 	// initialize the Lua to LLVM compiler.
-	ret = llvm_compiler_main(0, new_argc, argv);
+	ret = llvm_compiler_main(0);
 	// Run the main Lua compiler
 	ret = luac_main(new_argc, argv);
 	// cleanup Lua to LLVM compiler.
