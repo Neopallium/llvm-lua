@@ -33,6 +33,7 @@
 #define PCRC		1	/* did a call to a C function */
 #define PCRYIELD	2	/* C funtion yielded */
 #define PCRTAILCALL	3	/* JIT function tail-calling into another function. */
+#define PCRTAILRECUR	4	/* JIT function tail-recursive call */
 
 
 /* type of protected functions, to be ran by `runprotected' */
