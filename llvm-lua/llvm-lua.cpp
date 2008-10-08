@@ -65,6 +65,11 @@ void print_version() {
 	llvm::cl::PrintVersionMessage();
 }
 
+static void do_shutdown() {
+	// cleanup Lua to LLVM compiler.
+	llvm_compiler_cleanup();
+}
+
 /*
  *
  */
@@ -73,6 +78,7 @@ int main(int argc, char ** argv) {
 	int new_argc=0;
 	int ret;
 
+	atexit(do_shutdown);  // Call llvm_shutdown() on exit.
 	llvm::cl::SetVersionPrinter(print_version);
 	llvm::cl::ParseCommandLineOptions(argc, argv, 0, true);
 	// Show version?
@@ -110,8 +116,6 @@ int main(int argc, char ** argv) {
 	ret = llvm_compiler_main(1);
 	// Run the main "interpreter loop" now.
 	ret = lua_main(new_argc, argv);
-	// cleanup Lua to LLVM compiler.
-	llvm_compiler_cleanup();
 	return ret;
 }
 

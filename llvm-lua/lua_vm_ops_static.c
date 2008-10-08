@@ -186,7 +186,7 @@ const vm_func_info vm_op_functions[] = {
 int vm_op_run_count[NUM_OPCODES];
 
 void vm_count_OP(const Instruction i) {
-	vm_op_run_count[GET_OPCODE(i)]++;
+  vm_op_run_count[GET_OPCODE(i)]++;
 }
 
 void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i) {
@@ -234,6 +234,7 @@ int vm_OP_CALL(lua_State *L, int a, int b, int c) {
       break;
     }
     default: {
+      /* TODO: fix yielding from C funtions, right now we can't resume a JIT with using COCO. */
       return PCRYIELD;
     }
   }
@@ -257,7 +258,7 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b, int c) {
   StkId st, cur_func;
   Proto *p;
   int aux;
-	int tail_recur=0;
+  int tail_recur=0;
 
   if (b != 0) L->top = func+b;  /* else previous instruction set top */
   lua_assert(c - 1 == LUA_MULTRET);
@@ -268,19 +269,17 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b, int c) {
   /* current function index */
   ci = L->ci;
   cur_func = ci->func;
-#if 1
   /* check for tail recursive call */
   if(cl_isLua(cl)) {
-		p = cl->l.p;
+    p = cl->l.p;
     cur_cl = clvalue(cur_func);
-		/* if the prototype matches and it is not a vararg function. */
-		if(cur_cl->l.p == p && !p->is_vararg) {
-  		L->savedpc = p->code;
-			ci->top = L->base + p->maxstacksize;
-			tail_recur = 1;
-		}
+    /* if the prototype matches and it is not a vararg function. */
+    if(cur_cl->l.p == p && !p->is_vararg) {
+      L->savedpc = p->code;
+      ci->top = L->base + p->maxstacksize;
+      tail_recur = 1;
+    }
   }
-#endif
 
   /* clean up current frame to prepare to tailcall into next function. */
   if (L->openupval) luaF_close(L, ci->base);
@@ -289,12 +288,12 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b, int c) {
     setobjs2s(L, cur_func+aux, func+aux);
   L->top = cur_func+aux;
   func = cur_func;
-	/* JIT function calling it's self. */
-	if(tail_recur) {
-		for (st = L->top; st < ci->top; st++)
-			setnilvalue(st);
-		return PCRTAILRECUR;
-	}
+  /* JIT function calling it's self. */
+  if(tail_recur) {
+    for (st = L->top; st < ci->top; st++)
+      setnilvalue(st);
+    return PCRTAILRECUR;
+  }
   //ci->tailcalls++;  /* one more call lost */
   L->ci--;  /* remove new frame */
   L->savedpc = L->ci->savedpc;
@@ -407,7 +406,7 @@ void vm_OP_VARARG(lua_State *L, LClosure *cl, int a, int b) {
   int j;
   CallInfo *ci = L->ci;
   int n = cast_int(ci->base - ci->func) - cl->p->numparams - 1;
-	b -= 1;
+  b -= 1;
   if (b == LUA_MULTRET) {
     Protect(luaD_checkstack(L, n));
     ra = base + a;  /* previous call may change the stack */

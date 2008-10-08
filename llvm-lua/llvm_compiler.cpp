@@ -24,6 +24,7 @@
 
 #include "LLVMCompiler.h"
 #include "LLVMDumper.h"
+#include "llvm/Support/ManagedStatic.h"
 
 extern "C" {
 
@@ -40,6 +41,7 @@ void llvm_compiler_cleanup() {
 	delete compiler;
 	dumper = NULL;
 	compiler = NULL;
+	llvm::llvm_shutdown();
 }
 
 void llvm_compiler_compile(Proto *p) {

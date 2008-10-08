@@ -50,7 +50,7 @@
  * Using lazing compilation requires large 512K c-stacks for each coroutine.
  */
 static bool NoLazyCompilation = true;
-static unsigned int OptLevel = 1;
+static unsigned int OptLevel = 3;
 
 static llvm::cl::opt<bool> Fast("fast",
                    llvm::cl::desc("Generate code quickly, "
@@ -336,21 +336,20 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		}
 		// mem2reg
 		TheFPM->add(llvm::createPromoteMemoryToRegisterPass());
-		// Simplify the control flow graph (deleting unreachable blocks, etc).
-		TheFPM->add(llvm::createCFGSimplificationPass());
 		// Do simple "peephole" optimizations and bit-twiddling optzns.
 		TheFPM->add(llvm::createInstructionCombiningPass());
-	
-		// TailDuplication
-		//TheFPM->add(llvm::createTailDuplicationPass());
-		// BlockPlacement
-		//TheFPM->add(llvm::createBlockPlacementPass());
-		// Reassociate expressions.
-		//TheFPM->add(llvm::createReassociatePass());
-		// Eliminate Common SubExpressions.
-		//TheFPM->add(llvm::createGVNPass());
 		// Dead code Elimination
-		//TheFPM->add(llvm::createDeadCodeEliminationPass());
+		TheFPM->add(llvm::createDeadCodeEliminationPass());
+		if(OptLevel > 2) {
+			// TailDuplication
+			TheFPM->add(llvm::createTailDuplicationPass());
+			// BlockPlacement
+			TheFPM->add(llvm::createBlockPlacementPass());
+			// Reassociate expressions.
+			TheFPM->add(llvm::createReassociatePass());
+			// Simplify the control flow graph (deleting unreachable blocks, etc).
+			TheFPM->add(llvm::createCFGSimplificationPass());
+		}
 	} else {
 		TheFPM = NULL;
 	}
@@ -411,6 +410,7 @@ LLVMCompiler::~LLVMCompiler() {
 
 	if(TheExecutionEngine) {
 		TheExecutionEngine->runStaticConstructorsDestructors(true);
+		delete TheExecutionEngine;
 	}
 }
 
@@ -596,7 +596,7 @@ void LLVMCompiler::compile(Proto *p)
 							if(op_hints[x] == HINT_SKIP_OP) op_hints[x] = HINT_NONE;
 						}
 					}
-					vals->set(4, Builder.CreateAlloca(llvm::Type::DoubleTy, 0, "for_idx"));
+					vals->set(3, Builder.CreateAlloca(llvm::Type::DoubleTy, 0, "for_idx"));
 					op_hints[branch] = HINT_FOR_N_N_N;
 					op_values[branch] = vals;
 				}
@@ -866,12 +866,12 @@ void LLVMCompiler::compile(Proto *p)
 						inlineList.push_back(call2);
 						vals->set(2, call2);
 					}
-					if(vals->get(4) != NULL) {
+					if(vals->get(3) != NULL) {
 						call2=Builder.CreateCall2(vm_get_number,func_L,
 							llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(code[i]) + 0))), "for_init");
 						inlineList.push_back(call2);
 						// create for loop 'idx' variable storage space.
-						llvm::Value *idx_var = vals->get(4);
+						llvm::Value *idx_var = vals->get(3);
 						Builder.CreateStore(call2, idx_var); // store 'for_init' value.
 						// add branch to forloop block.
 						Builder.CreateBr(op_blocks[branch]);

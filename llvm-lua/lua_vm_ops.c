@@ -322,15 +322,15 @@ void vm_OP_FORPREP(lua_State *L, int a, int sbx) {
   const TValue *init = ra;
   const TValue *plimit = ra+1;
   const TValue *pstep = ra+2;
-	int valid=1;
-	valid &= ttisnumber(init);
-	valid &= ttisnumber(plimit);
-	valid &= ttisnumber(pstep);
-	if(!valid) {
-		vm_OP_FORPREP_slow(L,a,sbx);
-		return;
-	}
-	// subtract pstep from init.
+  int valid=1;
+  valid &= ttisnumber(init);
+  valid &= ttisnumber(plimit);
+  valid &= ttisnumber(pstep);
+  if(!valid) {
+    vm_OP_FORPREP_slow(L,a,sbx);
+    return;
+  }
+  // subtract pstep from init.
   setnvalue(ra, luai_numsub(nvalue(init), nvalue(pstep)));
   dojump(sbx);
 }
@@ -341,13 +341,13 @@ void vm_OP_FORPREP(lua_State *L, int a, int sbx) {
 void vm_OP_FORPREP_M_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step) {
   TValue *ra = L->base + a;
   const TValue *init = ra;
-	if(!ttisnumber(init)) {
-		setnvalue(ra+1, limit);
-		setnvalue(ra+2, step);
-		vm_OP_FORPREP_slow(L,a,sbx);
-		return;
-	}
-	// subtract pstep from init.
+  if(!ttisnumber(init)) {
+    setnvalue(ra+1, limit);
+    setnvalue(ra+2, step);
+    vm_OP_FORPREP_slow(L,a,sbx);
+    return;
+  }
+  // subtract pstep from init.
   setnvalue(ra, luai_numsub(nvalue(init), step));
   dojump(sbx);
 }
@@ -358,13 +358,13 @@ void vm_OP_FORPREP_M_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Num
 void vm_OP_FORPREP_N_M_N(lua_State *L, int a, int sbx, lua_Number init, lua_Number step) {
   TValue *ra = L->base + a;
   const TValue *plimit = ra+1;
-	if(!ttisnumber(plimit)) {
-		setnvalue(ra, init);
-		setnvalue(ra+2, step);
-		vm_OP_FORPREP_slow(L,a,sbx);
-		return;
-	}
-	// subtract pstep from init.
+  if(!ttisnumber(plimit)) {
+    setnvalue(ra, init);
+    setnvalue(ra+2, step);
+    vm_OP_FORPREP_slow(L,a,sbx);
+    return;
+  }
+  // subtract pstep from init.
   setnvalue(ra, luai_numsub(init, step));
   dojump(sbx);
 }
@@ -374,7 +374,7 @@ void vm_OP_FORPREP_N_M_N(lua_State *L, int a, int sbx, lua_Number init, lua_Numb
  */
 void vm_OP_FORPREP_N_N_N(lua_State *L, int a, int sbx, lua_Number init, lua_Number step) {
   TValue *ra = L->base + a;
-	// subtract pstep from init.
+  // subtract pstep from init.
   setnvalue(ra, luai_numsub(init, step));
   dojump(sbx);
 }
@@ -431,6 +431,6 @@ TValue *vm_get_current_constants(LClosure *cl) {
 }
 
 lua_Number vm_get_number(lua_State *L, int idx) {
-	return nvalue(L->base + idx);
+  return nvalue(L->base + idx);
 }
 
