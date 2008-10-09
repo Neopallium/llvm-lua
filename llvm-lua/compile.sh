@@ -1,5 +1,8 @@
 #!/bin/sh
 #
+ARCH=i686
+#ARCH=pentium4
+#ARCH=athlon64
 FILE=${1/.lua/}
 DEBUG="0"
 if [[ $DEBUG == "1" ]]; then
@@ -11,8 +14,8 @@ if [[ $DEBUG == "1" ]]; then
 	LLC_FLAGS=" "
 else
 	LUA_FLAGS=" -O3 "
-	#CFLAGS=" -ggdb -march=athlon64 -O3 -fomit-frame-pointer -pipe -Wall "
-	#CFLAGS=" -march=athlon64 -O3 -fomit-frame-pointer -pipe -Wall "
+	#CFLAGS=" -ggdb -march=$ARCH -O3 -fomit-frame-pointer -pipe -Wall "
+	CFLAGS=" -march=$ARCH -O3 -fomit-frame-pointer -pipe -Wall "
 	CFLAGS=" -O3 -fomit-frame-pointer -pipe -Wall "
 	OPT_FLAGS=" -O3 -std-compile-opts -tailcallelim -tailduplicate "
 	LLC_FLAGS=" -tailcallopt "
