@@ -29,7 +29,7 @@
 
 namespace {
   llvm::cl::opt<std::string>
-  InputFile(llvm::cl::desc("<script>"), llvm::cl::Positional, llvm::cl::init("-"));
+  InputFile(llvm::cl::Positional, llvm::cl::desc("<script>"), llvm::cl::init("-"));
 
   llvm::cl::list<std::string>
   InputArgv(llvm::cl::ConsumeAfter, llvm::cl::desc("<script arguments>..."));

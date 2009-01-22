@@ -28,11 +28,8 @@
 #include "llvm/Support/CommandLine.h"
 
 namespace {
-  //llvm::cl::opt<std::string>
-  //InputFile(llvm::cl::desc("<script>"), llvm::cl::Positional, llvm::cl::init("-"));
-
   llvm::cl::list<std::string>
-  InputFiles(llvm::cl::ConsumeAfter, llvm::cl::desc("[filenames]"));
+  InputFiles(llvm::cl::Positional, llvm::cl::OneOrMore, llvm::cl::desc("[filenames]"));
 
   llvm::cl::opt<bool>
   Bitcode("bc",

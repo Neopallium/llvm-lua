@@ -18,6 +18,7 @@ LIBS= -lm $(MYLIBS)
 ARCH=i686
 #ARCH=pentium4
 #ARCH=athlon64
+#LL_FLAGS= -m32 
 ifdef DEBUG
 CFLAGS= -O0 -ggdb -Wall
 #CFLAGS= -ggdb -O3 -fomit-frame-pointer -pipe -Wall
@@ -86,13 +87,13 @@ all: llvm-lua llvm-luac
 	$(CXX) -c $(LUA_CFLAGS) $(LLVM_CFLAGS) -o $@ $<
 
 %.bc: %.c
-	$(LLVM_CC) -emit-llvm -c $(LUA_CFLAGS) -o $@ $<
+	$(LLVM_CC) $(LL_FLAGS) -emit-llvm -c $(LUA_CFLAGS) -o $@ $<
 
 lua_core.o: lua_core.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 	$(CC) -c $(LUA_CFLAGS) -o $@ lua_core.c
 
 lua_vm_ops.bc: lua_vm_ops.c
-	$(LLVM_CC) -emit-llvm -c -I$(LUA_SRC) $(OPS_CFLAGS) -o $@ $<
+	$(LLVM_CC) $(LL_FLAGS) -emit-llvm -c -I$(LUA_SRC) $(OPS_CFLAGS) -o $@ $<
 
 lua_vm_ops_module.inc.cpp: lua_vm_ops.bc
 	$(LLC) -march=cpp -f --cppgen=module -o $@ $<
