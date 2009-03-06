@@ -15,7 +15,7 @@ RM= rm -f
 RANLIB = ranlib
 
 LIBS= -lm $(MYLIBS)
-ARCH=i686
+#ARCH=i686
 #ARCH=pentium4
 #ARCH=athlon64
 #LL_FLAGS= -m32 
@@ -23,9 +23,12 @@ ifdef DEBUG
 CFLAGS= -O0 -ggdb -Wall
 #CFLAGS= -ggdb -O3 -fomit-frame-pointer -pipe -Wall
 else
-CFLAGS= -march=$(ARCH) -O3 -fomit-frame-pointer -pipe -Wall
+CFLAGS= -O3 -fomit-frame-pointer -pipe -Wall
 #CFLAGS= -O3 -fomit-frame-pointer -pipe -Wall
 #CFLAGS= -O2 -Wall
+endif
+ifdef ARCH
+CFLAGS= -march=$(ARCH) $(CFLAGS)
 endif
 
 MYCFLAGS=

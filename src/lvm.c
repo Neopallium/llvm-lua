@@ -459,7 +459,9 @@ void luaV_execute (lua_State *L, int nexeccalls) {
       case OP_NEWTABLE: {
         int b = GETARG_B(i);
         int c = GETARG_C(i);
-        sethvalue(L, ra, luaH_new(L, luaO_fb2int(b), luaO_fb2int(c)));
+        Table *h;
+        Protect(h = luaH_new(L, luaO_fb2int(b), luaO_fb2int(c)));
+        sethvalue(L, RA(i), h);
         Protect(luaC_checkGC(L));
         continue;
       }

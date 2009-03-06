@@ -100,9 +100,9 @@ void vm_OP_SETTABLE(lua_State *L, TValue *k, int a, int b, int c) {
 }
 
 void vm_OP_NEWTABLE(lua_State *L, int a, int b, int c) {
-  TValue *base = L->base;
-  TValue *ra = base + a;
-  sethvalue(L, ra, luaH_new(L, luaO_fb2int(b), luaO_fb2int(c)));
+  Table *h;
+  h = luaH_new(L, luaO_fb2int(b), luaO_fb2int(c));
+  sethvalue(L, L->base + a, h);
   luaC_checkGC(L);
 }
 
