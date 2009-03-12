@@ -63,7 +63,7 @@ extern int vm_op_run_count[];
 
 extern void vm_count_OP(const Instruction i);
 
-extern void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i);
+extern void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i, int pc_offset);
 
 extern void vm_next_OP(lua_State *L, LClosure *cl);
 

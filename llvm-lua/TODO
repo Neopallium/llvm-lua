@@ -5,3 +5,6 @@ broken:
 optimizations:
 * Remove jump from FORPREP to FORLOOP and copy loop test into FORPREP.  To save having to do (limit - pstep) in FORPREP and saves an extra call to FORLOOP.
 
+misc:
+* move "LUA_NODEBUG" from a compile-time feature to a runtime selectable feature.
+

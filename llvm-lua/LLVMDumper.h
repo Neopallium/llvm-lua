@@ -69,7 +69,7 @@ private:
 public:
 	LLVMDumper(LLVMCompiler *compiler);
 
-	void dump(const char *output, Proto *p, int stripping);
+	void dump(const char *output, lua_State *L, Proto *p, int stripping);
 
 private:
 	llvm::Constant *get_ptr(llvm::Constant *val);
@@ -80,7 +80,9 @@ private:
 
 	llvm::Constant *dump_proto(Proto *p);
 
-	void dump_protos(Proto *p);
+	void dump_standalone(Proto *p);
+
+	void dump_lua_module(Proto *p, std::string mod_name);
 
 };
 #endif

@@ -25,14 +25,23 @@
 #include "LLVMCompiler.h"
 #include "LLVMDumper.h"
 #include "llvm/Support/ManagedStatic.h"
+#include "llvm_compiler.h"
 
 extern "C" {
 
 static LLVMCompiler *compiler = NULL;
 static LLVMDumper *dumper = NULL;
 
+static void do_shutdown() {
+	// cleanup Lua to LLVM compiler.
+	llvm_compiler_cleanup();
+}
+
 int llvm_compiler_main(int useJIT) {
-	compiler = new LLVMCompiler(useJIT);
+	if(compiler == NULL) {
+		compiler = new LLVMCompiler(useJIT);
+		atexit(do_shutdown);
+	}
 	return 0;
 }
 
@@ -44,21 +53,27 @@ void llvm_compiler_cleanup() {
 	llvm::llvm_shutdown();
 }
 
-void llvm_compiler_compile(Proto *p) {
-	compiler->compile(p);
+void llvm_compiler_compile(lua_State *L, Proto *p) {
+	if(compiler != NULL) {
+		llvm_compiler_main(1);
+	}
+	compiler->compile(L, p);
 }
 
-void llvm_compiler_compile_all(Proto *p) {
-	compiler->compileAll(p);
+void llvm_compiler_compile_all(lua_State *L, Proto *p) {
+	if(compiler != NULL) {
+		llvm_compiler_main(1);
+	}
+	compiler->compileAll(L, p);
 }
 
-void llvm_compiler_dump(const char *output, Proto *p, int stripping) {
+void llvm_compiler_dump(const char *output, lua_State *L, Proto *p, int stripping) {
 	if(dumper == NULL) dumper = new LLVMDumper(compiler);
-	dumper->dump(output, p, stripping);
+	dumper->dump(output, L, p, stripping);
 }
 
-void llvm_compiler_free(Proto *p) {
-	compiler->free(p);
+void llvm_compiler_free(lua_State *L, Proto *p) {
+	compiler->free(L, p);
 }
 
 }// end: extern "C"

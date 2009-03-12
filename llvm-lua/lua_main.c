@@ -32,10 +32,10 @@
  * Lua script.
  */
 void llvm_compiler_cleanup() {}
-void llvm_compiler_compile(Proto *p) {}
-void llvm_compiler_compile_all(Proto *p) {}
-void llvm_compiler_dump(const char *output, Proto *p, int stripping) {}
-void llvm_compiler_free(Proto *p) {}
+void llvm_compiler_compile(lua_State *L, Proto *p) {}
+void llvm_compiler_compile_all(lua_State *L, Proto *p) {}
+void llvm_compiler_dump(const char *output, lua_State *L, Proto *p, int stripping) {}
+void llvm_compiler_free(lua_State *L, Proto *p) {}
 
 
 static lua_State *globalL = NULL;
@@ -136,30 +136,11 @@ static int dostring (lua_State *L, const char *s, const char *name) {
   return report(L, status);
 }
 
-
-static int load_compiled_jit(lua_State *L) {
-  Closure *cl;
-  Proto *tf;
-  int i;
-
-  luaC_checkGC(L);
-  set_block_gc(L);  /* stop collector during jit function loading. */
-  tf = load_jit_proto(L, &jit_proto_init);
-  cl = luaF_newLclosure(L, tf->nups, hvalue(gt(L)));
-  cl->l.p = tf;
-  for (i = 0; i < tf->nups; i++)  /* initialize eventual upvalues */
-    cl->l.upvals[i] = luaF_newupval(L);
-  setclvalue(L, L->top, cl);
-  incr_top(L);
-  unset_block_gc(L);
-  return 0;
-}
-
 static int handle_script (lua_State *L, int argc, char **argv) {
   int status;
   int narg = getargs(L, argc, argv);  /* collect arguments */
   lua_setglobal(L, "arg");
-  status = load_compiled_jit(L);
+  status = load_compiled_protos(L, &jit_proto_init);
   lua_insert(L, -(narg+1));
   if (status == 0)
     status = docall(L, narg, 0);

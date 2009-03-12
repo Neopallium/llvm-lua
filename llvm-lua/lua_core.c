@@ -74,6 +74,6 @@ void llvm_newproto (lua_State *L, Proto *f) {
 }
 
 void llvm_freeproto (lua_State *L, Proto *f) {
-	llvm_compiler_free(f);
+	llvm_compiler_free(L, f);
 }
 

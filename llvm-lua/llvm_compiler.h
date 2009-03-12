@@ -38,10 +38,10 @@ extern "C" {
 
 int llvm_compiler_main(int useJIT);
 void llvm_compiler_cleanup();
-void llvm_compiler_compile(Proto *p);
-void llvm_compiler_compile_all(Proto *p);
-void llvm_compiler_dump(const char *output, Proto *p, int stripping);
-void llvm_compiler_free(Proto *p);
+void llvm_compiler_compile(lua_State *L, Proto *p);
+void llvm_compiler_compile_all(lua_State *L, Proto *p);
+void llvm_compiler_dump(const char *output, lua_State *L, Proto *p, int stripping);
+void llvm_compiler_free(lua_State *L, Proto *p);
 
 extern int llvm_precall_jit (lua_State *L, StkId func, int nresults);
 extern int llvm_precall_lua (lua_State *L, StkId func, int nresults);

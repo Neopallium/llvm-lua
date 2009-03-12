@@ -89,3 +89,34 @@ Proto *load_jit_proto(lua_State *L, jit_proto *p) {
 	return f;
 }
 
+LUALIB_API int load_compiled_protos(lua_State *L, jit_proto *p) {
+  Closure *cl;
+  Proto *tf;
+  int i;
+
+	// load compiled lua code.
+  luaC_checkGC(L);
+  set_block_gc(L);  /* stop collector during jit function loading. */
+  tf = load_jit_proto(L, p);
+  cl = luaF_newLclosure(L, tf->nups, hvalue(gt(L)));
+  cl->l.p = tf;
+  for (i = 0; i < tf->nups; i++)  /* initialize eventual upvalues */
+    cl->l.upvals[i] = luaF_newupval(L);
+  setclvalue(L, L->top, cl);
+  incr_top(L);
+  unset_block_gc(L);
+
+	return 0;
+}
+
+
+LUALIB_API int load_compiled_module(lua_State *L, jit_proto *p) {
+	// load compiled lua code.
+	load_compiled_protos(L, p);
+	// run compiled lua code.
+	lua_insert(L, -2); // pass our first parameter to the lua module.
+	lua_call(L, 1, 1);
+
+	return 1;
+}
+

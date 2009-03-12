@@ -189,14 +189,14 @@ void vm_count_OP(const Instruction i) {
   vm_op_run_count[GET_OPCODE(i)]++;
 }
 
-void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i) {
+void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i, int pc_offset) {
   int op = GET_OPCODE(i);
 #ifndef LUA_NODEBUG
-  fprintf(stderr, "%ld: '%s' (%d) = 0x%08X, pc=%p\n", (L->savedpc - cl->p->code),
+  fprintf(stderr, "%d: '%s' (%d) = 0x%08X, pc=%p\n", pc_offset,
     luaP_opnames[op], op, i, L->savedpc);
   lua_assert(L->savedpc[0] == i);
 #else
-  fprintf(stderr, "'%s' (%d) = 0x%08X\n", luaP_opnames[op], op, i);
+  fprintf(stderr, "%d: '%s' (%d) = 0x%08X\n", pc_offset, luaP_opnames[op], op, i);
 #endif
 }
 
@@ -209,6 +209,7 @@ void vm_next_OP(lua_State *L, LClosure *cl) {
       (--L->hookcount == 0 || L->hookmask & LUA_MASKLINE)) {
     luaV_traceexec(L, L->savedpc);
     if (L->status == LUA_YIELD) {  /* did hook yield? */
+			// TODO: fix hook yield
       L->savedpc = L->savedpc - 1;
       return;
     }

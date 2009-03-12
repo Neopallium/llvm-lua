@@ -14,10 +14,13 @@ AR= ar rcu
 RM= rm -f
 RANLIB = ranlib
 
+LIBTOOL = libtool --quiet --tag=CC
+LIB_VERSION = 6:1:1
+
 LIBS= -lm $(MYLIBS)
 #ARCH=i686
 #ARCH=pentium4
-#ARCH=athlon64
+ARCH=athlon64
 #LL_FLAGS= -m32 
 ifdef DEBUG
 CFLAGS= -O0 -ggdb -Wall
@@ -28,7 +31,7 @@ CFLAGS= -O3 -fomit-frame-pointer -pipe -Wall
 #CFLAGS= -O2 -Wall
 endif
 ifdef ARCH
-CFLAGS= -march=$(ARCH) $(CFLAGS)
+CFLAGS += -march=$(ARCH)
 endif
 
 MYCFLAGS=
@@ -68,26 +71,31 @@ LLVM_CFLAGS=`llvm-config --cppflags`
 LLVM_LFLAGS=`llvm-config --ldflags --libs core jit native bitreader bitwriter ipo`
 
 COMMON_OBJS=LLVMCompiler.o LLVMDumper.o llvm_compiler.o load_vm_ops.o \
-	lua_core.o lua_vm_ops_static.o
-INTERPRETER_OBJS=llvm-lua.o lua_interpreter.o $(COMMON_OBJS)
-COMPILER_OBJS=llvm-luac.o lua_compiler.o $(COMMON_OBJS)
-
+	lua_core.o lua_vm_ops_static.o load_jit_proto.o
+EXTRA_OBJS=
 ifndef USE_BITCODE_FILE
-INTERPRETER_OBJS += lua_vm_ops_module.o
-COMPILER_OBJS += lua_vm_ops_module.o
+COMMON_OBJS += lua_vm_ops_module.o
 else
+EXTRA_OBJS += lua_vm_ops.bc
 CFLAGS += -DUSE_BITCODE_FILE
 endif
 
+INTERPRETER_OBJS=llvm-lua.o lua_interpreter.o $(COMMON_OBJS)
+COMPILER_OBJS=llvm-luac.o lua_compiler.o $(COMMON_OBJS)
+LIB_OBJS=$(COMMON_OBJS)
+
+LIB_NAME=liblua.la
+LIB_OBJS=$(COMMON_OBJS:.o=.lo)
+
 default: $(PLAT)
 
-all: llvm-lua llvm-luac
+all: llvm-lua llvm-luac $(LIB_NAME) $(LIB_NAME:.la=.a)
 
-%.o: %.c
-	$(CC) -c $(LUA_CFLAGS) -o $@ $<
+%.lo %.o: %.c
+	$(LIBTOOL) --mode=compile $(CC) -c $(LUA_CFLAGS) -o $@ $<
 
-%.o: %.cpp
-	$(CXX) -c $(LUA_CFLAGS) $(LLVM_CFLAGS) -o $@ $<
+%.lo %.o: %.cpp
+	$(LIBTOOL) --mode=compile $(CXX) -c $(LUA_CFLAGS) $(LLVM_CFLAGS) -o $@ $<
 
 %.bc: %.c
 	$(LLVM_CC) $(LL_FLAGS) -emit-llvm -c $(LUA_CFLAGS) -o $@ $<
@@ -115,16 +123,23 @@ lua_normal.o: lua_normal.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 	$(CC) -c $(LUA_CFLAGS) -o $@ lua_normal.c
 
 lua: lua_normal.o
-	$(LD) -o $@ $^ $(MYLIBS)
+	$(LIBTOOL) --mode=link $(CC) -Wl,-E -o $@ $^ $(MYLIBS) -llua
 
-llvm-lua: $(INTERPRETER_OBJS) lua_vm_ops.bc
+$(LIB_NAME): $(LIB_OBJS) $(EXTRA_OBJS)
+	$(LIBTOOL) --mode=link $(CC) -version-info $(LIB_VERSION) \
+            -rpath $(RPATH) -o $(LIB_NAME) $(LIB_OBJS)
+
+$(LIB_NAME:.la=.a): $(LIB_OBJS) $(EXTRA_OBJS)
+	$(LIBTOOL) --mode=link $(CC) -static -o $(LIB_NAME:.la=.a) $(LIB_OBJS)
+
+llvm-lua: $(INTERPRETER_OBJS) $(EXTRA_OBJS)
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(INTERPRETER_OBJS) $(LLVM_LFLAGS)
 
-llvm-luac: $(COMPILER_OBJS) lua_vm_ops.bc liblua_main.bc liblua_main.a
+llvm-luac: $(COMPILER_OBJS) liblua_main.bc liblua_main.a $(EXTRA_OBJS)
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(COMPILER_OBJS) $(LLVM_LFLAGS)
 
 clean:
-	$(RM) *.bc *.o lib*.a lua llvm-lua llvm-luac lua_vm_ops_module.inc.cpp
+	$(LIBTOOL) --mode=clean $(RM) *.lo *.bc *.o lib*.a lua llvm-lua llvm-luac lua_vm_ops_module.inc.cpp $(LIB_NAME)
 
 depend:
 	@$(CC) $(LUA_CFLAGS) -MM lua_*.c load_*.c

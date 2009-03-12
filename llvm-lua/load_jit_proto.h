@@ -67,6 +67,9 @@ typedef struct jit_proto {
 
 Proto *load_jit_proto(lua_State *L, jit_proto *p);
 
+LUALIB_API int load_compiled_protos(lua_State *L, jit_proto *p);
+LUALIB_API int load_compiled_module(lua_State *L, jit_proto *p);
+
 extern jit_proto jit_proto_init;
 
 #ifdef __cplusplus

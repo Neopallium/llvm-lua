@@ -188,7 +188,7 @@ static int pmain(lua_State* L)
  if (llvm_bitcode)
  {
   lua_lock(L);
-  llvm_compiler_dump(output, f, stripping);
+  llvm_compiler_dump(output, L, f, stripping);
   lua_unlock(L);
  }
  if (dumping)

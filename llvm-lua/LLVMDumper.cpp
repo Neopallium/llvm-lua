@@ -27,6 +27,7 @@
 #include "llvm/TypeSymbolTable.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/Support/CommandLine.h"
 #include <string>
 #include <vector>
 #include <fstream>
@@ -35,6 +36,10 @@
 #include "LLVMDumper.h"
 #include "lstate.h"
 #include "load_jit_proto.h"
+
+static llvm::cl::opt<bool> LuaModule("lua-module",
+                   llvm::cl::desc("Generate a Lua Module instead of a standalone exe."),
+                   llvm::cl::init(false));
 
 //===----------------------------------------------------------------------===//
 // Dump a compilable bitcode module.
@@ -96,10 +101,12 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler) : compiler(compiler) {
 	Ty_jit_proto_ptr = llvm::PointerType::get(Ty_jit_proto, 0);
 }
 
-void LLVMDumper::dump(const char *output, Proto *p, int stripping) {
+void LLVMDumper::dump(const char *output, lua_State *L, Proto *p, int stripping) {
 	std::ofstream OS(output, std::ios_base::out|std::ios::trunc|std::ios::binary);
 	std::string error;
+
 	if(!OS.fail()) {
+		compiler->setStripCode(stripping);
 		// Internalize all opcode functions.
 		for (llvm::Module::iterator I = TheModule->begin(), E = TheModule->end(); I != E; ++I) {
 			llvm::Function *Fn = &*I;
@@ -107,10 +114,15 @@ void LLVMDumper::dump(const char *output, Proto *p, int stripping) {
 				Fn->setLinkage(llvm::Function::LinkOnceLinkage);
 		}
 		// Compile all Lua prototypes to LLVM IR
-		compiler->compileAll(p);
+		compiler->compileAll(L, p);
 		//TheModule->dump();
-		// Dump proto info to global for reloading.
-		dump_protos(p);
+		if(LuaModule) {
+			// Dump proto info to static variable and create 'luaopen_<mod_name>' function.
+			dump_lua_module(p, output);
+		} else {
+			// Dump proto info to global for standalone exe.
+			dump_standalone(p);
+		}
 		//TheModule->dump();
 		llvm::verifyModule(*TheModule);
 		llvm::WriteBitcodeToFile(TheModule, OS);
@@ -250,7 +262,7 @@ llvm::Constant *LLVMDumper::dump_proto(Proto *p) {
 	return llvm::ConstantStruct::get(Ty_jit_proto, jit_proto_fields);
 }
 
-void LLVMDumper::dump_protos(Proto *p) {
+void LLVMDumper::dump_standalone(Proto *p) {
 	//
 	// dump protos to a global variable for re-loading.
 	//
@@ -258,5 +270,81 @@ void LLVMDumper::dump_protos(Proto *p) {
 	llvm::GlobalVariable *gjit_proto_init = new llvm::GlobalVariable(Ty_jit_proto, false,
 		llvm::GlobalValue::ExternalLinkage, jit_proto, "jit_proto_init", TheModule);
 	gjit_proto_init->setAlignment(32);
+}
+
+void LLVMDumper::dump_lua_module(Proto *p, std::string mod_name) {
+	llvm::IRBuilder<> Builder;
+	llvm::Function *func;
+	llvm::Function *load_compiled_module_func;
+	llvm::BasicBlock *block=NULL;
+	llvm::Value *func_L;
+	llvm::CallInst *call=NULL;
+	std::vector<const llvm::Type*> func_args;
+	llvm::FunctionType *func_type;
+	std::string name = "luaopen_";
+	std::string tmp;
+	size_t n;
+
+	//
+	// normalize mod_name.
+	//
+
+	// remove '.bc' from end of mod_name.
+	n = mod_name.size()-3;
+	if(n > 0) {
+		tmp = mod_name.substr(n, 3);
+		if(tmp[0] == '.') {
+			if(tmp[1] == 'b' || tmp[1] == 'B') {
+				if(tmp[2] == 'c' || tmp[2] == 'C') {
+					mod_name = mod_name.substr(0, n);
+				}
+			}
+		}
+	}
+	// convert non-alphanum chars to '_'
+	for(n = 0; n < mod_name.size(); n++) {
+		char c = mod_name[n];
+		if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) continue;
+		if(c == '\n' || c == '\r') {
+			mod_name = mod_name.substr(0,n);
+			break;
+		}
+		mod_name[n] = '_';
+	}
+
+	//
+	// dump protos to a static variable for re-loading.
+	//
+	llvm::Constant *jit_proto = dump_proto(p);
+	llvm::GlobalVariable *gjit_proto_init = new llvm::GlobalVariable(Ty_jit_proto, false,
+		llvm::GlobalValue::InternalLinkage, jit_proto, "jit_proto_init", TheModule);
+	gjit_proto_init->setAlignment(32);
+
+	//
+	// dump 'luaopen_<mod_name>' for loading the module.
+	//
+	name.append(mod_name);
+	func = llvm::Function::Create(lua_func_type, llvm::Function::ExternalLinkage, name, TheModule);
+	// name arg1 = "L"
+	func_L = func->arg_begin();
+	func_L->setName("L");
+	// entry block
+	block = llvm::BasicBlock::Create("entry", func);
+	Builder.SetInsertPoint(block);
+	// call 'load_compiled_module'
+	load_compiled_module_func = TheModule->getFunction("load_compiled_module");
+	if(load_compiled_module_func == NULL) {
+		func_args.clear();
+		func_args.push_back(func_L->getType());
+		func_args.push_back(Ty_jit_proto_ptr);
+		func_type = llvm::FunctionType::get(llvm::Type::Int32Ty, func_args, false);
+		load_compiled_module_func = llvm::Function::Create(func_type,
+			llvm::Function::ExternalLinkage, "load_compiled_module", TheModule);
+	}
+	call=Builder.CreateCall2(load_compiled_module_func, func_L, gjit_proto_init);
+	call->setTailCall(true);
+	Builder.CreateRet(call);
+
+	//func->dump();
 }
 

@@ -67,6 +67,7 @@ private:
 	llvm::IRBuilder<> Builder;
 	llvm::FunctionPassManager *TheFPM;
 	llvm::ExecutionEngine *TheExecutionEngine;
+	bool strip_code;
 
 	// struct types.
 	const llvm::Type *Ty_TValue;
@@ -100,6 +101,17 @@ public:
 	~LLVMCompiler();
 
 	/*
+	 * set code stripping mode.
+	 */
+	void setStripCode(bool strip) {
+#ifndef LUA_NODEBUG
+		strip_code = false; // disable code stripping when debugging code is enabled.
+#else
+		strip_code = strip;
+#endif
+	}
+
+	/*
 	 * return the module.
 	 */
 	llvm::Module *getModule() {
@@ -117,11 +129,11 @@ public:
 	/*
 	 * Pre-Compile all loaded functions.
 	 */
-	void compileAll(Proto *parent);
+	void compileAll(lua_State *L, Proto *parent);
 
-	void compile(Proto *p);
+	void compile(lua_State *L, Proto *p);
 
-	void free(Proto *p);
+	void free(lua_State *L, Proto *p);
 };
 
 #endif
