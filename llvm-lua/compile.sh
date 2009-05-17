@@ -12,17 +12,21 @@ FILE=${1/.lua/}
 DEBUG="0"
 MODE="full_bc"
 LUA_MODULE="0"
+LUA_ARGS=
 
 # parse command line parameters.
 for arg in "$@" ; do
 	case "$arg" in
-	-lua-module)  LUA_MODULE="1"; MODE="lua_mod" ;;
+	-lua-module*)  LUA_MODULE="1"; MODE="lua_mod"; LUA_ARGS="$LUA_ARGS $arg" ;;
 	-debug)  DEBUG="1" ;;
 	mode=*)  MODE=` echo "$arg" | sed -e 's/mod=//'` ;;
 	arch=*)  ARCH=` echo "$arg" | sed -e 's/arch=//'` ;;
 	*) FILE=${arg/.lua/} ;;
 	esac
 done
+
+FPATH=`dirname ${FILE}`
+FNAME=`basename ${FILE}`
 
 # select debug/optimize parameters.
 if [[ $DEBUG == "1" ]]; then
@@ -40,7 +44,7 @@ else
 	LLC_FLAGS=" -tailcallopt "
 fi
 
-./llvm-luac $LUA_FLAGS -bc -o ${FILE}.bc ${FILE}.lua || {
+./llvm-luac $LUA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILE}.lua || {
 	echo "llvm-luac: failed to compile Lua code into LLVM bitcode."
 	exit 1;
 }
@@ -68,12 +72,12 @@ case "$MODE" in
 		g++ $CFLAGS -o ${FILE} ${FILE}_run.s -rdynamic -Wl,-E -lm -ldl
 		;;
 	lua_mod)
-		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.c ${FILE}.lo lib${FILE}.la"
+		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_mod.c ${FPATH}/${FNAME}.lo ${FPATH}/lib${FNAME}.la"
 		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
 		llc $LLC_FLAGS --march=c -f -o ${FILE}_mod.c ${FILE}_opt.bc && \
 		$LIBTOOL --mode=compile $CC -c -o ${FILE}.lo ${FILE}_mod.c && \
-		$LIBTOOL --mode=link $CC -rpath ${RPATH} -o lib${FILE}.la ${FILE}.lo && \
-		cp -p .libs/lib${FILE}.so ${RPATH}/${FILE}.so
+		$LIBTOOL --mode=link $CC -rpath ${RPATH} -o ${FPATH}/lib${FNAME}.la ${FILE}.lo && \
+		cp -p ${FPATH}/.libs/lib${FNAME}.so ${RPATH}/${FILE}.so
 		$LIBTOOL --mode=clean rm -f $TMPS
 		;;
 	*)

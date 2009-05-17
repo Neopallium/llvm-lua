@@ -22,6 +22,8 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
+#include <stdlib.h>
+
 #include "llvm/Module.h"
 #include "llvm/ModuleProvider.h"
 

@@ -482,6 +482,7 @@ static Instruction symbexec (const Proto *pt, int lastpc, int reg) {
 
 
 int luaG_checkcode (const Proto *pt) {
+  if(pt->sizecode == 0) return 1; /* no bytecode, stripped jit compiled Lua function */
   return (symbexec(pt, pt->sizecode, NO_REG) != 0);
 }
 
@@ -500,6 +501,8 @@ static const char *getobjname (lua_State *L, CallInfo *ci, int stackpos,
     Proto *p = ci_func(ci)->l.p;
     int pc = currentpc(L, ci);
     Instruction i;
+    if (pc < 0 || p->sizecode == 0)  /* no bytecode, stripped jit compiled Lua function */
+      return NULL;
     *name = luaF_getlocalname(p, stackpos+1, pc);
     if (*name)  /* is a local? */
       return "local";
@@ -542,11 +545,15 @@ static const char *getobjname (lua_State *L, CallInfo *ci, int stackpos,
 
 
 static const char *getfuncname (lua_State *L, CallInfo *ci, const char **name) {
-  Instruction i;
+  Instruction i, *code;
+	int pc;
   if ((isLua(ci) && ci->tailcalls > 0) || !isLua(ci - 1))
     return NULL;  /* calling function is not Lua (or is unknown) */
   ci--;  /* calling function */
-  i = ci_func(ci)->l.p->code[currentpc(L, ci)];
+	code = ci_func(ci)->l.p->code;
+	pc = currentpc(L, ci);
+	if(pc < 0 || code == NULL) return NULL; /* no bytecode, stripped jit compiled Lua function */
+  i = code[currentpc(L, ci)];
   if (GET_OPCODE(i) == OP_CALL || GET_OPCODE(i) == OP_TAILCALL ||
       GET_OPCODE(i) == OP_TFORLOOP)
     return getobjname(L, ci, GETARG_A(i), name);

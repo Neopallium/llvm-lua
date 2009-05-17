@@ -8,7 +8,7 @@ V= 5.1
 R= 5.1.4
 
 # grep '^INSTALL_.*=' ../Makefile | sed 's/INSTALL_TOP/prefix/'
-prefix= /usr/local
+prefix= /usr
 INSTALL_BIN= ${prefix}/bin
 INSTALL_INC= ${prefix}/include
 INSTALL_LIB= ${prefix}/lib
@@ -21,11 +21,11 @@ exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
-Name: Lua
-Description: An Extensible Extension Language
+Name: LLVM-Lua
+Description: An Extensible Extension Language with JIT support from LLVM
 Version: ${R}
 Requires: 
-Libs: -L${libdir} -llua -lm
+Libs: -L${libdir} -llua -lm `llvm-config --ldflags --libs core jit native bitreader bitwriter ipo`
 Cflags: -I${includedir}
 
 # (end of lua.pc)

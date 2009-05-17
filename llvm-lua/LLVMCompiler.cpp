@@ -343,6 +343,13 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		} else {
 			TheFPM->add(new llvm::TargetData(TheModule));
 		}
+		/* TODO: try this order:
+     TheFPM->add(llvm::createPromoteMemoryToRegisterPass());
+     TheFPM->add(llvm::createCFGSimplificationPass());
+     TheFPM->add(llvm::createConstantPropagationPass());
+     TheFPM->add(llvm::createDeadCodeEliminationPass());
+     TheFPM->add(llvm::createInstructionCombiningPass());
+		*/
 		// mem2reg
 		TheFPM->add(llvm::createPromoteMemoryToRegisterPass());
 		// Do simple "peephole" optimizations and bit-twiddling optzns.

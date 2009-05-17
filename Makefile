@@ -37,18 +37,25 @@ RANLIB= ranlib
 
 # == END OF USER SETTINGS. NO NEED TO CHANGE ANYTHING BELOW THIS LINE =========
 
+ifndef RPATH
+export RPATH = $(INSTALL_LIB)
+endif
+
 # Convenience platforms targets.
 PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
 # What to install.
 TO_BIN= lua luac
 TO_INC= lua.h luaconf.h lualib.h lauxlib.h ../etc/lua.hpp
-TO_LIB= liblua.a
+TO_LIB= liblua.a liblua.la
 TO_MAN= lua.1 luac.1
 
 # Lua version and release.
 V= 5.1
 R= 5.1.4
+
+export V
+export LIBTOOL = libtool --quiet --tag=CC
 
 all:	$(PLAT)
 
@@ -59,10 +66,11 @@ test:	dummy
 	llvm-lua/llvm-lua test/hello.lua
 
 install: dummy
-	cd llvm-lua && $(MKDIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB) $(INSTALL_MAN) $(INSTALL_LMOD) $(INSTALL_CMOD)
-	cd llvm-lua && $(INSTALL_EXEC) $(TO_BIN) $(INSTALL_BIN)
+	$(MKDIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB)
+	$(MKDIR) $(INSTALL_MAN) $(INSTALL_LMOD) $(INSTALL_CMOD)
+	cd llvm-lua && $(LIBTOOL) --mode=install $(INSTALL_EXEC) $(TO_BIN) $(INSTALL_BIN)
 	cd llvm-lua && $(INSTALL_DATA) $(TO_INC) $(INSTALL_INC)
-	cd llvm-lua && $(INSTALL_DATA) $(TO_LIB) $(INSTALL_LIB)
+	cd llvm-lua && $(LIBTOOL) --mode=install $(INSTALL_DATA) $(TO_LIB) $(INSTALL_LIB)
 	cd doc && $(INSTALL_DATA) $(TO_MAN) $(INSTALL_MAN)
 
 ranlib:
