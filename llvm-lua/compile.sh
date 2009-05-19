@@ -4,6 +4,10 @@
 CC=gcc
 LIBTOOL="libtool --tag=CC --silent"
 RPATH=`pwd`
+LLVM_LUAC="./llvm-luac"
+if [[ ! -x "$LLVM_LUAC" ]]; then
+	LLVM_LUAC=`which llvm-luac`
+fi
 
 #ARCH=i686
 #ARCH=pentium4
@@ -31,20 +35,21 @@ FNAME=`basename ${FILE}`
 # select debug/optimize parameters.
 if [[ $DEBUG == "1" ]]; then
 	CFLAGS=" -O0 -ggdb "
-	LUA_FLAGS=" -O3 "
+	LUA_FLAGS=" -O0 -g "
 	#LUA_FLAGS=" -O3 -do-not-inline-opcodes -dump-functions "
 	#CFLAGS=" -ggdb -O3 -fomit-frame-pointer -pipe -Wall "
 	OPT_FLAGS=" -disable-opt "
 	LLC_FLAGS=" "
 else
 	LUA_FLAGS=" -O3 -s "
+	#LUA_FLAGS=" -O3 -g "
 	#CFLAGS=" -ggdb -march=$ARCH -O3 -fomit-frame-pointer -pipe -Wall "
-	CFLAGS=" -march=$ARCH -O3 -fomit-frame-pointer -pipe -Wall "
+	CFLAGS=" -march=$ARCH -O3 -fomit-frame-pointer -pipe "
 	OPT_FLAGS=" -O3 -std-compile-opts -tailcallelim -tailduplicate "
 	LLC_FLAGS=" -tailcallopt "
 fi
 
-./llvm-luac $LUA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILE}.lua || {
+$LLVM_LUAC $LUA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILE}.lua || {
 	echo "llvm-luac: failed to compile Lua code into LLVM bitcode."
 	exit 1;
 }
@@ -72,13 +77,16 @@ case "$MODE" in
 		g++ $CFLAGS -o ${FILE} ${FILE}_run.s -rdynamic -Wl,-E -lm -ldl
 		;;
 	lua_mod)
-		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_mod.c ${FPATH}/${FNAME}.lo ${FPATH}/lib${FNAME}.la"
+		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_mod.c ${FILE}_mod_tmp.c ${FPATH}/${FNAME}.lo ${FPATH}/lib${FNAME}.la"
 		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
-		llc $LLC_FLAGS --march=c -f -o ${FILE}_mod.c ${FILE}_opt.bc && \
-		$LIBTOOL --mode=compile $CC -c -o ${FILE}.lo ${FILE}_mod.c && \
+		llc $LLC_FLAGS --march=c -f -o ${FILE}_mod_tmp.c ${FILE}_opt.bc && \
+		cat ${FILE}_mod_tmp.c | grep -v "^#line " >${FILE}_mod.c && \
+		$LIBTOOL --mode=compile $CC $CFLAGS -c -o ${FILE}.lo ${FILE}_mod.c && \
 		$LIBTOOL --mode=link $CC -rpath ${RPATH} -o ${FPATH}/lib${FNAME}.la ${FILE}.lo && \
 		cp -p ${FPATH}/.libs/lib${FNAME}.so ${RPATH}/${FILE}.so
-		$LIBTOOL --mode=clean rm -f $TMPS
+		if [[ $DEBUG == "0" ]]; then
+			$LIBTOOL --mode=clean rm -f $TMPS
+		fi
 		;;
 	*)
 		echo "Invalid compile mode: $MODE"

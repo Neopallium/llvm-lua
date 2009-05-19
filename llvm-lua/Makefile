@@ -53,9 +53,6 @@ COCOCFLAGS=
 #COCOCFLAGS= -DCOCO_DEFAULT_CSTACKSIZE=524288
 # -- Coco =========
 
-# disable debugging of compiled lua code.  Comment this line if you want to use debug hooks.
-CFLAGS += -DLUA_NODEBUG
-
 # Comment USE_BITCODE_FILE to embed the 'lua_vm_ops.bc' file into llvm-lua & llvm-luac
 USE_BITCODE_FILE=1
 
@@ -70,8 +67,9 @@ LUA_CFLAGS= -I$(LUA_SRC) $(CFLAGS) $(MYCFLAGS) $(COCOCFLAGS)
 LLVM_CFLAGS=`llvm-config --cppflags`
 LLVM_LFLAGS=`llvm-config --ldflags --libs core jit native bitreader bitwriter ipo`
 
-COMMON_OBJS=LLVMCompiler.o LLVMDumper.o llvm_compiler.o load_vm_ops.o \
-	lua_core.o lua_vm_ops_static.o load_jit_proto.o
+NON_LLVM_OBJS=lua_core.o lua_vm_ops_static.o load_jit_proto.o
+COMMON_OBJS=LLVMCompiler.o LLVMDumper.o llvm_compiler.o load_vm_ops.o $(NON_LLVM_OBJS)
+NO_JIT_OBJS=no_jit.o $(NON_LLVM_OBJS)
 EXTRA_OBJS=
 ifndef USE_BITCODE_FILE
 COMMON_OBJS += lua_vm_ops_module.o
@@ -82,10 +80,9 @@ endif
 
 INTERPRETER_OBJS=llvm-lua.o lua_interpreter.o $(COMMON_OBJS)
 COMPILER_OBJS=llvm-luac.o lua_compiler.o $(COMMON_OBJS)
-LIB_OBJS=$(COMMON_OBJS)
 
 LIB_NAME=liblua.la
-LIB_OBJS=$(COMMON_OBJS:.o=.lo)
+LIB_OBJS=$(NO_JIT_OBJS:.o=.lo)
 
 default: $(PLAT)
 
@@ -112,10 +109,10 @@ lua_vm_ops_module.inc.cpp: lua_vm_ops.bc
 lua_vm_ops_module.o: lua_vm_ops_module.cpp lua_vm_ops_module.inc.cpp
 	$(CXX) -O0 -fomit-frame-pointer -c $(LLVM_CFLAGS) -o $@ $<
 
-liblua_main.bc: lua_core.bc lua_main.bc load_jit_proto.bc lua_vm_ops_static.bc
+liblua_main.bc: lua_main.bc $(NO_JIT_OBJS:.o=.bc)
 	$(LLVM_LD) -f -o $@ $^
 
-liblua_main.a: lua_core.o lua_main.o load_jit_proto.o lua_vm_ops_static.o
+liblua_main.a: lua_main.o $(NO_JIT_OBJS)
 	$(AR) $@ $?
 	$(RANLIB) $@
 
@@ -125,14 +122,14 @@ lua_normal.o: lua_normal.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 lua: lua_normal.o
 	$(LIBTOOL) --mode=link $(CC) -Wl,-E -o $@ $^ $(MYLIBS) -llua
 
-$(LIB_NAME): $(LIB_OBJS) $(EXTRA_OBJS)
+$(LIB_NAME): $(LIB_OBJS)
 	$(LIBTOOL) --mode=link $(CC) -version-info $(LIB_VERSION) \
             -rpath $(RPATH) -o $(LIB_NAME) $(LIB_OBJS)
 
-$(LIB_NAME:.la=.a): $(LIB_OBJS) $(EXTRA_OBJS)
+$(LIB_NAME:.la=.a): $(LIB_OBJS)
 	$(LIBTOOL) --mode=link $(CC) -static -o $(LIB_NAME:.la=.a) $(LIB_OBJS)
 
-llvm-lua: $(INTERPRETER_OBJS) $(EXTRA_OBJS)
+llvm-lua: $(INTERPRETER_OBJS) lua_vm_ops_static.o
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(INTERPRETER_OBJS) $(LLVM_LFLAGS)
 
 llvm-luac: $(COMPILER_OBJS) liblua_main.bc liblua_main.a $(EXTRA_OBJS)

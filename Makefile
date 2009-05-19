@@ -45,9 +45,9 @@ endif
 PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
 # What to install.
-TO_BIN= lua luac
+TO_BIN= llvm-lua llvm-luac
 TO_INC= lua.h luaconf.h lualib.h lauxlib.h ../etc/lua.hpp
-TO_LIB= liblua.a liblua.la
+TO_LIB= liblua.a liblua.la liblua_main.bc lua_vm_ops.bc
 TO_MAN= lua.1 luac.1
 
 # Lua version and release.
@@ -69,8 +69,9 @@ install: dummy
 	$(MKDIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB)
 	$(MKDIR) $(INSTALL_MAN) $(INSTALL_LMOD) $(INSTALL_CMOD)
 	cd llvm-lua && $(LIBTOOL) --mode=install $(INSTALL_EXEC) $(TO_BIN) $(INSTALL_BIN)
-	cd llvm-lua && $(INSTALL_DATA) $(TO_INC) $(INSTALL_INC)
+	cd src && $(INSTALL_DATA) $(TO_INC) $(INSTALL_INC)
 	cd llvm-lua && $(LIBTOOL) --mode=install $(INSTALL_DATA) $(TO_LIB) $(INSTALL_LIB)
+	cd llvm-lua && $(LIBTOOL) --mode=finish $(INSTALL_LIB)
 	cd doc && $(INSTALL_DATA) $(TO_MAN) $(INSTALL_MAN)
 
 ranlib:

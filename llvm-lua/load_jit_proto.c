@@ -32,6 +32,15 @@
 #include "lstring.h"
 #include "lmem.h"
 #include "load_jit_proto.h"
+#include "lundump.h"
+
+#define DUMP_PROTOS 0
+#if DUMP_PROTOS
+#include <stdio.h>
+
+#define luaU_print luaU_dump_proto
+#include "print.c"
+#endif
 
 Proto *load_jit_proto(lua_State *L, jit_proto *p) {
 	Proto *f = luaF_newproto(L);
@@ -41,6 +50,10 @@ Proto *load_jit_proto(lua_State *L, jit_proto *p) {
 	f->source = luaS_new(L, p->name);
 	/* jit_func */
 	f->jit_func = p->jit_func;
+	/* linedefined */
+	f->linedefined = p->linedefined;
+	/* lastlinedefined */
+	f->lastlinedefined = p->lastlinedefined;
 	/* nups */
 	f->nups = p->nups;
 	/* numparams */
@@ -86,6 +99,30 @@ Proto *load_jit_proto(lua_State *L, jit_proto *p) {
 	for(i = 0; i < p->sizecode; i++) {
 		f->code[i] = p->code[i];
 	}
+	/* sizelineinfo */
+	f->sizelineinfo = p->sizelineinfo;
+	/* lineinfo */
+	f->lineinfo=luaM_newvector(L,p->sizelineinfo,int);
+	for(i = 0; i < p->sizelineinfo; i++) {
+		f->lineinfo[i] = p->lineinfo[i];
+	}
+	/* sizelocvars */
+	f->sizelocvars = p->sizelocvars;
+	/* locvars */
+	f->locvars=luaM_newvector(L,p->sizelocvars,LocVar);
+	for(i = 0; i < p->sizelocvars; i++) {
+		jit_LocVar *locvar = &(p->locvars[i]);
+		f->locvars[i].varname = luaS_new(L, locvar->varname);
+		f->locvars[i].startpc = locvar->startpc;
+		f->locvars[i].endpc = locvar->endpc;
+	}
+	/* sizeupvalues */
+	f->sizeupvalues = p->sizeupvalues;
+	/* upvalues */
+	f->upvalues=luaM_newvector(L,p->sizeupvalues,TString*);
+	for(i = 0; i < p->sizeupvalues; i++) {
+		f->upvalues[i] = luaS_new(L, p->upvalues[i]);
+	}
 	return f;
 }
 
@@ -98,6 +135,9 @@ LUALIB_API int load_compiled_protos(lua_State *L, jit_proto *p) {
   luaC_checkGC(L);
   set_block_gc(L);  /* stop collector during jit function loading. */
   tf = load_jit_proto(L, p);
+#if DUMP_PROTOS
+	luaU_dump_proto(tf,2);
+#endif
   cl = luaF_newLclosure(L, tf->nups, hvalue(gt(L)));
   cl->l.p = tf;
   for (i = 0; i < tf->nups; i++)  /* initialize eventual upvalues */

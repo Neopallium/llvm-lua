@@ -31,6 +31,8 @@
 extern "C" {
 #endif
 
+#include "lobject.h"
+
 #define constant_type_len(type, length) (((length & 0x3FFFFFFF) << 3) + (type & 0x03))
 #define get_constant_type(type_length) (type_length & 0x03)
 #define get_constant_length(type_length) ((type_length >> 3) & 0x3FFFFFFF)
@@ -50,9 +52,12 @@ typedef struct {
 	} val; /* value of Lua nil/boolean/number/string. */
 } constant_type;
 
+/* simplified version of Proto struct. */
 typedef struct jit_proto {
 	char *name;
 	lua_CFunction jit_func;
+	int linedefined;
+	int lastlinedefined;
 	unsigned char nups;
 	unsigned char numparams;
 	unsigned char is_vararg;
@@ -63,7 +68,20 @@ typedef struct jit_proto {
 	struct jit_proto *p;
 	int sizecode;
 	unsigned int *code;
+	int sizelineinfo;
+	int *lineinfo;
+	int sizelocvars;
+	struct jit_LocVar *locvars;
+	int sizeupvalues;
+	char **upvalues;
 } jit_proto;
+
+/* simplified version of LocVar struct. */
+typedef struct jit_LocVar {
+	char *varname;
+	int startpc;
+	int endpc;
+} jit_LocVar;
 
 Proto *load_jit_proto(lua_State *L, jit_proto *p);
 

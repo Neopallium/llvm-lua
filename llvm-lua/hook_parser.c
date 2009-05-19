@@ -77,7 +77,6 @@ int llvm_precall_jit (lua_State *L, StkId func, int nresults) {
   ci->top = L->base + p->maxstacksize;
   lua_assert(ci->top <= L->stack_last);
   L->savedpc = p->code;	/* starting point */
-  ci->tailcalls = 0;
   ci->nresults = nresults;
   for (st = L->top; st < ci->top; st++)
     setnilvalue(st);
@@ -113,7 +112,6 @@ int llvm_precall_jit_vararg (lua_State *L, StkId func, int nresults) {
   ci->top = L->base + p->maxstacksize;
   lua_assert(ci->top <= L->stack_last);
   L->savedpc = p->code;	/* starting point */
-  ci->tailcalls = 0;
   ci->nresults = nresults;
   for (st = L->top; st < ci->top; st++)
     setnilvalue(st);

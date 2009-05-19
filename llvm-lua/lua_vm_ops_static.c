@@ -191,30 +191,46 @@ void vm_count_OP(const Instruction i) {
 
 void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i, int pc_offset) {
   int op = GET_OPCODE(i);
-#ifndef LUA_NODEBUG
-  fprintf(stderr, "%d: '%s' (%d) = 0x%08X, pc=%p\n", pc_offset,
-    luaP_opnames[op], op, i, L->savedpc);
+  int line = -1;
+  if(cl->p->sizelineinfo > pc_offset) {
+    line = cl->p->lineinfo[pc_offset];
+  }
+  if(pc_offset <= cl->p->sizecode) {
+    L->savedpc = cl->p->code + pc_offset;
+  } else {
+    L->savedpc = cl->p->code + cl->p->sizecode;
+  }
+  fprintf(stderr, "%d: '%s' (%d) = 0x%08X, pc=%p, line=%d\n", pc_offset,
+    luaP_opnames[op], op, i, L->savedpc, line);
+  lua_assert(pc_offset == (L->savedpc - cl->p->code));
   lua_assert(L->savedpc[0] == i);
-#else
-  fprintf(stderr, "%d: '%s' (%d) = 0x%08X\n", pc_offset, luaP_opnames[op], op, i);
-#endif
 }
 
-void vm_next_OP(lua_State *L, LClosure *cl) {
-#ifndef LUA_NODEBUG
-  //vm_print_OP(L, cl, L->savedpc[0]);
+void vm_next_OP(lua_State *L, LClosure *cl, int pc_offset) {
+  if(pc_offset <= cl->p->sizecode) {
+    L->savedpc = cl->p->code + pc_offset;
+  } else {
+    L->savedpc = cl->p->code;
+  }
+  //vm_print_OP(L, cl, L->savedpc[0], pc_offset);
   lua_assert(L->savedpc >= cl->p->code && (L->savedpc < &(cl->p->code[cl->p->sizecode])));
-  L->savedpc++;
   if ((L->hookmask & (LUA_MASKLINE | LUA_MASKCOUNT)) &&
       (--L->hookcount == 0 || L->hookmask & LUA_MASKLINE)) {
-    luaV_traceexec(L, L->savedpc);
+    luaV_traceexec(L, L->savedpc + 1);
+    if(pc_offset <= cl->p->sizecode) {
+      L->savedpc = cl->p->code + pc_offset;
+    } else {
+      L->savedpc = cl->p->code;
+    }
+#if 0
     if (L->status == LUA_YIELD) {  /* did hook yield? */
-			// TODO: fix hook yield
+      // TODO: fix hook yield
       L->savedpc = L->savedpc - 1;
       return;
     }
-  }
 #endif
+  }
+  L->savedpc++;
 }
 
 int vm_OP_CALL(lua_State *L, int a, int b, int c) {
@@ -227,6 +243,7 @@ int vm_OP_CALL(lua_State *L, int a, int b, int c) {
   switch (ret) {
     case PCRLUA: {
       luaV_execute(L, 1);
+      if (nresults >= 0) L->top = L->ci->top;
       break;
     }
     case PCRC: {
@@ -295,7 +312,7 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b, int c) {
       setnilvalue(st);
     return PCRTAILRECUR;
   }
-  //ci->tailcalls++;  /* one more call lost */
+  ci->tailcalls++;  /* one more call lost */
   L->ci--;  /* remove new frame */
   L->savedpc = L->ci->savedpc;
   /* unwind stack back to luaD_precall */
@@ -338,10 +355,8 @@ int vm_OP_TFORLOOP(lua_State *L, int a, int c) {
   if (!ttisnil(cb)) {  /* continue loop? */
     setobjs2s(L, cb-1, cb);  /* save control variable */
     dojump(GETARG_sBx(*L->savedpc));
-    skip_op();
     return 1;
   }
-  skip_op();
   return 0;
 }
 
@@ -350,9 +365,6 @@ void vm_OP_SETLIST(lua_State *L, int a, int b, int c, int c_next) {
   TValue *ra = base + a;
   int last;
   Table *h;
-#ifndef LUA_NODEBUG
-  if(c_next == 0) L->savedpc++;
-#endif
   if (b == 0) {
     b = cast_int(L->top - ra) - 1;
     L->top = L->ci->top;
@@ -379,9 +391,6 @@ void vm_OP_CLOSURE(lua_State *L, LClosure *cl, int a, int bx, int pseudo_ops_off
 
   p = cl->p->p[bx];
   pc=cl->p->code + pseudo_ops_offset;
-#ifndef LUA_NODEBUG
-  lua_assert(L->savedpc == pc);
-#endif
   nup = p->nups;
   ncl = luaF_newLclosure(L, nup, cl->env);
   setclvalue(L, ra, ncl);
@@ -394,10 +403,6 @@ void vm_OP_CLOSURE(lua_State *L, LClosure *cl, int a, int bx, int pseudo_ops_off
       ncl->l.upvals[j] = luaF_findupval(L, base + GETARG_B(*pc));
     }
   }
-#ifndef LUA_NODEBUG
-  L->savedpc += nup;
-  lua_assert(L->savedpc == pc);
-#endif
   luaC_checkGC(L);
 }
 

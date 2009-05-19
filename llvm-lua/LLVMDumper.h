@@ -59,6 +59,8 @@ private:
 	const llvm::StructType *Ty_constant_bool_type;
 	const llvm::StructType *Ty_constant_str_type;
 	const llvm::Type *Ty_constant_type_ptr;
+	const llvm::StructType *Ty_jit_LocVar;
+	const llvm::Type *Ty_jit_LocVar_ptr;
 	const llvm::StructType *Ty_jit_proto;
 	const llvm::Type *Ty_jit_proto_ptr;
 	const llvm::FunctionType *lua_func_type;
@@ -77,6 +79,10 @@ private:
 	llvm::Constant *get_global_str(const char *str);
 
 	llvm::GlobalVariable *dump_constants(Proto *p);
+
+	llvm::GlobalVariable *dump_locvars(Proto *p);
+
+	llvm::GlobalVariable *dump_upvalues(Proto *p);
 
 	llvm::Constant *dump_proto(Proto *p);
 

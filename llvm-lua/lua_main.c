@@ -22,21 +22,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#define ENABLE_PARSER_HOOK 1
-#include "hook_parser.c"
-
 #include "load_jit_proto.h"
-
-/*
- * don't need llvm_compiler_* functions, since this file will be linked with a static compiled
- * Lua script.
- */
-void llvm_compiler_cleanup() {}
-void llvm_compiler_compile(lua_State *L, Proto *p) {}
-void llvm_compiler_compile_all(lua_State *L, Proto *p) {}
-void llvm_compiler_dump(const char *output, lua_State *L, Proto *p, int stripping) {}
-void llvm_compiler_free(lua_State *L, Proto *p) {}
-
 
 static lua_State *globalL = NULL;
 

@@ -65,7 +65,7 @@ extern void vm_count_OP(const Instruction i);
 
 extern void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i, int pc_offset);
 
-extern void vm_next_OP(lua_State *L, LClosure *cl);
+extern void vm_next_OP(lua_State *L, LClosure *cl, int pc_offset);
 
 extern void vm_OP_MOVE(lua_State *L, int a, int b);
 
@@ -181,13 +181,8 @@ extern lua_Number vm_get_number(lua_State *L, int idx);
 
 #define RK(arg)  (ISK(arg) ? k+INDEXK(arg) : base+arg)
 
-#ifndef LUA_NODEBUG
-#define dojump(i)  {(L->savedpc) += (i); luai_threadyield(L);}
-#define skip_op()   (L->savedpc)++;
-#else
 #define dojump(i)  {luai_threadyield(L);}
 #define skip_op()
-#endif
 
 
 #define Protect(x)  { {x;}; base = L->base; }

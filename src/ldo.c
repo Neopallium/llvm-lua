@@ -297,7 +297,6 @@ int luaD_precall_lua (lua_State *L, StkId func, int nresults) {
   ci->top = L->base + p->maxstacksize;
   lua_assert(ci->top <= L->stack_last);
   L->savedpc = p->code;  /* starting point */
-  ci->tailcalls = 0;
   ci->nresults = nresults;
   for (st = L->top; st < ci->top; st++)
     setnilvalue(st);
@@ -354,10 +353,8 @@ int luaD_precall (lua_State *L, StkId func, int nresults) {
 static StkId callrethooks (lua_State *L, StkId firstResult) {
   ptrdiff_t fr = savestack(L, firstResult);  /* next call may change stack */
   luaD_callhook(L, LUA_HOOKRET, -1);
-  if (f_isLua(L->ci)) {  /* Lua function? */
-    while ((L->hookmask & LUA_MASKRET) && L->ci->tailcalls--) /* tail calls */
-      luaD_callhook(L, LUA_HOOKTAILRET, -1);
-  }
+  while ((L->hookmask & LUA_MASKRET) && L->ci->tailcalls-- > 0) /* tail calls */
+    luaD_callhook(L, LUA_HOOKTAILRET, -1);
   return restorestack(L, fr);
 }
 
@@ -368,6 +365,7 @@ int luaD_poscall (lua_State *L, StkId firstResult) {
   CallInfo *ci;
   if (L->hookmask & LUA_MASKRET)
     firstResult = callrethooks(L, firstResult);
+	L->ci->tailcalls = 0;
   ci = L->ci--;
   res = ci->func;  /* res == final position of 1st result */
   wanted = ci->nresults;

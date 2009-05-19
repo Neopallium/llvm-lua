@@ -104,11 +104,7 @@ public:
 	 * set code stripping mode.
 	 */
 	void setStripCode(bool strip) {
-#ifndef LUA_NODEBUG
-		strip_code = false; // disable code stripping when debugging code is enabled.
-#else
 		strip_code = strip;
-#endif
 	}
 
 	/*

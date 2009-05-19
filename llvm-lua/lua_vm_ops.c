@@ -40,9 +40,6 @@ void vm_OP_LOADBOOL(lua_State *L, int a, int b, int c) {
   TValue *base = L->base;
   TValue *ra = base + a;
   setbvalue(ra, b);
-#ifndef LUA_NODEBUG
-  if (c) L->savedpc++;
-#endif
 }
 
 void vm_OP_LOADNIL(lua_State *L, int a, int b) {
@@ -233,7 +230,6 @@ int vm_OP_EQ(lua_State *L, TValue *k, int a, int b, int c) {
   ret = (equalobj(L, rb, rc) == a);
   if(ret)
     dojump(GETARG_sBx(*L->savedpc));
-  skip_op();
   return ret;
 }
 
@@ -245,7 +241,6 @@ int vm_OP_EQ_NC(lua_State *L, TValue *k, int b, lua_Number nc) {
     ret = !luai_numeq(nvalue(rb), nc);
     if(ret)
       dojump(GETARG_sBx(*L->savedpc));
-    skip_op();
     return ret;
   }
   return 1;
@@ -259,7 +254,6 @@ int vm_OP_NOT_EQ_NC(lua_State *L, TValue *k, int b, lua_Number nc) {
     ret = luai_numeq(nvalue(rb), nc);
     if(ret)
       dojump(GETARG_sBx(*L->savedpc));
-    skip_op();
     return ret;
   }
   return 0;
@@ -271,7 +265,6 @@ int vm_OP_LT(lua_State *L, TValue *k, int a, int b, int c) {
   ret = (luaV_lessthan(L, RK(b), RK(c)) == a);
   if(ret)
     dojump(GETARG_sBx(*L->savedpc));
-  skip_op();
   return ret;
 }
 
@@ -281,7 +274,6 @@ int vm_OP_LE(lua_State *L, TValue *k, int a, int b, int c) {
   ret = (luaV_lessequal(L, RK(b), RK(c)) == a);
   if(ret)
     dojump(GETARG_sBx(*L->savedpc));
-  skip_op();
   return ret;
 }
 
@@ -289,10 +281,8 @@ int vm_OP_TEST(lua_State *L, int a, int c) {
   TValue *ra = L->base + a;
   if (l_isfalse(ra) != c) {
     dojump(GETARG_sBx(*L->savedpc));
-    skip_op();
     return 1;
   }
-  skip_op();
   return 0;
 }
 
@@ -303,10 +293,8 @@ int vm_OP_TESTSET(lua_State *L, int a, int b, int c) {
   if (l_isfalse(rb) != c) {
     setobjs2s(L, ra, rb);
     dojump(GETARG_sBx(*L->savedpc));
-    skip_op();
     return 1;
   }
-  skip_op();
   return 0;
 }
 

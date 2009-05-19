@@ -78,11 +78,23 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler) : compiler(compiler) {
 	lua_func_type_ptr = llvm::PointerType::get(lua_func_type, 0);
 	Ty_constant_type_ptr = llvm::PointerType::get(Ty_constant_num_type, 0);
 	//
+	// create jit_LocVar structure type.
+	//
+	std::vector<const llvm::Type *> jit_LocVar_fields;
+	jit_LocVar_fields.push_back(Ty_str_ptr); // varname
+	jit_LocVar_fields.push_back(llvm::Type::Int32Ty); // startpc
+	jit_LocVar_fields.push_back(llvm::Type::Int32Ty); // endpc
+	Ty_jit_LocVar = llvm::StructType::get(jit_LocVar_fields, false);
+	TheModule->addTypeName("struct.jit_LocVar", Ty_jit_LocVar);
+	Ty_jit_LocVar_ptr = llvm::PointerType::get(Ty_jit_LocVar, 0);
+	//
 	// create jit_proto structure type.
 	//
 	std::vector<const llvm::Type *> jit_proto_fields;
 	jit_proto_fields.push_back(Ty_str_ptr); // name
 	jit_proto_fields.push_back(lua_func_type_ptr); // jit_func
+	jit_proto_fields.push_back(llvm::Type::Int32Ty); // linedefined
+	jit_proto_fields.push_back(llvm::Type::Int32Ty); // lastlinedefined
 	jit_proto_fields.push_back(llvm::Type::Int8Ty); // nups
 	jit_proto_fields.push_back(llvm::Type::Int8Ty); // numparams
 	jit_proto_fields.push_back(llvm::Type::Int8Ty); // is_vararg
@@ -94,6 +106,12 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler) : compiler(compiler) {
 	jit_proto_fields.push_back(llvm::PointerType::get(jit_proto_fwd, 0)); // p
 	jit_proto_fields.push_back(llvm::Type::Int32Ty); // sizecode
 	jit_proto_fields.push_back(llvm::PointerType::get(llvm::Type::Int32Ty, 0)); // code
+	jit_proto_fields.push_back(llvm::Type::Int32Ty); // sizelineinfo
+	jit_proto_fields.push_back(llvm::PointerType::get(llvm::Type::Int32Ty, 0)); // lineinfo
+	jit_proto_fields.push_back(llvm::Type::Int32Ty); // sizelocvars
+	jit_proto_fields.push_back(Ty_jit_LocVar_ptr); // locvars
+	jit_proto_fields.push_back(llvm::Type::Int32Ty); // sizeupvalues
+	jit_proto_fields.push_back(llvm::PointerType::get(Ty_str_ptr, 0)); // upvalues
 	Ty_jit_proto = llvm::StructType::get(jit_proto_fields, false);
 	TheModule->addTypeName("struct.jit_proto", Ty_jit_proto);
 	llvm::cast<llvm::OpaqueType>(jit_proto_fwd.get())->refineAbstractTypeTo(Ty_jit_proto);
@@ -197,6 +215,44 @@ llvm::GlobalVariable *LLVMDumper::dump_constants(Proto *p) {
 	return constant;
 }
 
+llvm::GlobalVariable *LLVMDumper::dump_locvars(Proto *p) {
+	llvm::GlobalVariable *constant;
+	llvm::Constant *array_struct;
+	std::vector<llvm::Constant *> array_struct_fields;
+	std::vector<llvm::Constant *> tmp_struct;
+
+	for(int i = 0; i < p->sizelocvars; i++) {
+		LocVar *locvar = &(p->locvars[i]);
+		tmp_struct.clear();
+		tmp_struct.push_back(get_global_str(getstr(locvar->varname)));
+		tmp_struct.push_back(llvm::ConstantInt::get(llvm::APInt(32, locvar->startpc)));
+		tmp_struct.push_back(llvm::ConstantInt::get(llvm::APInt(32, locvar->endpc)));
+		array_struct_fields.push_back(llvm::ConstantStruct::get(Ty_jit_LocVar, tmp_struct));
+	}
+
+	array_struct = llvm::ConstantStruct::get(array_struct_fields, false);
+	constant = new llvm::GlobalVariable(array_struct->getType(), true,
+		llvm::GlobalValue::InternalLinkage, array_struct, ".locvars", TheModule);
+	constant->setAlignment(32);
+	return constant;
+}
+
+llvm::GlobalVariable *LLVMDumper::dump_upvalues(Proto *p) {
+	llvm::GlobalVariable *constant;
+	llvm::Constant *array_struct;
+	std::vector<llvm::Constant *> array_struct_fields;
+
+	for(int i = 0; i < p->sizeupvalues; i++) {
+		array_struct_fields.push_back(get_global_str(getstr(p->upvalues[i])));
+	}
+
+	array_struct = llvm::ConstantStruct::get(array_struct_fields, false);
+	constant = new llvm::GlobalVariable(array_struct->getType(), true,
+		llvm::GlobalValue::InternalLinkage, array_struct, ".upvalues", TheModule);
+	constant->setAlignment(32);
+	return constant;
+}
+
 llvm::Constant *LLVMDumper::dump_proto(Proto *p) {
 	std::vector<llvm::Constant *> jit_proto_fields;
 	std::vector<llvm::Constant *> tmp_array;
@@ -212,6 +268,10 @@ llvm::Constant *LLVMDumper::dump_proto(Proto *p) {
 	} else {
 		jit_proto_fields.push_back(llvm::Constant::getNullValue(lua_func_type_ptr));
 	}
+	// linedefined
+	jit_proto_fields.push_back(llvm::ConstantInt::get(llvm::APInt(32,p->linedefined)));
+	// lastlinedefined
+	jit_proto_fields.push_back(llvm::ConstantInt::get(llvm::APInt(32,p->lastlinedefined)));
 	// nups
 	jit_proto_fields.push_back(llvm::ConstantInt::get(llvm::APInt(8,p->nups)));
 	// numparams
@@ -256,6 +316,33 @@ llvm::Constant *LLVMDumper::dump_proto(Proto *p) {
 	} else {
 		jit_proto_fields.push_back(llvm::Constant::getNullValue(llvm::PointerType::get(llvm::Type::Int32Ty, 0)));
 	}
+	// sizelineinfo
+	jit_proto_fields.push_back(llvm::ConstantInt::get(llvm::APInt(32,p->sizelineinfo)));
+	// lineinfo
+	if(p->sizelineinfo > 0) {
+		tmp_array.clear();
+		for(int i = 0; i < p->sizelineinfo; i++) {
+			tmp_array.push_back(llvm::ConstantInt::get(llvm::APInt(32,p->lineinfo[i])));
+		}
+		tmp_constant = llvm::ConstantArray::get(llvm::ArrayType::get(llvm::Type::Int32Ty,p->sizelineinfo),tmp_array);
+		tmp_global = new llvm::GlobalVariable(tmp_constant->getType(), false,
+			llvm::GlobalValue::InternalLinkage, tmp_constant, ".proto_lineinfo", TheModule);
+		jit_proto_fields.push_back(get_ptr(tmp_global));
+	} else {
+		jit_proto_fields.push_back(llvm::Constant::getNullValue(llvm::PointerType::get(llvm::Type::Int32Ty, 0)));
+	}
+	// sizelocvars
+	jit_proto_fields.push_back(llvm::ConstantInt::get(llvm::APInt(32,p->sizelocvars)));
+	// locvars
+	jit_proto_fields.push_back(
+		llvm::ConstantExpr::getCast(llvm::Instruction::BitCast,
+			dump_locvars(p), Ty_jit_LocVar_ptr));
+	// sizeupvalues
+	jit_proto_fields.push_back(llvm::ConstantInt::get(llvm::APInt(32,p->sizeupvalues)));
+	// upvalues
+	jit_proto_fields.push_back(
+		llvm::ConstantExpr::getCast(llvm::Instruction::BitCast,
+			dump_upvalues(p), llvm::PointerType::get(Ty_str_ptr, 0)));
 
 	//dumpConstantType(jit_proto_fields);
 	//dumpStructType(Ty_jit_proto);

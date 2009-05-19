@@ -92,6 +92,9 @@ static llvm::cl::opt<bool> DumpFunctions("dump-functions",
                    llvm::cl::desc("Dump LLVM IR for each function."),
                    llvm::cl::init(false));
 
+static llvm::cl::opt<bool> DebugOpCodes("g",
+                   llvm::cl::desc("Allow debugging of Lua code."));
+
 static llvm::cl::opt<bool> DisableOpt("O0",
                    llvm::cl::desc("Disable optimizations."));
 
@@ -246,6 +249,7 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		func_args.clear();
 		func_args.push_back(Ty_lua_State_ptr);
 		func_args.push_back(Ty_LClosure_ptr);
+		func_args.push_back(llvm::Type::Int32Ty);
 		func_type = llvm::FunctionType::get(llvm::Type::VoidTy, func_args, false);
 		vm_next_OP = llvm::Function::Create(func_type,
 			llvm::Function::ExternalLinkage, "vm_next_OP", TheModule);
@@ -670,7 +674,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		}
 		// skip dead unreachable code.
 		if(current_block == NULL) {
-			strip_ops++;
+			if(strip_code) strip_ops++;
 			continue;
 		}
 		branch = i+1;
@@ -693,22 +697,24 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		if(RunOpCodeStats) {
 			Builder.CreateCall(vm_count_OP, llvm::ConstantInt::get(llvm::APInt(32,op_intr)));
 		}
+		if(DebugOpCodes) {
+			/* vm_next_OP function is used to call count/line debug hooks. */
+			Builder.CreateCall3(vm_next_OP, func_L, func_cl, llvm::ConstantInt::get(llvm::APInt(32,i)));
+		}
 		if(op_hints[i] == HINT_SKIP_OP) {
-			strip_ops++;
+			if(strip_code) strip_ops++;
 			continue;
 		}
-#ifndef LUA_NODEBUG
-		/* vm_next_OP function is used to call count/line debug hooks. */
-		Builder.CreateCall2(vm_next_OP, func_L, func_cl);
-#else
 		if(strip_code) {
 			// strip all opcodes.
 			strip_ops++;
-		}
-#endif
-		if(strip_ops > 0 && strip_ops < (i+1)) {
-			// move opcodes we want to keep to new position.
-			code[(i+1) - strip_ops] = op_intr;
+			if(strip_ops > 0 && strip_ops < (i+1)) {
+				// move opcodes we want to keep to new position.
+				code[(i+1) - strip_ops] = op_intr;
+				if(p->sizelineinfo > 0) {
+					p->lineinfo[(i+1) - strip_ops] = p->lineinfo[i];
+				}
+			}
 		}
 		// setup arguments for opcode function.
 		func_info = opfunc->info;
@@ -735,7 +741,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				if(c == 0) {
 					if((i+1) < code_len) {
 						c = code[i+1];
-						strip_ops++;
+						if(strip_code) strip_ops++;
 					}
 				}
 				val = llvm::ConstantInt::get(llvm::APInt(32,c));
@@ -869,9 +875,16 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				false_block=op_blocks[branch+1];
 				/* inlined JMP op. */
 				branch = ++i + 1;
-#ifdef LUA_NODEBUG
-				strip_ops++;
-#endif
+				if(strip_code) {
+					strip_ops++;
+					if(strip_ops > 0 && strip_ops < (i+1)) {
+						// move opcodes we want to keep to new position.
+						code[(i+1) - strip_ops] = code[i];
+						if(p->sizelineinfo > 0) {
+							p->lineinfo[(i+1) - strip_ops] = p->lineinfo[i];
+						}
+					}
+				}
 				op_intr=code[i];
 				branch += GETARG_sBx(op_intr);
 				true_block=op_blocks[branch];
@@ -937,10 +950,13 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			case OP_CLOSURE: {
 				Proto *p2 = p->p[GETARG_Bx(op_intr)];
 				int nups = p2->nups;
-				if(strip_ops > 0) {
+				if(strip_code && strip_ops > 0) {
 					while(nups > 0) {
 						i++;
 						code[i - strip_ops] = code[i];
+						if(p->sizelineinfo > 0) {
+							p->lineinfo[i - strip_ops] = p->lineinfo[i];
+						}
 						nups--;
 					}
 				} else {
@@ -976,11 +992,17 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			current_block = NULL; // have terminator
 		}
 	}
-	// re-size lua opcode array if we stripped any opcodes.
-	if(strip_ops > 0) {
+	// strip Lua bytecode and debug info.
+	if(strip_code && strip_ops > 0) {
 		code_len -= strip_ops;
 		luaM_reallocvector(L, p->code, p->sizecode, code_len, Instruction);
 		p->sizecode = code_len;
+		luaM_reallocvector(L, p->lineinfo, p->sizelineinfo, 0, int);
+		p->sizelineinfo = 0;
+		luaM_reallocvector(L, p->locvars, p->sizelocvars, 0, LocVar);
+		p->sizelocvars = 0;
+		luaM_reallocvector(L, p->upvalues, p->sizeupvalues, 0, TString *);
+		p->sizeupvalues = 0;
 	}
 	if(DumpFunctions) func->dump();
 	// only run function inliner & optimization passes on same functions.
