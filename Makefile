@@ -47,7 +47,7 @@ PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 # What to install.
 TO_BIN= llvm-lua llvm-luac
 TO_INC= lua.h luaconf.h lualib.h lauxlib.h ../etc/lua.hpp
-TO_LIB= liblua.a liblua.la liblua_main.bc lua_vm_ops.bc
+TO_LIB= liblua.a liblua.la liblua-llvm.a
 TO_MAN= lua.1 luac.1
 
 # Lua version and release.

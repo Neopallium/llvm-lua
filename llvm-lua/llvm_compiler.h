@@ -28,7 +28,7 @@
 #include "lua_core.h"
 
 #define LLVM_LUA_VERSION "llvm-lua 0.5"
-#define LLVM_LUA_COPYRIGHT "Copyright (C) 2008 Robert G. Jakabosky"
+#define LLVM_LUA_COPYRIGHT "Copyright (C) 2009 Robert G. Jakabosky"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +40,6 @@ int llvm_compiler_main(int useJIT);
 void llvm_compiler_cleanup();
 void llvm_compiler_compile(lua_State *L, Proto *p);
 void llvm_compiler_compile_all(lua_State *L, Proto *p);
-void llvm_compiler_dump(const char *output, lua_State *L, Proto *p, int stripping);
 void llvm_compiler_free(lua_State *L, Proto *p);
 
 extern int llvm_precall_jit (lua_State *L, StkId func, int nresults);

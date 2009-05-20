@@ -53,9 +53,6 @@ COCOCFLAGS=
 #COCOCFLAGS= -DCOCO_DEFAULT_CSTACKSIZE=524288
 # -- Coco =========
 
-# Comment USE_BITCODE_FILE to embed the 'lua_vm_ops.bc' file into llvm-lua & llvm-luac
-USE_BITCODE_FILE=1
-
 # == END OF USER SETTINGS. NO NEED TO CHANGE ANYTHING BELOW THIS LINE =========
 
 PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
@@ -65,28 +62,27 @@ LUA_SRC= ../src
 OPS_CFLAGS= $(CFLAGS) $(MYCFLAGS) $(COCOCFLAGS)
 LUA_CFLAGS= -I$(LUA_SRC) $(CFLAGS) $(MYCFLAGS) $(COCOCFLAGS)
 LLVM_CFLAGS=`llvm-config --cppflags`
-LLVM_LFLAGS=`llvm-config --ldflags --libs core jit native bitreader bitwriter ipo`
+LLVM_LFLAGS=`llvm-config --ldflags --libs core jit native linker bitreader bitwriter ipo`
 
 NON_LLVM_OBJS=lua_core.o lua_vm_ops_static.o load_jit_proto.o
-COMMON_OBJS=LLVMCompiler.o LLVMDumper.o llvm_compiler.o load_vm_ops.o $(NON_LLVM_OBJS)
+COMMON_OBJS=LLVMCompiler.o llvm_compiler.o load_vm_ops.o load_embedded_bc.o $(NON_LLVM_OBJS)
 NO_JIT_OBJS=no_jit.o $(NON_LLVM_OBJS)
-EXTRA_OBJS=
-ifndef USE_BITCODE_FILE
-COMMON_OBJS += lua_vm_ops_module.o
-else
-EXTRA_OBJS += lua_vm_ops.bc
-CFLAGS += -DUSE_BITCODE_FILE
-endif
 
 INTERPRETER_OBJS=llvm-lua.o lua_interpreter.o $(COMMON_OBJS)
-COMPILER_OBJS=llvm-luac.o lua_compiler.o $(COMMON_OBJS)
+COMPILER_OBJS=llvm-luac.o lua_compiler.o LLVMDumper.o llvm_dumper.o load_liblua_main.o $(COMMON_OBJS)
 
 LIB_NAME=liblua.la
 LIB_OBJS=$(NO_JIT_OBJS:.o=.lo)
 
+LLVM_LIB_NAME=liblua-llvm.a
+LLVM_LIB_OBJS=$(COMMON_OBJS:.o=.lo)
+
+BINS = lua llvm-lua llvm-luac bin2c
+EMB_BCS = lua_vm_ops_bc.h liblua_main_bc.h
+
 default: $(PLAT)
 
-all: llvm-lua llvm-luac $(LIB_NAME) $(LIB_NAME:.la=.a)
+all: llvm-lua llvm-luac $(LIB_NAME) $(LIB_NAME:.la=.a) $(LLVM_LIB_NAME)
 
 %.lo %.o: %.c
 	$(LIBTOOL) --mode=compile $(CC) -c $(LUA_CFLAGS) -o $@ $<
@@ -103,18 +99,17 @@ lua_core.o: lua_core.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 lua_vm_ops.bc: lua_vm_ops.c
 	$(LLVM_CC) $(LL_FLAGS) -emit-llvm -c -I$(LUA_SRC) $(OPS_CFLAGS) -o $@ $<
 
-lua_vm_ops_module.inc.cpp: lua_vm_ops.bc
-	$(LLC) -march=cpp -f --cppgen=module -o $@ $<
-
-lua_vm_ops_module.o: lua_vm_ops_module.cpp lua_vm_ops_module.inc.cpp
-	$(CXX) -O0 -fomit-frame-pointer -c $(LLVM_CFLAGS) -o $@ $<
-
 liblua_main.bc: lua_main.bc $(NO_JIT_OBJS:.o=.bc)
 	$(LLVM_LD) -f -o $@ $^
 
-liblua_main.a: lua_main.o $(NO_JIT_OBJS)
-	$(AR) $@ $?
-	$(RANLIB) $@
+load_vm_ops.lo load_vm_ops.o: load_vm_ops.cpp lua_vm_ops_bc.h
+	$(LIBTOOL) --mode=compile $(CXX) -c $(LUA_CFLAGS) $(LLVM_CFLAGS) -o $@ $<
+
+load_liblua_main.lo load_liblua_main.o: load_liblua_main.cpp liblua_main_bc.h
+	$(LIBTOOL) --mode=compile $(CXX) -c $(LUA_CFLAGS) $(LLVM_CFLAGS) -o $@ $<
+
+%_bc.h: %.bc bin2c
+	./bin2c -z -c $< $@
 
 lua_normal.o: lua_normal.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 	$(CC) -c $(LUA_CFLAGS) -o $@ lua_normal.c
@@ -129,14 +124,20 @@ $(LIB_NAME): $(LIB_OBJS)
 $(LIB_NAME:.la=.a): $(LIB_OBJS)
 	$(LIBTOOL) --mode=link $(CC) -static -o $(LIB_NAME:.la=.a) $(LIB_OBJS)
 
+$(LLVM_LIB_NAME): $(LLVM_LIB_OBJS)
+	$(LIBTOOL) --mode=link $(CC) -static -o $(LLVM_LIB_NAME) $(LLVM_LIB_OBJS)
+
 llvm-lua: $(INTERPRETER_OBJS) lua_vm_ops_static.o
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(INTERPRETER_OBJS) $(LLVM_LFLAGS)
 
-llvm-luac: $(COMPILER_OBJS) liblua_main.bc liblua_main.a $(EXTRA_OBJS)
+llvm-luac: $(COMPILER_OBJS) liblua_main.bc
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(COMPILER_OBJS) $(LLVM_LFLAGS)
 
+bin2c: bin2c.c
+	$(CC) -O3 -o $@ $<
+
 clean:
-	$(LIBTOOL) --mode=clean $(RM) *.lo *.bc *.o lib*.a lua llvm-lua llvm-luac lua_vm_ops_module.inc.cpp $(LIB_NAME)
+	$(LIBTOOL) --mode=clean $(RM) *.lo *.bc *.o lib*.a $(BINS) $(EMB_BCS) $(LIB_NAME) $(LLVM_LIB_NAME)
 
 depend:
 	@$(CC) $(LUA_CFLAGS) -MM lua_*.c load_*.c

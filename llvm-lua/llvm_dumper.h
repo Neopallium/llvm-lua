@@ -22,19 +22,22 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
-#include <llvm/Module.h>
-#include <llvm/Constants.h>
-#include <llvm/Function.h>
-#include <llvm/CallingConv.h>
-#include <llvm/BasicBlock.h>
-#include <llvm/Instructions.h>
+#ifndef llvm_compiler_h
+#define llvm_compiler_h
 
-using namespace llvm;
+#include "lua_core.h"
 
-#include "lua_vm_ops_module.inc.cpp"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-Module* make_lua_vm_ops() {
-	return makeLLVMModule();
+#include "lobject.h"
+
+void llvm_compiler_dump(const char *output, lua_State *L, Proto *p, int stripping);
+
+#ifdef __cplusplus
 }
+#endif
 
+#endif
 

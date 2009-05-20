@@ -9,8 +9,7 @@ Compile:
 
 Install:
  * requires manual install:
- * copy llvm-lua to /usr/bin or /usr/local/bin
- * set environment variable 'LLVM_LIB_SEARCH_PATH' to include the path to 'lua_vm_ops.bc'
+ * copy llvm-lua & llvm-luac to /usr/bin or /usr/local/bin
 
 Patches to lua/src:
  * Emergency Garbage Collector: http://lua-users.org/wiki/EmergencyGarbageCollector

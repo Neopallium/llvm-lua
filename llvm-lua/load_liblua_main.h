@@ -22,10 +22,10 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
-#ifndef lua_vm_ops_module_h
-#define lua_vm_ops_module_h
+#ifndef load_liblua_main_h
+#define load_liblua_main_h
 
-llvm::Module* make_lua_vm_ops();
+extern llvm::ModuleProvider *load_liblua_main(bool NoLazyCompilation);
 
 #endif
 

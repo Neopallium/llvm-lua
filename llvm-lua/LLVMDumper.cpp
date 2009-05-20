@@ -24,6 +24,8 @@
 
 #include "llvm/DerivedTypes.h"
 #include "llvm/Module.h"
+#include "llvm/ModuleProvider.h"
+#include "llvm/Linker.h"
 #include "llvm/TypeSymbolTable.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Bitcode/ReaderWriter.h"
@@ -36,6 +38,7 @@
 #include "LLVMDumper.h"
 #include "lstate.h"
 #include "load_jit_proto.h"
+#include "load_liblua_main.h"
 
 static llvm::cl::opt<bool> LuaModule("lua-module",
                    llvm::cl::desc("Generate a Lua Module instead of a standalone exe."),
@@ -121,6 +124,8 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler) : compiler(compiler) {
 
 void LLVMDumper::dump(const char *output, lua_State *L, Proto *p, int stripping) {
 	std::ofstream OS(output, std::ios_base::out|std::ios::trunc|std::ios::binary);
+	llvm::ModuleProvider *MP = NULL;
+	llvm::Module *liblua_main = NULL;
 	std::string error;
 
 	if(!OS.fail()) {
@@ -140,6 +145,15 @@ void LLVMDumper::dump(const char *output, lua_State *L, Proto *p, int stripping)
 		} else {
 			// Dump proto info to global for standalone exe.
 			dump_standalone(p);
+			//TheModule->dump();
+			// link with liblua_main.bc
+			MP = load_liblua_main(true);
+			liblua_main = MP->getModule();
+			if(llvm::Linker::LinkModules(TheModule, liblua_main, &error)) {
+				fprintf(stderr, "Failed to link compiled Lua script with embedded 'liblua_main.bc': %s",
+					error.c_str());
+				exit(1);
+			}
 		}
 		//TheModule->dump();
 		llvm::verifyModule(*TheModule);

@@ -61,7 +61,7 @@ case "$MODE" in
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.c"
 		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
 		llc $LLC_FLAGS --march=c -f -o ${FILE}_run.c ${FILE}_opt.bc && \
-		gcc $CFLAGS -o ${FILE} ${FILE}_run.c liblua_main.a -rdynamic -Wl,-E -lm -ldl
+		gcc $CFLAGS -o ${FILE} ${FILE}_run.c -rdynamic -Wl,-E -lm -ldl
 		;;
 	c)
 		llc $LLC_FLAGS -f -march=c -o ${FILE}.c ${FILE}.bc
@@ -71,8 +71,7 @@ case "$MODE" in
 		;;
 	full_bc)
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.bc ${FILE}_run.s"
-		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
-		llvm-link -f -o ${FILE}_run.bc liblua_main.bc ${FILE}_opt.bc && \
+		opt $OPT_FLAGS -f -o ${FILE}_run.bc ${FILE}.bc && \
 		llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_run.s ${FILE}_run.bc && \
 		g++ $CFLAGS -o ${FILE} ${FILE}_run.s -rdynamic -Wl,-E -lm -ldl
 		;;

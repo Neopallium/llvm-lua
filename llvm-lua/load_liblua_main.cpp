@@ -22,51 +22,17 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
-#include "LLVMCompiler.h"
-#include "LLVMDumper.h"
-#include "llvm/Support/ManagedStatic.h"
-#include "llvm_compiler.h"
+#include <stdlib.h>
 
-extern "C" {
+#include "llvm/ModuleProvider.h"
 
-LLVMCompiler *compiler = NULL;
+#include "load_liblua_main.h"
+#include "load_embedded_bc.h"
 
-static void do_shutdown() {
-	// cleanup Lua to LLVM compiler.
-	llvm_compiler_cleanup();
+#include "liblua_main_bc.h"
+
+llvm::ModuleProvider *load_liblua_main(bool NoLazyCompilation) {
+	return load_embedded_bc("liblua_main_bc", liblua_main_bc,
+		sizeof(liblua_main_bc), NoLazyCompilation);
 }
-
-int llvm_compiler_main(int useJIT) {
-	if(compiler == NULL) {
-		compiler = new LLVMCompiler(useJIT);
-		atexit(do_shutdown);
-	}
-	return 0;
-}
-
-void llvm_compiler_cleanup() {
-	delete compiler;
-	compiler = NULL;
-	llvm::llvm_shutdown();
-}
-
-void llvm_compiler_compile(lua_State *L, Proto *p) {
-	if(compiler != NULL) {
-		llvm_compiler_main(1);
-	}
-	compiler->compile(L, p);
-}
-
-void llvm_compiler_compile_all(lua_State *L, Proto *p) {
-	if(compiler != NULL) {
-		llvm_compiler_main(1);
-	}
-	compiler->compileAll(L, p);
-}
-
-void llvm_compiler_free(lua_State *L, Proto *p) {
-	compiler->free(L, p);
-}
-
-}// end: extern "C"
 
