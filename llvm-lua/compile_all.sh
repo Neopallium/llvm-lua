@@ -13,6 +13,6 @@ done
 
 for script in $FILES; do
 	echo "Compiling script: $script"
-	./compile.sh $OPTS $script
+	./lua-compile $OPTS $script
 done
 

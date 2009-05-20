@@ -45,7 +45,7 @@ endif
 PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
 # What to install.
-TO_BIN= llvm-lua llvm-luac
+TO_BIN= llvm-lua llvm-luac lua-compiler
 TO_INC= lua.h luaconf.h lualib.h lauxlib.h ../etc/lua.hpp
 TO_LIB= liblua.a liblua.la liblua-llvm.a
 TO_MAN= lua.1 luac.1

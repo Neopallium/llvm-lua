@@ -59,7 +59,6 @@ PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 
 LUA_SRC= ../src
 
-OPS_CFLAGS= $(CFLAGS) $(MYCFLAGS) $(COCOCFLAGS)
 LUA_CFLAGS= -I$(LUA_SRC) $(CFLAGS) $(MYCFLAGS) $(COCOCFLAGS)
 LLVM_CFLAGS=`llvm-config --cppflags`
 LLVM_LFLAGS=`llvm-config --ldflags --libs core jit native linker bitreader bitwriter ipo`
@@ -95,9 +94,6 @@ all: llvm-lua llvm-luac $(LIB_NAME) $(LIB_NAME:.la=.a) $(LLVM_LIB_NAME)
 
 lua_core.o: lua_core.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 	$(CC) -c $(LUA_CFLAGS) -o $@ lua_core.c
-
-lua_vm_ops.bc: lua_vm_ops.c
-	$(LLVM_CC) $(LL_FLAGS) -emit-llvm -c -I$(LUA_SRC) $(OPS_CFLAGS) -o $@ $<
 
 liblua_main.bc: lua_main.bc $(NO_JIT_OBJS:.o=.bc)
 	$(LLVM_LD) -f -o $@ $^
