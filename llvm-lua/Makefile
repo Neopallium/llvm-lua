@@ -98,6 +98,10 @@ lua_core.o: lua_core.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 liblua_main.bc: lua_main.bc $(NO_JIT_OBJS:.o=.bc)
 	$(LLVM_LD) -f -o $@ $^
 
+liblua_main.a: lua_main.o $(NO_JIT_OBJS)
+	$(AR) $@ $?
+	$(RANLIB) $@
+
 load_vm_ops.lo load_vm_ops.o: load_vm_ops.cpp lua_vm_ops_bc.h
 	$(LIBTOOL) --mode=compile $(CXX) -c $(LUA_CFLAGS) $(LLVM_CFLAGS) -o $@ $<
 
@@ -126,7 +130,7 @@ $(LLVM_LIB_NAME): $(LLVM_LIB_OBJS)
 llvm-lua: $(INTERPRETER_OBJS) lua_vm_ops_static.o
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(INTERPRETER_OBJS) $(LLVM_LFLAGS)
 
-llvm-luac: $(COMPILER_OBJS) liblua_main.bc
+llvm-luac: $(COMPILER_OBJS) liblua_main.bc liblua_main.a
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(COMPILER_OBJS) $(LLVM_LFLAGS)
 
 bin2c: bin2c.c

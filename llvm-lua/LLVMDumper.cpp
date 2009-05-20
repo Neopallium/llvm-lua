@@ -44,6 +44,10 @@ static llvm::cl::opt<bool> LuaModule("lua-module",
                    llvm::cl::desc("Generate a Lua Module instead of a standalone exe."),
                    llvm::cl::init(false));
 
+static llvm::cl::opt<bool> NoMain("no-main",
+                   llvm::cl::desc("Don't link in liblua_main.bc."),
+                   llvm::cl::init(false));
+
 //===----------------------------------------------------------------------===//
 // Dump a compilable bitcode module.
 //===----------------------------------------------------------------------===//
@@ -147,12 +151,14 @@ void LLVMDumper::dump(const char *output, lua_State *L, Proto *p, int stripping)
 			dump_standalone(p);
 			//TheModule->dump();
 			// link with liblua_main.bc
-			MP = load_liblua_main(true);
-			liblua_main = MP->getModule();
-			if(llvm::Linker::LinkModules(TheModule, liblua_main, &error)) {
-				fprintf(stderr, "Failed to link compiled Lua script with embedded 'liblua_main.bc': %s",
-					error.c_str());
-				exit(1);
+			if(!NoMain) {
+				MP = load_liblua_main(true);
+				liblua_main = MP->getModule();
+				if(llvm::Linker::LinkModules(TheModule, liblua_main, &error)) {
+					fprintf(stderr, "Failed to link compiled Lua script with embedded 'liblua_main.bc': %s",
+						error.c_str());
+					exit(1);
+				}
 			}
 		}
 		//TheModule->dump();

@@ -17,18 +17,20 @@ DEBUG="0"
 MODE="full_bc"
 LUA_MODULE="0"
 LUA_ARGS=
+LIBS=
 
 # parse command line parameters.
 for arg in "$@" ; do
 	case "$arg" in
 	-lua-module*)  LUA_MODULE="1"; MODE="lua_mod"; LUA_ARGS="$LUA_ARGS $arg" ;;
 	-debug)  DEBUG="1" ;;
-	mode=*)  MODE=` echo "$arg" | sed -e 's/mod=//'` ;;
-	arch=*)  ARCH=` echo "$arg" | sed -e 's/arch=//'` ;;
+	-mode=*)  MODE=` echo "$arg" | sed -e 's/-mode=//'` ;;
+	-arch=*)  ARCH=` echo "$arg" | sed -e 's/-arch=//'` ;;
 	*) FILE=${arg/.lua/} ;;
 	esac
 done
 
+# get source file's path & filename.
 FPATH=`dirname ${FILE}`
 FNAME=`basename ${FILE}`
 
@@ -49,6 +51,20 @@ else
 	LLC_FLAGS=" -tailcallopt "
 fi
 
+if [[ $MODE == "cbe" ]]; then
+	LUA_ARGS="$LUA_ARGS -no-main "
+
+	# find path to liblua_main.a
+	# TODO: find a better way.
+	DIR=`dirname $LLVM_LUAC`
+	LIBS="$LIBS -L$DIR -L$DIR/../lib "
+	DIR=`dirname $0`
+	LIBS="$LIBS -L$DIR -L$DIR/../lib "
+fi
+
+#
+# run llvm-luac to compile Lua source/bytecode to LLVM bitcode.
+#
 $LLVM_LUAC $LUA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILE}.lua || {
 	echo "llvm-luac: failed to compile Lua code into LLVM bitcode."
 	exit 1;
@@ -61,7 +77,7 @@ case "$MODE" in
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.c"
 		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
 		llc $LLC_FLAGS --march=c -f -o ${FILE}_run.c ${FILE}_opt.bc && \
-		gcc $CFLAGS -o ${FILE} ${FILE}_run.c -rdynamic -Wl,-E -lm -ldl
+		gcc $CFLAGS $LIBS -o ${FILE} ${FILE}_run.c -llua_main -rdynamic -Wl,-E -lm -ldl
 		;;
 	c)
 		llc $LLC_FLAGS -f -march=c -o ${FILE}.c ${FILE}.bc
