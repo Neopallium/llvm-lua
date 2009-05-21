@@ -22,6 +22,7 @@
 #include "ltm.h"
 #include "lvm.h"
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 #include "llvm_compiler.h"
@@ -32,6 +33,9 @@ const vm_func_info vm_op_functions[] = {
   },
   { OP_LOADK, HINT_NONE, VAR_T_VOID, "vm_OP_LOADK",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_Bx, VAR_T_VOID},
+  },
+  { OP_LOADK, HINT_Bx_NUM_CONSTANT, VAR_T_VOID, "vm_OP_LOADK_N",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_Bx_NUM_CONSTANT, VAR_T_VOID},
   },
   { OP_LOADBOOL, HINT_NONE, VAR_T_VOID, "vm_OP_LOADBOOL",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
@@ -58,7 +62,7 @@ const vm_func_info vm_op_functions[] = {
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
   { OP_NEWTABLE, HINT_NONE, VAR_T_VOID, "vm_OP_NEWTABLE",
-    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B_FB2INT, VAR_T_ARG_C_FB2INT, VAR_T_VOID},
   },
   { OP_SELF, HINT_NONE, VAR_T_VOID, "vm_OP_SELF",
     {VAR_T_LUA_STATE_PTR, VAR_T_K, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
@@ -139,7 +143,7 @@ const vm_func_info vm_op_functions[] = {
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
   },
   { OP_TAILCALL, HINT_NONE, VAR_T_INT, "vm_OP_TAILCALL",
-    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C, VAR_T_VOID},
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
   },
   { OP_RETURN, HINT_NONE, VAR_T_INT, "vm_OP_RETURN",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_VOID},
@@ -169,7 +173,7 @@ const vm_func_info vm_op_functions[] = {
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_C, VAR_T_VOID},
   },
   { OP_SETLIST, HINT_NONE, VAR_T_VOID, "vm_OP_SETLIST",
-    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C_NEXT_INSTRUCTION, VAR_T_ARG_C, VAR_T_VOID},
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_B, VAR_T_ARG_C_NEXT_INSTRUCTION, VAR_T_VOID},
   },
   { OP_CLOSE, HINT_NONE, VAR_T_VOID, "vm_OP_CLOSE",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_VOID},
@@ -268,51 +272,46 @@ int vm_OP_RETURN(lua_State *L, int a, int b) {
   return PCRC;
 }
 
-int vm_OP_TAILCALL(lua_State *L, int a, int b, int c) {
+int vm_OP_TAILCALL(lua_State *L, int a, int b) {
   TValue *func = L->base + a;
   Closure *cl;
-  Closure *cur_cl;
   CallInfo *ci;
   StkId st, cur_func;
   Proto *p;
   int aux;
-  int tail_recur=0;
+  int tail_recur;
 
   if (b != 0) L->top = func+b;  /* else previous instruction set top */
-  lua_assert(c - 1 == LUA_MULTRET);
-  if (!ttisfunction(func)) /* `func' is not a function? */
-    func = luaD_tryfuncTM(L, func);  /* check the `function' tag method */
-  cl = clvalue(func);
 
   /* current function index */
   ci = L->ci;
   cur_func = ci->func;
   /* check for tail recursive call */
-  if(cl_isLua(cl)) {
+  if(gcvalue(func) == gcvalue(cur_func)) {
+    cl = clvalue(func);
     p = cl->l.p;
-    cur_cl = clvalue(cur_func);
-    /* if the prototype matches and it is not a vararg function. */
-    if(cur_cl->l.p == p && !p->is_vararg) {
-      L->savedpc = p->code;
-      ci->top = L->base + p->maxstacksize;
-      tail_recur = 1;
-    }
+    /* if is not a vararg function. */
+    tail_recur = !p->is_vararg;
+    L->savedpc = p->code;
+  } else {
+    tail_recur=0;
+    if (!ttisfunction(func)) /* `func' is not a function? */
+      func = luaD_tryfuncTM(L, func);  /* check the `function' tag method */
+    cl = clvalue(func);
   }
 
   /* clean up current frame to prepare to tailcall into next function. */
   if (L->openupval) luaF_close(L, ci->base);
-  L->base = cur_func + 1;
   for (aux = 0; func+aux < L->top; aux++)  /* move frame down */
     setobjs2s(L, cur_func+aux, func+aux);
   L->top = cur_func+aux;
-  func = cur_func;
+  ci->tailcalls++;  /* one more call lost */
   /* JIT function calling it's self. */
   if(tail_recur) {
     for (st = L->top; st < ci->top; st++)
       setnilvalue(st);
     return PCRTAILRECUR;
   }
-  ci->tailcalls++;  /* one more call lost */
   L->ci--;  /* remove new frame */
   L->savedpc = L->ci->savedpc;
   /* unwind stack back to luaD_precall */
@@ -320,8 +319,6 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b, int c) {
 }
 
 /*
- * TODO: move this function outside of lua_vm_ops.c
- *
  * Notes: split function into two copies, one with number checks + (init - step) + jmp,
  * and the other with the same number checks + slow error throwing code.
  */
@@ -360,7 +357,7 @@ int vm_OP_TFORLOOP(lua_State *L, int a, int c) {
   return 0;
 }
 
-void vm_OP_SETLIST(lua_State *L, int a, int b, int c, int c_next) {
+void vm_OP_SETLIST(lua_State *L, int a, int b, int c) {
   TValue *base = L->base;
   TValue *ra = base + a;
   int last;
@@ -425,6 +422,67 @@ void vm_OP_VARARG(lua_State *L, LClosure *cl, int a, int b) {
     }
     else {
       setnilvalue(ra + j);
+    }
+  }
+}
+
+int is_mini_vm_op(int opcode) {
+  switch (opcode) {
+    case OP_MOVE:
+    case OP_LOADK:
+    case OP_GETUPVAL:
+    case OP_SETUPVAL:
+    case OP_SETTABLE:
+      return 1;
+    default:
+      return 0;
+  }
+  return 0;
+}
+
+void vm_mini_vm(lua_State *L, LClosure *cl, int count, int pseudo_ops_offset) {
+  const Instruction *pc;
+  StkId base;
+  TValue *k;
+
+  k = cl->p->k;
+  pc = cl->p->code + pseudo_ops_offset;
+  base = L->base;
+  /* process next 'count' ops */
+  for (; count > 0; count--) {
+    const Instruction i = *pc++;
+    StkId ra = RA(i);
+    lua_assert(base == L->base && L->base == L->ci->base);
+    lua_assert(base <= L->top && L->top <= L->stack + L->stacksize);
+    lua_assert(L->top == L->ci->top || luaG_checkopenop(i));
+    switch (GET_OPCODE(i)) {
+      case OP_MOVE: {
+        setobjs2s(L, ra, RB(i));
+        continue;
+      }
+      case OP_LOADK: {
+        setobj2s(L, ra, KBx(i));
+        continue;
+      }
+      case OP_GETUPVAL: {
+        int b = GETARG_B(i);
+        setobj2s(L, ra, cl->upvals[b]->v);
+        continue;
+      }
+      case OP_SETUPVAL: {
+        UpVal *uv = cl->upvals[GETARG_B(i)];
+        setobj(L, uv->v, ra);
+        luaC_barrier(L, uv, ra);
+        continue;
+      }
+      case OP_SETTABLE: {
+        Protect(luaV_settable(L, ra, RKB(i), RKC(i)));
+        continue;
+      }
+      default: {
+        luaG_runerror(L, "Bad opcode: opcode=%d", GET_OPCODE(i));
+        continue;
+      }
     }
   }
 }

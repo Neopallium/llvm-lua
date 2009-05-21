@@ -31,7 +31,7 @@ extern "C" {
 
 extern LLVMCompiler *compiler;
 
-void llvm_compiler_dump(const char *output, lua_State *L, Proto *p, int stripping) {
+void llvm_dumper_dump(const char *output, lua_State *L, Proto *p, int stripping) {
 	LLVMDumper *dumper = new LLVMDumper(compiler);
 	dumper->dump(output, L, p, stripping);
 	delete dumper;

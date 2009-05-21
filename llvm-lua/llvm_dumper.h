@@ -22,8 +22,8 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
-#ifndef llvm_compiler_h
-#define llvm_compiler_h
+#ifndef llvm_dumper_h
+#define llvm_dumper_h
 
 #include "lua_core.h"
 
@@ -33,7 +33,7 @@ extern "C" {
 
 #include "lobject.h"
 
-void llvm_compiler_dump(const char *output, lua_State *L, Proto *p, int stripping);
+void llvm_dumper_dump(const char *output, lua_State *L, Proto *p, int stripping);
 
 #ifdef __cplusplus
 }

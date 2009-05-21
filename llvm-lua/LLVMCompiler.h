@@ -88,6 +88,8 @@ private:
 	llvm::Function *vm_print_OP;
 	// function for handling count/line debug hooks.
 	llvm::Function *vm_next_OP;
+	// function for handling a block of simple opcodes.
+	llvm::Function *vm_mini_vm;
 	// available op function for each opcode.
 	OPFunc **vm_op_funcs;
 	// count compiled opcodes.

@@ -80,6 +80,11 @@ static llvm::cl::opt<bool> CompileLargeFunctions("compile-large-functions",
                    llvm::cl::desc("Compile all Lua functions even really large functions."),
                    llvm::cl::init(false));
 
+static llvm::cl::opt<int> MaxFunctionSize("max-func-size",
+                   llvm::cl::desc("Functions larger then this will not be compiled."),
+                   llvm::cl::value_desc("int"),
+                   llvm::cl::init(200));
+
 static llvm::cl::opt<bool> DontInlineOpcodes("do-not-inline-opcodes",
                    llvm::cl::desc("Turn off inlining of opcode functions."),
                    llvm::cl::init(false));
@@ -93,19 +98,24 @@ static llvm::cl::opt<bool> DumpFunctions("dump-functions",
                    llvm::cl::init(false));
 
 static llvm::cl::opt<bool> DebugOpCodes("g",
-                   llvm::cl::desc("Allow debugging of Lua code."));
+                   llvm::cl::desc("Allow debugging of Lua code."),
+                   llvm::cl::init(false));
 
 static llvm::cl::opt<bool> DisableOpt("O0",
-                   llvm::cl::desc("Disable optimizations."));
+                   llvm::cl::desc("Disable optimizations."),
+                   llvm::cl::init(false));
 
 static llvm::cl::opt<bool> OptLevelO1("O1",
-                   llvm::cl::desc("Optimization level 1."));
+                   llvm::cl::desc("Optimization level 1."),
+                   llvm::cl::init(false));
 
 static llvm::cl::opt<bool> OptLevelO2("O2",
-                   llvm::cl::desc("Optimization level 2."));
+                   llvm::cl::desc("Optimization level 2."),
+                   llvm::cl::init(false));
 
 static llvm::cl::opt<bool> OptLevelO3("O3",
-                   llvm::cl::desc("Optimization level 3."));
+                   llvm::cl::desc("Optimization level 3."),
+                   llvm::cl::init(false));
 
 #define BRANCH_COND -1
 #define BRANCH_NONE -2
@@ -141,24 +151,23 @@ public:
 
 const llvm::Type *LLVMCompiler::get_var_type(val_t type) {
 	switch(type) {
+	case VAR_T_VOID:
+		return llvm::Type::VoidTy;
 	case VAR_T_INT:
-		return llvm::Type::Int32Ty;
 	case VAR_T_ARG_A:
-		return llvm::Type::Int32Ty;
-	case VAR_T_ARG_C:
-		return llvm::Type::Int32Ty;
-	case VAR_T_ARG_C_NEXT_INSTRUCTION:
-		return llvm::Type::Int32Ty;
 	case VAR_T_ARG_B:
-		return llvm::Type::Int32Ty;
+	case VAR_T_ARG_BK:
 	case VAR_T_ARG_Bx:
-		return llvm::Type::Int32Ty;
+	case VAR_T_ARG_Bx_NUM_CONSTANT:
+	case VAR_T_ARG_B_FB2INT:
 	case VAR_T_ARG_sBx:
-		return llvm::Type::Int32Ty;
+	case VAR_T_ARG_C:
+	case VAR_T_ARG_CK:
+	case VAR_T_ARG_C_NUM_CONSTANT:
+	case VAR_T_ARG_C_NEXT_INSTRUCTION:
+	case VAR_T_ARG_C_FB2INT:
 	case VAR_T_PC_OFFSET:
-		return llvm::Type::Int32Ty;
 	case VAR_T_INSTRUCTION:
-		return llvm::Type::Int32Ty;
 	case VAR_T_NEXT_INSTRUCTION:
 		return llvm::Type::Int32Ty;
 	case VAR_T_LUA_STATE_PTR:
@@ -167,10 +176,9 @@ const llvm::Type *LLVMCompiler::get_var_type(val_t type) {
 		return Ty_TValue_ptr;
 	case VAR_T_CL:
 		return Ty_LClosure_ptr;
-	case VAR_T_VOID:
-		return llvm::Type::VoidTy;
 	default:
-		fprintf(stderr, "Error: not implemented!\n");
+		fprintf(stderr, "Error: missing var_type=%d\n", type);
+		exit(1);
 		break;
 	}
 	return NULL;
@@ -279,6 +287,18 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		for(int i = 0; i < NUM_OPCODES; i++) {
 			vm_op_run_count[i] = 0;
 		}
+	}
+	// define extern vm_mini_vm
+	vm_mini_vm = TheModule->getFunction("vm_mini_vm");
+	if(vm_mini_vm == NULL) {
+		func_args.clear();
+		func_args.push_back(Ty_lua_State_ptr);
+		func_args.push_back(Ty_LClosure_ptr);
+		func_args.push_back(llvm::Type::Int32Ty);
+		func_args.push_back(llvm::Type::Int32Ty);
+		func_type = llvm::FunctionType::get(llvm::Type::VoidTy, func_args, false);
+		vm_mini_vm = llvm::Function::Create(func_type,
+			llvm::Function::ExternalLinkage, "vm_mini_vm", TheModule);
 	}
 	// define extern vm_get_current_closure
 	vm_get_current_closure = TheModule->getFunction("vm_get_current_closure");
@@ -472,10 +492,11 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	int branch;
 	Instruction op_intr;
 	int opcode;
+	int mini_op_repeat=0;
 	int i;
 
 	// don't JIT large functions.
-	if(code_len >= 200 && TheExecutionEngine != NULL && !CompileLargeFunctions) {
+	if(code_len >= MaxFunctionSize && TheExecutionEngine != NULL && !CompileLargeFunctions) {
 		return;
 	}
 
@@ -529,6 +550,15 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	for(i = 0; i < code_len; i++) {
 		op_intr=code[i];
 		opcode = GET_OPCODE(op_intr);
+		// combind simple ops into one function call.
+		if(is_mini_vm_op(opcode)) {
+			mini_op_repeat++;
+		} else {
+			if(mini_op_repeat >= 3 && OptLevel > 1) {
+				op_hints[i - mini_op_repeat] |= HINT_MINI_VM;
+			}
+			mini_op_repeat = 0;
+		}
 		switch (opcode) {
 			case OP_LOADBOOL:
 				branch = i+1;
@@ -537,6 +567,12 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 					++branch;
 				need_op_block[branch] = true;
 				break;
+			case OP_LOADK: {
+				// check if arg Bx is a number constant.
+				TValue *rb = p->k + INDEXK(GETARG_Bx(op_intr));
+				if(ttisnumber(rb)) op_hints[i] = HINT_Bx_NUM_CONSTANT;
+				break;
+			}
 			case OP_JMP:
 				// always branch to the offset stored in operand sBx
 				branch = i + 1 + GETARG_sBx(op_intr);
@@ -556,7 +592,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 					if(ttisnumber(rc)) op_hints[i] = HINT_C_NUM_CONSTANT;
 				}
 				if(GETARG_A(op_intr) == 1) {
-					op_hints[i] += HINT_NOT;
+					op_hints[i] |= HINT_NOT;
 				}
 				// fall-through
 			case OP_TEST:
@@ -681,6 +717,39 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		op_intr=code[i];
 		opcode = GET_OPCODE(op_intr);
 		opfunc = vm_op_funcs[opcode];
+		// combind multiple simple ops into one call.
+		if(op_hints[i] & HINT_MINI_VM) {
+			int op_count = 1;
+			// count mini ops and check for any branch end-points.
+			while(is_mini_vm_op(GET_OPCODE(code[i + op_count]))) {
+				// branch end-point in middle of mini ops block.
+				if(need_op_block[i + op_count]) {
+					op_hints[i + op_count] |= HINT_MINI_VM; // mark start of new mini vm ops.
+					break;
+				}
+				op_count++;
+			}
+			if(op_count >= 3) {
+				// large block of mini ops add function call to vm_mini_vm()
+				Builder.CreateCall4(vm_mini_vm, func_L, func_cl,
+					llvm::ConstantInt::get(llvm::APInt(32,op_count)),
+					llvm::ConstantInt::get(llvm::APInt(32,i - strip_ops)));
+				if(strip_code && strip_ops > 0) {
+					while(op_count > 0) {
+						code[i - strip_ops] = code[i];
+						i++;
+						op_count--;
+					}
+				} else {
+					i += op_count;
+				}
+				i--;
+				continue;
+			} else {
+				// mini ops block too small.
+				op_hints[i] &= ~(HINT_MINI_VM);
+			}
+		}
 		// find op function with matching hint.
 		while(opfunc->next != NULL && opfunc->info->hint != op_hints[i]) {
 			opfunc = opfunc->next;
@@ -701,7 +770,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			/* vm_next_OP function is used to call count/line debug hooks. */
 			Builder.CreateCall3(vm_next_OP, func_L, func_cl, llvm::ConstantInt::get(llvm::APInt(32,i)));
 		}
-		if(op_hints[i] == HINT_SKIP_OP) {
+		if(op_hints[i] & HINT_SKIP_OP) {
 			if(strip_code) strip_ops++;
 			continue;
 		}
@@ -711,9 +780,6 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			if(strip_ops > 0 && strip_ops < (i+1)) {
 				// move opcodes we want to keep to new position.
 				code[(i+1) - strip_ops] = op_intr;
-				if(p->sizelineinfo > 0) {
-					p->lineinfo[(i+1) - strip_ops] = p->lineinfo[i];
-				}
 			}
 		}
 		// setup arguments for opcode function.
@@ -732,6 +798,12 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			case VAR_T_ARG_C:
 				val = llvm::ConstantInt::get(llvm::APInt(32,GETARG_C(op_intr)));
 				break;
+			case VAR_T_ARG_C_FB2INT:
+				val = llvm::ConstantInt::get(llvm::APInt(32,luaO_fb2int(GETARG_C(op_intr))));
+				break;
+			case VAR_T_ARG_Bx_NUM_CONSTANT:
+				val = get_proto_constant(p->k + INDEXK(GETARG_Bx(op_intr)));
+				break;
 			case VAR_T_ARG_C_NUM_CONSTANT:
 				val = get_proto_constant(p->k + INDEXK(GETARG_C(op_intr)));
 				break;
@@ -749,6 +821,9 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			}
 			case VAR_T_ARG_B:
 				val = llvm::ConstantInt::get(llvm::APInt(32,GETARG_B(op_intr)));
+				break;
+			case VAR_T_ARG_B_FB2INT:
+				val = llvm::ConstantInt::get(llvm::APInt(32,luaO_fb2int(GETARG_B(op_intr))));
 				break;
 			case VAR_T_ARG_Bx:
 				val = llvm::ConstantInt::get(llvm::APInt(32,GETARG_Bx(op_intr)));
@@ -791,7 +866,8 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				return;
 			}
 			if(val == NULL) {
-				fprintf(stderr, "Error: Missing parameter for this opcode function!\n");
+				fprintf(stderr, "Error: Missing parameter for this opcode(%d) function=%s!\n",
+					opcode, func_info->name);
 				exit(1);
 			}
 			args.push_back(val);
@@ -880,9 +956,6 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 					if(strip_ops > 0 && strip_ops < (i+1)) {
 						// move opcodes we want to keep to new position.
 						code[(i+1) - strip_ops] = code[i];
-						if(p->sizelineinfo > 0) {
-							p->lineinfo[(i+1) - strip_ops] = p->lineinfo[i];
-						}
 					}
 				}
 				op_intr=code[i];
@@ -954,9 +1027,6 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 					while(nups > 0) {
 						i++;
 						code[i - strip_ops] = code[i];
-						if(p->sizelineinfo > 0) {
-							p->lineinfo[i - strip_ops] = p->lineinfo[i];
-						}
 						nups--;
 					}
 				} else {

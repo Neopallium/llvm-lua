@@ -42,7 +42,7 @@
 void llvm_compiler_cleanup() {}
 void llvm_compiler_compile(lua_State *L, Proto *p) {}
 void llvm_compiler_compile_all(lua_State *L, Proto *p) {}
-void llvm_compiler_dump(const char *output, lua_State *L, Proto *p, int stripping) {}
 void llvm_compiler_free(lua_State *L, Proto *p) {}
 
+void llvm_dumper_dump(const char *output, lua_State *L, Proto *p, int stripping) {}
 

@@ -36,6 +36,12 @@ void vm_OP_LOADK(lua_State *L, TValue *k, int a, int bx) {
   setobj2s(L, ra, k + bx);
 }
 
+void vm_OP_LOADK_N(lua_State *L, int a, lua_Number nb) {
+  TValue *base = L->base;
+  TValue *ra = base + a;
+  setnvalue(ra, nb);
+}
+
 void vm_OP_LOADBOOL(lua_State *L, int a, int b, int c) {
   TValue *base = L->base;
   TValue *ra = base + a;
@@ -96,9 +102,9 @@ void vm_OP_SETTABLE(lua_State *L, TValue *k, int a, int b, int c) {
   luaV_settable(L, ra, RK(b), RK(c));
 }
 
-void vm_OP_NEWTABLE(lua_State *L, int a, int b, int c) {
+void vm_OP_NEWTABLE(lua_State *L, int a, int b_fb2int, int c_fb2int) {
   Table *h;
-  h = luaH_new(L, luaO_fb2int(b), luaO_fb2int(c));
+  h = luaH_new(L, b_fb2int, c_fb2int);
   sethvalue(L, L->base + a, h);
   luaC_checkGC(L);
 }

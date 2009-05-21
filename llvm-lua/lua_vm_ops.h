@@ -17,30 +17,33 @@ typedef struct {
 typedef unsigned int hint_t;
 #define HINT_NONE							0
 #define HINT_C_NUM_CONSTANT		(1<<0)
-#define HINT_NOT							(1<<1)
-#define HINT_FOR_M_N_N				(1<<2)
-#define HINT_FOR_N_M_N				(1<<3)
-#define HINT_FOR_N_N_N				(1<<4)
-#define HINT_FOR_N_N					(1<<5)
-#define HINT_SKIP_OP					(1<<6)
+#define HINT_Bx_NUM_CONSTANT	(1<<1)
+#define HINT_NOT							(1<<2)
+#define HINT_FOR_M_N_N				(1<<3)
+#define HINT_FOR_N_M_N				(1<<4)
+#define HINT_FOR_N_N_N				(1<<5)
+#define HINT_FOR_N_N					(1<<6)
+#define HINT_SKIP_OP					(1<<7)
+#define HINT_MINI_VM					(1<<8)
 
 typedef enum {
 	VAR_T_VOID = 0,
 	VAR_T_INT,
 	VAR_T_ARG_A,
 	VAR_T_ARG_B,
-	VAR_T_ARG_C,
 	VAR_T_ARG_BK,
+	VAR_T_ARG_Bx_NUM_CONSTANT,
+	VAR_T_ARG_B_FB2INT,
+	VAR_T_ARG_Bx,
+	VAR_T_ARG_sBx,
+	VAR_T_ARG_C,
 	VAR_T_ARG_CK,
 	VAR_T_ARG_C_NUM_CONSTANT,
 	VAR_T_ARG_C_NEXT_INSTRUCTION,
-	VAR_T_ARG_Bx,
-	VAR_T_ARG_sBx,
+	VAR_T_ARG_C_FB2INT,
 	VAR_T_PC_OFFSET,
-	VAR_T_PC_PTR,
 	VAR_T_INSTRUCTION,
 	VAR_T_NEXT_INSTRUCTION,
-	VAR_T_FUNC_STATE_PTR,
 	VAR_T_LUA_STATE_PTR,
 	VAR_T_K,
 	VAR_T_CL,
@@ -70,6 +73,8 @@ extern void vm_next_OP(lua_State *L, LClosure *cl, int pc_offset);
 extern void vm_OP_MOVE(lua_State *L, int a, int b);
 
 extern void vm_OP_LOADK(lua_State *L, TValue *k, int a, int bx);
+
+extern void vm_OP_LOADK_N(lua_State *L, int a, lua_Number nb);
 
 extern void vm_OP_LOADBOOL(lua_State *L, int a, int b, int c);
 
@@ -135,7 +140,7 @@ extern int vm_OP_CALL(lua_State *L, int a, int b, int c);
 
 extern int vm_OP_RETURN(lua_State *L, int a, int b);
 
-extern int vm_OP_TAILCALL(lua_State *L, int a, int b, int c);
+extern int vm_OP_TAILCALL(lua_State *L, int a, int b);
 
 extern int vm_OP_FORLOOP(lua_State *L, int a, int sbx);
 extern int vm_OP_FORLOOP_N_N(lua_State *L, int a, int sbx, lua_Number limit, lua_Number step);
@@ -149,13 +154,16 @@ extern void vm_OP_FORPREP_N_N_N(lua_State *L, int a, int sbx, lua_Number init, l
 
 extern int vm_OP_TFORLOOP(lua_State *L, int a, int c);
 
-extern void vm_OP_SETLIST(lua_State *L, int a, int b, int c, int c_next);
+extern void vm_OP_SETLIST(lua_State *L, int a, int b, int c);
 
 extern void vm_OP_CLOSE(lua_State *L, int a);
 
 extern void vm_OP_CLOSURE(lua_State *L, LClosure *cl, int a, int bx, int pseudo_ops_offset);
 
 extern void vm_OP_VARARG(lua_State *L, LClosure *cl, int a, int b);
+
+extern int is_mini_vm_op(int opcode);
+extern void vm_mini_vm(lua_State *L, LClosure *cl, int count, int pseudo_ops_offset);
 
 extern LClosure *vm_get_current_closure(lua_State *L);
 
