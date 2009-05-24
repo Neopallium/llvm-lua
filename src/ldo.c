@@ -339,12 +339,15 @@ int luaD_precall_c (lua_State *L, StkId func, int nresults) {
 int luaD_precall (lua_State *L, StkId func, int nresults) {
   Closure *cl;
   int ret;
+tailcall:
   if (!ttisfunction(func)) /* `func' is not a function? */
     func = luaD_tryfuncTM(L, func);  /* check the `function' tag method */
   cl = clvalue(func);
   ret = cl->l.precall(L,func,nresults);
   if(ret == PCRTAILCALL) {
-    return luaD_precall(L, L->base - 1, LUA_MULTRET);
+		func = L->base - 1;
+		nresults = LUA_MULTRET;
+		goto tailcall;
   }
   return ret;
 }

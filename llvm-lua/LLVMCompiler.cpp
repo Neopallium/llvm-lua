@@ -38,6 +38,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <math.h>
 
 #include "LLVMCompiler.h"
 #ifdef __cplusplus
@@ -149,7 +150,7 @@ public:
 // Lua bytecode to LLVM IR compiler
 //===----------------------------------------------------------------------===//
 
-const llvm::Type *LLVMCompiler::get_var_type(val_t type) {
+const llvm::Type *LLVMCompiler::get_var_type(val_t type, hint_t hints) {
 	switch(type) {
 	case VAR_T_VOID:
 		return llvm::Type::VoidTy;
@@ -176,6 +177,13 @@ const llvm::Type *LLVMCompiler::get_var_type(val_t type) {
 		return Ty_TValue_ptr;
 	case VAR_T_CL:
 		return Ty_LClosure_ptr;
+	case VAR_T_OP_VALUE_0:
+	case VAR_T_OP_VALUE_1:
+	case VAR_T_OP_VALUE_2:
+		if(hints & HINT_USE_LONG) {
+			return llvm::Type::Int64Ty;
+		}
+		return llvm::Type::DoubleTy;
 	default:
 		fprintf(stderr, "Error: missing var_type=%d\n", type);
 		exit(1);
@@ -306,6 +314,13 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	vm_get_current_constants = TheModule->getFunction("vm_get_current_constants");
 	// define extern vm_get_number
 	vm_get_number = TheModule->getFunction("vm_get_number");
+	// define extern vm_get_long
+	vm_get_long = TheModule->getFunction("vm_get_long");
+	// define extern vm_set_number
+	vm_set_number = TheModule->getFunction("vm_set_number");
+	// define extern vm_set_long
+	vm_set_long = TheModule->getFunction("vm_set_long");
+
 
 	// create prototype for vm_* functions.
 	vm_op_funcs = new OPFunc *[NUM_OPCODES];
@@ -323,10 +338,12 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		}
 		func_args.clear();
 		for(int x = 0; func_info->params[x] != VAR_T_VOID; x++) {
-			func_args.push_back(get_var_type(func_info->params[x]));
+			func_args.push_back(get_var_type(func_info->params[x], func_info->hint));
 		}
-		func_type = llvm::FunctionType::get(get_var_type(func_info->ret_type), func_args, false);
-		func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage, func_info->name, TheModule);
+		func_type = llvm::FunctionType::get(
+			get_var_type(func_info->ret_type, func_info->hint), func_args, false);
+		func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage,
+							func_info->name, TheModule);
 		vm_op_funcs[opcode]->func = func;
 		vm_op_funcs[opcode]->compiled = true; // built-in op function.
 	}
@@ -349,6 +366,9 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 			TheExecutionEngine->getPointerToFunction(vm_get_current_closure);
 			TheExecutionEngine->getPointerToFunction(vm_get_current_constants);
 			TheExecutionEngine->getPointerToFunction(vm_get_number);
+			TheExecutionEngine->getPointerToFunction(vm_get_long);
+			TheExecutionEngine->getPointerToFunction(vm_set_number);
+			TheExecutionEngine->getPointerToFunction(vm_set_long);
 		}
 	} else {
 		TheExecutionEngine = NULL;
@@ -470,6 +490,7 @@ void LLVMCompiler::compileAll(lua_State *L, Proto *parent) {
 void LLVMCompiler::compile(lua_State *L, Proto *p)
 {
 	Instruction *code=p->code;
+	TValue *k=p->k;
 	int code_len=p->sizecode;
 	OPFunc *opfunc;
 	llvm::Function *func;
@@ -487,6 +508,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	std::vector<llvm::CallInst *> inlineList;
 	std::string name;
 	char tmp[128];
+	//char locals[LUAI_MAXVARS];
 	bool inline_call=false;
 	int strip_ops=0;
 	int branch;
@@ -569,8 +591,8 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				break;
 			case OP_LOADK: {
 				// check if arg Bx is a number constant.
-				TValue *rb = p->k + INDEXK(GETARG_Bx(op_intr));
-				if(ttisnumber(rb)) op_hints[i] = HINT_Bx_NUM_CONSTANT;
+				TValue *rb = k + INDEXK(GETARG_Bx(op_intr));
+				if(ttisnumber(rb)) op_hints[i] |= HINT_Bx_NUM_CONSTANT;
 				break;
 			}
 			case OP_JMP:
@@ -588,8 +610,8 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			case OP_LE:
 				// check if arg C is a number constant.
 				if(ISK(GETARG_C(op_intr))) {
-					TValue *rc = p->k + INDEXK(GETARG_C(op_intr));
-					if(ttisnumber(rc)) op_hints[i] = HINT_C_NUM_CONSTANT;
+					TValue *rc = k + INDEXK(GETARG_C(op_intr));
+					if(ttisnumber(rc)) op_hints[i] |= HINT_C_NUM_CONSTANT;
 				}
 				if(GETARG_A(op_intr) == 1) {
 					op_hints[i] |= HINT_NOT;
@@ -612,22 +634,42 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			case OP_FORPREP:
 				branch = i + 1 + GETARG_sBx(op_intr);
 				need_op_block[branch] = true;
+				need_op_block[branch + 1] = true;
 				// test if init/plimit/pstep are number constants.
 				if(OptLevel > 1 && i >= 3) {
 					const TValue *tmp;
+					lua_Number nums[3];
 					bool is_const_num[3];
+					bool all_longs=true;
 					OPValues *vals = new OPValues(4);
+					// find & load constants for init/plimit/pstep
 					for(int x = 0; x < 3; ++x) {
 						is_const_num[x] = false;
 						if(GET_OPCODE(code[i-3+x]) == OP_LOADK) {
-							tmp = p->k + GETARG_Bx(code[i-3+x]);
+							tmp = k + GETARG_Bx(code[i-3+x]);
 							if(ttisnumber(tmp)) {
-								vals->set(x,llvm::ConstantFP::get(llvm::APFloat(nvalue(tmp))));
+								lua_Number num=nvalue(tmp);
+								nums[x] = num;
+								// test if number is a whole number
+								all_longs &= (floor(num) == num);
+								vals->set(x,llvm::ConstantFP::get(llvm::APFloat(num)));
 								is_const_num[x] = true;
-								op_hints[i-3+x] = HINT_SKIP_OP;
+								op_hints[i-3+x] |= HINT_SKIP_OP;
+								continue;
 							}
 						}
+						all_longs = false;
 					}
+					// create for_idx OP_FORPREP will inialize it.
+					op_hints[branch] = HINT_FOR_N_N_N;
+					if(all_longs) {
+						vals->set(3, Builder.CreateAlloca(llvm::Type::Int64Ty, 0, "for_idx"));
+						op_hints[branch] |= HINT_USE_LONG;
+					} else {
+						vals->set(3, Builder.CreateAlloca(llvm::Type::DoubleTy, 0, "for_idx"));
+					}
+					op_values[branch] = vals;
+					// check if step, init, limit are constants
 					if(is_const_num[2]) {
 						// step is a constant
 						if(is_const_num[0]) {
@@ -649,16 +691,26 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 							op_values[i]->set(1, vals->get(1));
 							op_values[i]->set(2, vals->get(2));
 						}
+						// check the direct of step.
+						if(nums[2] > 0) {
+							op_hints[branch] |= HINT_UP;
+						} else {
+							op_hints[branch] |= HINT_DOWN;
+						}
 					}
 					if(op_hints[i] == HINT_NONE) {
 						// don't skip LOADK ops, since we are not inlining them.
 						for(int x=i-3; x < i; x++) {
-							if(op_hints[x] == HINT_SKIP_OP) op_hints[x] = HINT_NONE;
+							if(op_hints[x] & HINT_SKIP_OP) op_hints[x] &= ~(HINT_SKIP_OP);
 						}
 					}
-					vals->set(3, Builder.CreateAlloca(llvm::Type::DoubleTy, 0, "for_idx"));
-					op_hints[branch] = HINT_FOR_N_N_N;
-					op_values[branch] = vals;
+					if(all_longs) {
+						for(int x = 0; x < 3; ++x) {
+							vals->set(x,llvm::ConstantInt::get(llvm::APInt(64,(lua_Long)nums[x])));
+						}
+					}
+					// make sure OP_FORPREP doesn't subtract 'step' from 'init'
+					op_hints[i] |= HINT_NO_SUB;
 				}
 				break;
 			case OP_SETLIST:
@@ -675,19 +727,22 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			case OP_POW:
 				// check if arg C is a number constant.
 				if(ISK(GETARG_C(op_intr))) {
-					TValue *rc = p->k + INDEXK(GETARG_C(op_intr));
-					if(ttisnumber(rc)) op_hints[i] = HINT_C_NUM_CONSTANT;
+					TValue *rc = k + INDEXK(GETARG_C(op_intr));
+					if(ttisnumber(rc)) op_hints[i] |= HINT_C_NUM_CONSTANT;
 				}
 				break;
 			default:
 				break;
 		}
+		// update local variable type hints.
+		//vm_op_hint_locals(locals, p->maxstacksize, k, op_intr);
 	}
-	name = "op_block";
 	for(i = 0; i < code_len; i++) {
 		if(need_op_block[i]) {
-			snprintf(tmp,128,"_%d",i);
-			op_blocks[i] = llvm::BasicBlock::Create(name + tmp, func);
+			op_intr=code[i];
+			opcode = GET_OPCODE(op_intr);
+			snprintf(tmp,128,"op_block_%s_%d",luaP_opnames[opcode],i);
+			op_blocks[i] = llvm::BasicBlock::Create(tmp, func);
 		} else {
 			op_blocks[i] = NULL;
 		}
@@ -721,7 +776,8 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		if(op_hints[i] & HINT_MINI_VM) {
 			int op_count = 1;
 			// count mini ops and check for any branch end-points.
-			while(is_mini_vm_op(GET_OPCODE(code[i + op_count]))) {
+			while(is_mini_vm_op(GET_OPCODE(code[i + op_count])) &&
+					(op_hints[i + op_count] & HINT_SKIP_OP) == 0) {
 				// branch end-point in middle of mini ops block.
 				if(need_op_block[i + op_count]) {
 					op_hints[i + op_count] |= HINT_MINI_VM; // mark start of new mini vm ops.
@@ -751,13 +807,14 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			}
 		}
 		// find op function with matching hint.
-		while(opfunc->next != NULL && opfunc->info->hint != op_hints[i]) {
+		while(opfunc->next != NULL && (opfunc->info->hint & op_hints[i]) != opfunc->info->hint) {
 			opfunc = opfunc->next;
 		}
 		if(OpCodeStats) {
 			opcode_stats[opcode]++;
 		}
-		//fprintf(stderr, "%d: '%s' (%d) = 0x%08X, hint=%d\n", i, luaP_opnames[opcode], opcode, op_intr, op_hints[i]);
+		//fprintf(stderr, "%d: '%s' (%d) = 0x%08X, hint=0x%X\n", i, luaP_opnames[opcode], opcode, op_intr, op_hints[i]);
+		//fprintf(stderr, "%d: func: '%s', func hints=0x%X\n", i, opfunc->info->name,opfunc->info->hint);
 		if(PrintRunOpCodes) {
 			Builder.CreateCall4(vm_print_OP, func_L, func_cl,
 				llvm::ConstantInt::get(llvm::APInt(32,op_intr)),
@@ -788,6 +845,50 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			fprintf(stderr, "Error missing vm_OP_* function for opcode: %d\n", opcode);
 			return;
 		}
+		// special handling of OP_FORLOOP
+		if(opcode == OP_FORLOOP) {
+			llvm::BasicBlock *loop_test;
+			llvm::BasicBlock *prep_block;
+			llvm::BasicBlock *incr_block;
+			llvm::Value *init,*step,*idx_var,*cur_idx,*next_idx;
+			llvm::PHINode *PN;
+			OPValues *vals;
+
+			vals=op_values[i];
+			if(vals != NULL) {
+				// get init value from forprep block
+				init = vals->get(0);
+				// get for loop 'idx' variable.
+				step = vals->get(2);
+				idx_var = vals->get(3);
+				assert(idx_var != NULL);
+				incr_block = current_block;
+				cur_idx = Builder.CreateLoad(idx_var);
+				next_idx = Builder.CreateAdd(cur_idx, step, "next_idx");
+				Builder.CreateStore(next_idx, idx_var); // store 'for_init' value.
+				// create extra BasicBlock for vm_OP_FORLOOP_*
+				snprintf(tmp,128,"op_block_%s_%d_loop_test",luaP_opnames[opcode],i);
+				loop_test = llvm::BasicBlock::Create(tmp, func);
+				// create unconditional jmp from current block to loop test block
+				Builder.CreateBr(loop_test);
+				// create unconditional jmp from forprep block to loop test block
+				prep_block = op_blocks[branch + GETARG_sBx(op_intr) - 1];
+				Builder.SetInsertPoint(prep_block);
+				Builder.CreateBr(loop_test);
+				// set current_block to loop_test block
+				current_block = loop_test;
+				Builder.SetInsertPoint(current_block);
+				// Emit merge block
+				if(op_hints[i] & HINT_USE_LONG) {
+					PN = Builder.CreatePHI(llvm::Type::Int64Ty, "idx");
+				} else {
+					PN = Builder.CreatePHI(llvm::Type::DoubleTy, "idx");
+				}
+				PN->addIncoming(init, prep_block);
+				PN->addIncoming(next_idx, incr_block);
+				vals->set(0, PN);
+			}
+		}
 		args.clear();
 		for(int x = 0; func_info->params[x] != VAR_T_VOID ; x++) {
 			llvm::Value *val=NULL;
@@ -802,10 +903,10 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				val = llvm::ConstantInt::get(llvm::APInt(32,luaO_fb2int(GETARG_C(op_intr))));
 				break;
 			case VAR_T_ARG_Bx_NUM_CONSTANT:
-				val = get_proto_constant(p->k + INDEXK(GETARG_Bx(op_intr)));
+				val = get_proto_constant(k + INDEXK(GETARG_Bx(op_intr)));
 				break;
 			case VAR_T_ARG_C_NUM_CONSTANT:
-				val = get_proto_constant(p->k + INDEXK(GETARG_C(op_intr)));
+				val = get_proto_constant(k + INDEXK(GETARG_C(op_intr)));
 				break;
 			case VAR_T_ARG_C_NEXT_INSTRUCTION: {
 				int c = GETARG_C(op_intr);
@@ -963,54 +1064,84 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				true_block=op_blocks[branch];
 				branch = BRANCH_COND; // do conditional branch
 				break;
-			case OP_FORLOOP:
+			case OP_FORLOOP: {
+				llvm::Function *set_func=vm_set_number;
+				llvm::CallInst *call2;
+				OPValues *vals;
+
 				inline_call = true;
 				brcond=call;
 				brcond=Builder.CreateICmpNE(brcond, llvm::ConstantInt::get(llvm::APInt(32,0)), "brcond");
 				true_block=op_blocks[branch + GETARG_sBx(op_intr)];
 				false_block=op_blocks[branch];
 				branch = BRANCH_COND; // do conditional branch
+
+				// update external index if needed.
+				vals=op_values[i];
+				if(vals != NULL) {
+					llvm::BasicBlock *idx_block;
+					if(op_hints[i] & HINT_USE_LONG) {
+						set_func = vm_set_long;
+					}
+					// create extra BasicBlock
+					snprintf(tmp,128,"op_block_%s_%d_set_for_idx",luaP_opnames[opcode],i);
+					idx_block = llvm::BasicBlock::Create(tmp, func);
+					Builder.SetInsertPoint(idx_block);
+					// copy idx value to Lua-stack.
+					call2=Builder.CreateCall3(set_func,func_L,
+						llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 3))), vals->get(0));
+					inlineList.push_back(call2);
+					// create jmp to true_block
+					Builder.CreateBr(true_block);
+					true_block = idx_block;
+					Builder.SetInsertPoint(current_block);
+				}
 				break;
+			}
 			case OP_FORPREP: {
+				llvm::Function *get_func=vm_get_number;
+				llvm::Value *idx_var,*init;
+				llvm::CallInst *call2;
 				OPValues *vals;
+
 				//inline_call = true;
+				op_blocks[i] = current_block;
 				branch += GETARG_sBx(op_intr);
 				vals=op_values[branch];
-				if(vals) {
-					llvm::CallInst *call2;
-					// get non-constant limit/step from stack.
-					if(vals->get(1) == NULL) {
-						call2=Builder.CreateCall2(vm_get_number,func_L,
-							llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 1))), "for_limit");
-						inlineList.push_back(call2);
-						vals->set(1, call2);
-					}
-					if(vals->get(2) == NULL) {
-						call2=Builder.CreateCall2(vm_get_number,func_L,
-							llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 2))), "for_step");
-						inlineList.push_back(call2);
-						vals->set(2, call2);
-					}
-					if(vals->get(3) != NULL) {
-						call2=Builder.CreateCall2(vm_get_number,func_L,
-							llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 0))), "for_init");
-						inlineList.push_back(call2);
-						// create for loop 'idx' variable storage space.
-						llvm::Value *idx_var = vals->get(3);
-						Builder.CreateStore(call2, idx_var); // store 'for_init' value.
-						// add branch to forloop block.
-						Builder.CreateBr(op_blocks[branch]);
-						Builder.SetInsertPoint(op_blocks[branch]);
-						// increment 'for_idx'
-						llvm::Value *cur_idx = Builder.CreateLoad(idx_var);
-						llvm::Value *next_idx = Builder.CreateAdd(cur_idx, vals->get(2), "next_idx");
-						Builder.CreateStore(next_idx, idx_var); // store 'for_init' value.
-						// create instructions to load and 
-						vals->set(0, next_idx);
-						current_block = NULL; // have terminator
-						branch = BRANCH_NONE;
-					}
+				// if no saved value, then use slow method.
+				if(vals == NULL) break;
+				if(op_hints[branch] & HINT_USE_LONG) {
+					get_func = vm_get_long;
 				}
+				// get non-constant init from Lua stack.
+				if(vals->get(0) == NULL) {
+					call2=Builder.CreateCall2(get_func,func_L,
+						llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 0))), "for_init");
+					inlineList.push_back(call2);
+					vals->set(0, call2);
+				}
+				init = vals->get(0);
+				// get non-constant limit from Lua stack.
+				if(vals->get(1) == NULL) {
+					call2=Builder.CreateCall2(get_func,func_L,
+						llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 1))), "for_limit");
+					inlineList.push_back(call2);
+					vals->set(1, call2);
+				}
+				// get non-constant step from Lua stack.
+				if(vals->get(2) == NULL) {
+					call2=Builder.CreateCall2(get_func,func_L,
+						llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 2))), "for_step");
+					inlineList.push_back(call2);
+					vals->set(2, call2);
+				}
+				// get for loop 'idx' variable.
+				assert(vals->get(3) != NULL);
+				idx_var = vals->get(3);
+				Builder.CreateStore(init, idx_var); // store 'for_init' value.
+				vals->set(0, init);
+				current_block = NULL; // have terminator
+				branch = BRANCH_NONE;
 				break;
 			}
 			case OP_SETLIST:
@@ -1084,7 +1215,6 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		if(VerifyFunctions) verifyFunction(*func);
 		// Optimize the function.
 		if(TheFPM) TheFPM->run(*func);
-		if(DumpFunctions) func->dump();
 	}
 	for(i = 0; i < code_len; i++) {
 		if(op_values[i]) {

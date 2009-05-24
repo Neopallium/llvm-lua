@@ -82,6 +82,9 @@ private:
 	llvm::Function *vm_get_current_closure;
 	llvm::Function *vm_get_current_constants;
 	llvm::Function *vm_get_number;
+	llvm::Function *vm_get_long;
+	llvm::Function *vm_set_number;
+	llvm::Function *vm_set_long;
 	// function for counting each executed op.
 	llvm::Function *vm_count_OP;
 	// function for print each executed op.
@@ -120,7 +123,7 @@ public:
 		return lua_func_type;
 	}
 	
-	const llvm::Type *get_var_type(val_t type);
+	const llvm::Type *get_var_type(val_t type, hint_t hints);
 	
 	llvm::Value *get_proto_constant(TValue *constant);
 	

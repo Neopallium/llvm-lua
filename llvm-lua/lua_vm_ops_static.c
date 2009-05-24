@@ -157,7 +157,22 @@ const vm_func_info vm_op_functions[] = {
   { OP_FORLOOP, HINT_FOR_N_N_N, VAR_T_INT, "vm_OP_FORLOOP_N_N_N",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_OP_VALUE_0, VAR_T_OP_VALUE_1, VAR_T_OP_VALUE_2, VAR_T_VOID},
   },
+  { OP_FORLOOP, HINT_FOR_N_N_N | HINT_UP, VAR_T_INT, "vm_OP_FORLOOP_up",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_OP_VALUE_0, VAR_T_OP_VALUE_1, VAR_T_VOID},
+  },
+  { OP_FORLOOP, HINT_FOR_N_N_N | HINT_DOWN, VAR_T_INT, "vm_OP_FORLOOP_down",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_OP_VALUE_0, VAR_T_OP_VALUE_1, VAR_T_VOID},
+  },
+  { OP_FORLOOP, HINT_FOR_N_N_N | HINT_USE_LONG | HINT_UP, VAR_T_INT, "vm_OP_FORLOOP_long_up",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_OP_VALUE_0, VAR_T_OP_VALUE_1, VAR_T_VOID},
+  },
+  { OP_FORLOOP, HINT_FOR_N_N_N | HINT_USE_LONG | HINT_DOWN, VAR_T_INT, "vm_OP_FORLOOP_long_down",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_OP_VALUE_0, VAR_T_OP_VALUE_1, VAR_T_VOID},
+  },
   { OP_FORPREP, HINT_NONE, VAR_T_VOID, "vm_OP_FORPREP",
+    {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_VOID},
+  },
+  { OP_FORPREP, HINT_NO_SUB, VAR_T_VOID, "vm_OP_FORPREP_no_sub",
     {VAR_T_LUA_STATE_PTR, VAR_T_ARG_A, VAR_T_ARG_sBx, VAR_T_VOID},
   },
   { OP_FORPREP, HINT_FOR_M_N_N, VAR_T_VOID, "vm_OP_FORPREP_M_N_N",
@@ -334,8 +349,6 @@ void vm_OP_FORPREP_slow(lua_State *L, int a, int sbx) {
     luaG_runerror(L, LUA_QL("for") " limit must be a number");
   else if (!tonumber(pstep, ra+2))
     luaG_runerror(L, LUA_QL("for") " step must be a number");
-  setnvalue(ra, luai_numsub(nvalue(ra), nvalue(pstep)));
-  dojump(sbx);
 }
 
 int vm_OP_TFORLOOP(lua_State *L, int a, int c) {
@@ -438,6 +451,150 @@ int is_mini_vm_op(int opcode) {
       return 0;
   }
   return 0;
+}
+
+/*
+ * This function is used to update the local variable type hints.
+ *
+ */
+void vm_op_hint_locals(char *locals, int stacksize, TValue *k, const Instruction i) {
+  int ra,rb,rc;
+  char ra_type = LUA_TNONE;
+
+#define reset_local() memset(locals, LUA_TNONE, stacksize * sizeof(char))
+#define RK_TYPE(rk) (ISK(rk) ? ttype(k+INDEXK(rk)) : locals[rk])
+  // make sure ra is a valid local register.
+  switch (GET_OPCODE(i)) {
+    case OP_MOVE:
+      rb = GETARG_B(i);
+      ra_type = locals[rb];
+      break;
+    case OP_LOADK:
+      rb = GETARG_Bx(i);
+      ra_type = ttype(k + rb);
+      break;
+    case OP_LOADBOOL:
+      if (GETARG_C(i)) {
+        reset_local(); // jmp, reset types.
+      } else {
+        ra_type = LUA_TBOOLEAN;
+      }
+      break;
+    case OP_LOADNIL:
+      ra = GETARG_A(i);
+      rb = GETARG_B(i);
+      do {
+        locals[rb--] = LUA_TNIL;
+      } while (rb >= ra);
+      return;
+    case OP_GETUPVAL:
+    case OP_GETGLOBAL:
+    case OP_GETTABLE:
+      // reset 'ra' type don't know type at compile-time.
+      break;
+    case OP_SETUPVAL:
+    case OP_SETGLOBAL:
+    case OP_SETTABLE:
+      // no changes to locals.
+      return;
+    case OP_NEWTABLE:
+      ra_type = LUA_TTABLE;
+      break;
+    case OP_SELF:
+      // 'ra + 1' will be a table.
+      ra = GETARG_A(i);
+      locals[ra + 1] = LUA_TTABLE;
+      // reset 'ra' type don't know type at compile-time.
+      break;
+    case OP_ADD:
+    case OP_SUB:
+    case OP_MUL:
+    case OP_DIV:
+    case OP_MOD:
+    case OP_POW:
+      // if 'b' & 'c' are numbers, then 'ra' will be a number
+      rb = GETARG_B(i);
+      rc = GETARG_C(i);
+      if(RK_TYPE(rb) == LUA_TNUMBER && RK_TYPE(rc) == LUA_TNUMBER) {
+        ra_type = LUA_TNUMBER;
+      }
+      break;
+    case OP_UNM:
+       // if 'b' is a number, then 'ra' will be a number
+      rb = GETARG_B(i);
+      if(RK_TYPE(rb) == LUA_TNUMBER) {
+        ra_type = LUA_TNUMBER;
+      }
+      break;
+    case OP_NOT:
+      ra_type = LUA_TBOOLEAN;
+      break;
+    case OP_LEN:
+      rb = GETARG_B(i);
+      switch (locals[rb]) {
+        case LUA_TTABLE:
+        case LUA_TSTRING:
+          ra_type = LUA_TNUMBER;
+          break;
+        default:
+          // 'ra' type unknown.
+          break;
+      }
+      break;
+    case OP_CONCAT:
+      rb = GETARG_B(i);
+      rc = GETARG_C(i);
+      // if all values 'rb' -> 'rc' are strings/numbers then 'ra' will be a string.
+      ra_type = LUA_TSTRING;
+      while(rb <= rc) {
+        if(locals[rb] != LUA_TNUMBER && locals[rb] != LUA_TSTRING) {
+          // we don't know what type 'ra' will be.
+          ra_type = LUA_TNONE;
+          break;
+        }
+        rb++;
+      }
+      break;
+    case OP_JMP:
+    case OP_EQ:
+    case OP_LT:
+    case OP_LE:
+    case OP_TEST:
+    case OP_TESTSET:
+      reset_local(); // jmp, reset types.
+      break;
+    case OP_CALL:
+      ra = GETARG_A(i);
+      // just reset 'ra' -> top of the stack.
+      while(ra < stacksize) {
+        locals[ra++] = LUA_TNONE;
+      }
+      return;
+    case OP_TAILCALL:
+    case OP_RETURN:
+    case OP_FORLOOP:
+    case OP_FORPREP:
+    case OP_TFORLOOP:
+      reset_local();
+      return;
+    case OP_SETLIST:
+    case OP_CLOSE:
+      return;
+    case OP_CLOSURE:
+      ra_type = LUA_TFUNCTION;
+      break;
+    case OP_VARARG:
+      ra = GETARG_A(i);
+      rb = ra + GETARG_B(i) - 1;
+      // reset type for 'ra' -> 'ra + rb - 1'
+      while(ra <= rb) {
+        locals[ra++] = LUA_TNONE;
+      }
+      return;
+    default:
+      return;
+  }
+  ra = GETARG_A(i);
 }
 
 void vm_mini_vm(lua_State *L, LClosure *cl, int count, int pseudo_ops_offset) {

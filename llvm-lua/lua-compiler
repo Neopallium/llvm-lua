@@ -38,7 +38,7 @@ FNAME=`basename ${FILE}`
 if [[ $DEBUG == "1" ]]; then
 	CFLAGS=" -O0 -ggdb "
 	LUA_FLAGS=" -O0 -g "
-	#LUA_FLAGS=" -O3 -do-not-inline-opcodes -dump-functions "
+	#LUA_FLAGS=" -O3 -do-not-inline-opcodes "
 	#CFLAGS=" -ggdb -O3 -fomit-frame-pointer -pipe -Wall "
 	OPT_FLAGS=" -disable-opt "
 	LLC_FLAGS=" "

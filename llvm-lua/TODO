@@ -1,4 +1,9 @@
 
 optimizations:
-* Remove jump from FORPREP to FORLOOP and copy loop test into FORPREP.  To save having to do (limit - pstep) in FORPREP and saves an extra call to FORLOOP.
+* When the internal index/limit/step variable of a OP_FORLOOP get moved to the C-Stack the space on the Lua-stack is unused.  We should be able to decrease the maxstacksize by re-using those stack slots.
+
+Fast Function calling:
+* luaD_precall: use 'goto' statement instead of a tailreturn.
+* Use the 'lua_precall' hook in 'CClosure' to directly process math.* functions.
+* Fast JIT->C call for math.* functions.  Add a flag to 'CClosure' structure to mark it as supporting fast calling.
 
