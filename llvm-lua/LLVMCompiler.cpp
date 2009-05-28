@@ -637,29 +637,49 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				need_op_block[branch + 1] = true;
 				// test if init/plimit/pstep are number constants.
 				if(OptLevel > 1 && i >= 3) {
-					const TValue *tmp;
 					lua_Number nums[3];
-					bool is_const_num[3];
+					bool found_val[3] = { false, false , false };
+					bool is_const_num[3] = { false, false, false };
 					bool all_longs=true;
+					int found=0;
 					OPValues *vals = new OPValues(4);
+					int forprep_ra = GETARG_A(op_intr);
+					bool no_jmp_end_point = true; // don't process ops after finding a jmp end point.
 					// find & load constants for init/plimit/pstep
-					for(int x = 0; x < 3; ++x) {
-						is_const_num[x] = false;
-						if(GET_OPCODE(code[i-3+x]) == OP_LOADK) {
-							tmp = k + GETARG_Bx(code[i-3+x]);
+					for(int x = 1; x < 6 && found < 3 && no_jmp_end_point; ++x) {
+						const TValue *tmp;
+						Instruction op_intr2;
+						int ra;
+
+						if((i - x) < 0) break;
+						op_intr2 = code[i - x];
+						// get 'a' register.
+						ra = GETARG_A(op_intr2);
+						ra -= forprep_ra;
+						// check for jmp end-point.
+						no_jmp_end_point = !(need_op_block[i - x]);
+						// check that the 'a' register is for one of the value we are interested in.
+						if(ra < 0 || ra > 2) continue;
+						// only process this opcode if we haven't seen this value before.
+						if(found_val[ra]) continue;
+						found_val[ra] = true;
+						found++;
+						if(GET_OPCODE(op_intr2) == OP_LOADK) {
+							tmp = k + GETARG_Bx(op_intr2);
 							if(ttisnumber(tmp)) {
 								lua_Number num=nvalue(tmp);
-								nums[x] = num;
+								nums[ra] = num;
 								// test if number is a whole number
 								all_longs &= (floor(num) == num);
-								vals->set(x,llvm::ConstantFP::get(llvm::APFloat(num)));
-								is_const_num[x] = true;
-								op_hints[i-3+x] |= HINT_SKIP_OP;
+								vals->set(ra,llvm::ConstantFP::get(llvm::APFloat(num)));
+								is_const_num[ra] = true;
+								op_hints[i - x] |= HINT_SKIP_OP;
 								continue;
 							}
 						}
 						all_longs = false;
 					}
+					all_longs &= (found == 3);
 					// create for_idx OP_FORPREP will inialize it.
 					op_hints[branch] = HINT_FOR_N_N_N;
 					if(all_longs) {
@@ -967,7 +987,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				return;
 			}
 			if(val == NULL) {
-				fprintf(stderr, "Error: Missing parameter for this opcode(%d) function=%s!\n",
+				fprintf(stderr, "Error: Missing parameter '%d' for this opcode(%d) function=%s!\n", x,
 					opcode, func_info->name);
 				exit(1);
 			}
@@ -1242,7 +1262,6 @@ void LLVMCompiler::free(lua_State *L, Proto *p)
 	if(TheExecutionEngine == NULL) return;
 
 	func=(llvm::Function *)TheExecutionEngine->getGlobalValueAtAddress((void *)p->jit_func);
-	//fprintf(stderr, "free llvm function ref: %p\n", func);
 	if(func != NULL) {
 		TheExecutionEngine->freeMachineCodeForFunction(func);
 	}
