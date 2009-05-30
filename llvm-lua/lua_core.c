@@ -60,7 +60,7 @@ void llvm_freeproto (lua_State *L, Proto *f);
 #include "ldblib.c"
 #include "liolib.c"
 #include "linit.c"
-#include "lmathlib.c"
+#include "llvm_lmathlib.c"
 #include "loadlib.c"
 #include "loslib.c"
 #include "lstrlib.c"

@@ -272,6 +272,52 @@ LUALIB_API void luaI_openlib (lua_State *L, const char *libname,
 }
 
 
+LUALIB_API void (luaL_register3) (lua_State *L, const char *libname,
+                                const luaL_Reg3 *l) {
+  luaI_openlib3(L, libname, l, 0);
+}
+
+
+static int libsize3 (const luaL_Reg3 *l) {
+  int size = 0;
+  for (; l->name; l++) size++;
+  return size;
+}
+
+
+LUALIB_API void (luaI_openlib3) (lua_State *L, const char *libname,
+                                const luaL_Reg3 *l, int nup) {
+  if (libname) {
+    int size = libsize3(l);
+    /* check whether lib already exists */
+    luaL_findtable(L, LUA_REGISTRYINDEX, "_LOADED", 1);
+    lua_getfield(L, -1, libname);  /* get _LOADED[libname] */
+    if (!lua_istable(L, -1)) {  /* not found? */
+      lua_pop(L, 1);  /* remove previous result */
+      /* try global variable (and create one if it does not exist) */
+      if (luaL_findtable(L, LUA_GLOBALSINDEX, libname, size) != NULL)
+        luaL_error(L, "name conflict for module " LUA_QS, libname);
+      lua_pushvalue(L, -1);
+      lua_setfield(L, -3, libname);  /* _LOADED[libname] = new table */
+    }
+    lua_remove(L, -2);  /* remove _LOADED table */
+    lua_insert(L, -(nup+1));  /* move library table to below upvalues */
+  }
+  for (; l->name; l++) {
+    int i;
+    for (i=0; i<nup; i++)  /* copy upvalues to the top */
+      lua_pushvalue(L, -nup);
+    lua_pushcclosure(L, l->func, nup);
+    if (l->precall) {
+      Closure *cl;
+      cl = clvalue(L->top - 1);
+      cl->c.precall = l->precall;
+    }
+    lua_setfield(L, -(nup+2), l->name);
+  }
+  lua_pop(L, nup);  /* remove upvalues */
+}
+
 
 /*
 ** {======================================================

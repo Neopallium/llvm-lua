@@ -37,12 +37,21 @@ typedef struct luaL_Reg {
   lua_CFunction func;
 } luaL_Reg;
 
+typedef struct luaL_Reg3 {
+  const char *name;
+  lua_CFunction func;
+  lua_precall precall;
+} luaL_Reg3;
 
 
 LUALIB_API void (luaI_openlib) (lua_State *L, const char *libname,
                                 const luaL_Reg *l, int nup);
 LUALIB_API void (luaL_register) (lua_State *L, const char *libname,
                                 const luaL_Reg *l);
+LUALIB_API void (luaI_openlib3) (lua_State *L, const char *libname,
+                                const luaL_Reg3 *l, int nup);
+LUALIB_API void (luaL_register3) (lua_State *L, const char *libname,
+                                const luaL_Reg3 *l);
 LUALIB_API int (luaL_getmetafield) (lua_State *L, int obj, const char *e);
 LUALIB_API int (luaL_callmeta) (lua_State *L, int obj, const char *e);
 LUALIB_API int (luaL_typerror) (lua_State *L, int narg, const char *tname);
