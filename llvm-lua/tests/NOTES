@@ -1,0 +1,5 @@
+Some of these scripts are pieces from other scripts that have exposed bugs
+in past versions of llvm-lua.
+
+These scripts are only used for regression testing.
+
