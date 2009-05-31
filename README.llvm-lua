@@ -40,8 +40,13 @@ lua-compiler -lua-module script.lua
 outputs: ./script.so
 
 === Embedding 'llvm-lua' with JIT support ===
-The Lua API is unchanged and no extra functions are exposed by llvm-lua.  The only change is how host app. is linked with the 'liblua-llvm.a' library.
+The Lua C API is unchanged and no extra API functions are exposed by llvm-lua.  The only change is how host app. is linked with the 'liblua-llvm.a' library instead of the normal 'liblua.a' library.
 
 Use the following command to link your C app with llvm-lua:
-gcc -o embed embed.c -llua-llvm -lm -rdynamic -Wl,-E -ld `llvm-config --ldflags --libs core jit native linker bitreader bitwriter ipo`
+gcc -o embed.o -c embed.c
+g++ -o embed embed.o -llua-llvm `llvm-config --ldflags --libs core jit native linker` -rdynamic -Wl,-E -lm -ldl
+
+Use the following command to link your C++ app with llvm-lua:
+g++ -o embed.o -c embed.cpp
+g++ -o embed embed.o -llua-llvm `llvm-config --ldflags --libs core jit native linker` -rdynamic -Wl,-E -lm -ldl
 
