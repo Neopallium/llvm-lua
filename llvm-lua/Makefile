@@ -15,12 +15,12 @@ RM= rm -f
 RANLIB = ranlib
 
 LIBTOOL = libtool --quiet --tag=CC
-LIB_VERSION = 6:1:1
+LIB_VERSION = 6:4:1
 
 LIBS= -lm $(MYLIBS)
 #ARCH=i686
 #ARCH=pentium4
-ARCH=athlon64
+#ARCH=athlon64
 #LL_FLAGS= -m32 
 ifdef DEBUG
 CFLAGS= -O0 -ggdb -Wall
@@ -74,7 +74,7 @@ LIB_NAME=liblua.la
 LIB_OBJS=$(NO_JIT_OBJS:.o=.lo)
 
 LLVM_LIB_NAME=liblua-llvm.a
-LLVM_LIB_OBJS=$(COMMON_OBJS:.o=.lo)
+LLVM_LIB_OBJS=lua_interpreter.lo $(COMMON_OBJS:.o=.lo)
 
 BINS = lua llvm-lua llvm-luac bin2c
 EMB_BCS = lua_vm_ops_bc.h liblua_main_bc.h

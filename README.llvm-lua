@@ -1,23 +1,47 @@
 README for llvm-lua
 
-Requires:
- * LLVM latest svn revision
+=== Requires ===
+ * LLVM 2.4 or later
  * llvm-gcc 4.2.1
 
-Compile:
+=== Compile ===
  * make linux
 
-Install:
- * requires manual install:
- * copy llvm-lua & llvm-luac to /usr/bin or /usr/local/bin
+=== Install ===
+ * make install
 
-Patches to lua/src:
+=== Patches to lua/src ===
  * Emergency Garbage Collector: http://lua-users.org/wiki/EmergencyGarbageCollector
  * LuaCoco-1.1.4: http://luajit.org/coco.html + (x86_64 support added)
  * a few hooks where added to support JIT compiled functions.
 
-Programs:
+=== Programs ===
  * llvm-lua: This command can be used to run Lua script.  It uses the LLVM backend to JIT Lua scripts to machine code for faster execution.
- * llvm-luac: This command compiles Lua scripts into LLVM bitcode files that can then be linked with liblua_main.bc and compiled into a standalone binary.
- * compile.sh: This is a bash script that wraps llvm-luac to compile Lua scripts into standalone executable binaries.
+ * llvm-luac: This command compiles Lua scripts into LLVM bitcode.
+ * lua-compiler: This is a bash script that wraps llvm-luac to compile Lua scripts into standalone executables or loadable modules.
+
+=== Libraries ===
+ * liblua.a & liblua.so  -- Lua core without LLVM JIT support, but compatible with compiled modules.  Can be used as drop-in replacements of the normal Lua libraries.
+ * liblua-llvm.a  -- Static library with LLVM JIT support requires static linking with LLVM libraries.
+ * liblua_main.a  -- Used for compling Lua scripts to standalone executables.
+
+=== Using llvm-lua ===
+The JIT/interpreter command 'llvm-lua' can be used just like the normal 'lua'.  There are a lot of extra command line options that expose some options from LLVM, they are not required for normal use.  The JIT will compile Lua code with optimization level 3 by default.
+
+=== Static compiling Lua scripts ===
+'llvm-luac' alone can only compile Lua scripts to Lua bytecode or LLVM bitcode.  A wrapper script called 'lua-compiler' is provided that wraps 'llvm-luac', the LLVM tools (llc & opt), and gcc.
+
+Compile standalone Lua script:
+lua-compiler script.lua
+outputs: ./script
+
+Compile Lua script as a module:
+lua-compiler -lua-module script.lua
+outputs: ./script.so
+
+=== Embedding 'llvm-lua' with JIT support ===
+The Lua API is unchanged and no extra functions are exposed by llvm-lua.  The only change is how host app. is linked with the 'liblua-llvm.a' library.
+
+Use the following command to link your C app with llvm-lua:
+gcc -o embed embed.c -llua-llvm -lm -rdynamic -Wl,-E -ld `llvm-config --ldflags --libs core jit native linker bitreader bitwriter ipo`
 

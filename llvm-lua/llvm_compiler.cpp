@@ -51,14 +51,14 @@ void llvm_compiler_cleanup() {
 }
 
 void llvm_compiler_compile(lua_State *L, Proto *p) {
-	if(compiler != NULL) {
+	if(compiler == NULL) {
 		llvm_compiler_main(1);
 	}
 	compiler->compile(L, p);
 }
 
 void llvm_compiler_compile_all(lua_State *L, Proto *p) {
-	if(compiler != NULL) {
+	if(compiler == NULL) {
 		llvm_compiler_main(1);
 	}
 	compiler->compileAll(L, p);

@@ -6,7 +6,7 @@ FILES=""
 # parse command line parameters.
 for arg in "$@" ; do
 	case "$arg" in
-	-lua-module|-debug|-mode=*|-arch=*) OPTS="$OPTS $arg" ;;
+	-*) OPTS="$OPTS $arg" ;;
 	*) FILES="$FILES $arg" ;;
 	esac
 done
