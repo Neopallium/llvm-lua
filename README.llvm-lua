@@ -5,7 +5,14 @@ README for llvm-lua
  * llvm-gcc 4.2.1
 
 === Compile ===
+compile Lua as C code:
  * make linux
+
+Compile Lua as C++ code with support for try/catch:
+ * make linux LUA_CPP_SUPPORT=1
+
+Compile with no optimization + debug info:
+ * make linux DEBUG=1
 
 === Install ===
  * make install

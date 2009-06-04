@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2008 Robert G. Jakabosky
+  Copyright (c) 2009 Robert G. Jakabosky
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -26,31 +26,36 @@
 #include "LLVMDumper.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm_compiler.h"
+#include "llvm_compiler_private.h"
 
 extern "C" {
 
-LLVMCompiler *compiler = NULL;
+#include "lstate.h"
 
-static void do_shutdown() {
-	// cleanup Lua to LLVM compiler.
-	llvm_compiler_cleanup();
-}
+/* only used to turn off JIT for static compiler llvm-luac. */
+static int g_useJIT = 1;
 
 int llvm_compiler_main(int useJIT) {
-	if(compiler == NULL) {
-		compiler = new LLVMCompiler(useJIT);
-		atexit(do_shutdown);
-	}
+	g_useJIT = useJIT;
 	return 0;
 }
 
-void llvm_compiler_cleanup() {
-	delete compiler;
-	compiler = NULL;
-	llvm::llvm_shutdown();
+LLVMCompiler *llvm_get_compiler(lua_State *L) {
+	global_State *g = G(L);
+	return (LLVMCompiler *)g->llvm_compiler;
+}
+
+void llvm_new_compiler(lua_State *L) {
+	global_State *g = G(L);
+	g->llvm_compiler = new LLVMCompiler(g_useJIT);
+}
+
+void llvm_free_compiler(lua_State *L) {
+	delete llvm_get_compiler(L);
 }
 
 void llvm_compiler_compile(lua_State *L, Proto *p) {
+	LLVMCompiler *compiler = llvm_get_compiler(L);
 	if(compiler == NULL) {
 		llvm_compiler_main(1);
 	}
@@ -58,6 +63,7 @@ void llvm_compiler_compile(lua_State *L, Proto *p) {
 }
 
 void llvm_compiler_compile_all(lua_State *L, Proto *p) {
+	LLVMCompiler *compiler = llvm_get_compiler(L);
 	if(compiler == NULL) {
 		llvm_compiler_main(1);
 	}
@@ -65,7 +71,10 @@ void llvm_compiler_compile_all(lua_State *L, Proto *p) {
 }
 
 void llvm_compiler_free(lua_State *L, Proto *p) {
-	compiler->free(L, p);
+	LLVMCompiler *compiler = llvm_get_compiler(L);
+	if(compiler != NULL) {
+		compiler->free(L, p);
+	}
 }
 
 }// end: extern "C"

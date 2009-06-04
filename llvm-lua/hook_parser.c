@@ -8,6 +8,10 @@
 * Most of this code is from ldo.c
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !ENABLE_PARSER_HOOK
 
 #include "ldo.c"
@@ -148,5 +152,9 @@ int llvm_precall_lua (lua_State *L, StkId func, int nresults) {
   return luaD_precall_lua(L, func, nresults);
 }
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 

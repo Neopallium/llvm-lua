@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2008 Robert G. Jakabosky
+  Copyright (c) 2009 Robert G. Jakabosky
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,8 @@ extern "C" {
 #include "lobject.h"
 
 int llvm_compiler_main(int useJIT);
-void llvm_compiler_cleanup();
+void llvm_new_compiler(lua_State *L);
+void llvm_free_compiler(lua_State *L);
 void llvm_compiler_compile(lua_State *L, Proto *p);
 void llvm_compiler_compile_all(lua_State *L, Proto *p);
 void llvm_compiler_free(lua_State *L, Proto *p);

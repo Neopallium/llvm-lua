@@ -2,6 +2,10 @@
 ** See Copyright Notice in lua.h
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * lua_vm_ops.c -- Lua ops functions for use by LLVM IR gen.
  *
@@ -643,4 +647,8 @@ void vm_mini_vm(lua_State *L, LClosure *cl, int count, int pseudo_ops_offset) {
     }
   }
 }
+
+#ifdef __cplusplus
+}
+#endif
 

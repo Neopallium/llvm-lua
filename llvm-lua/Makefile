@@ -34,6 +34,12 @@ ifdef ARCH
 CFLAGS += -march=$(ARCH)
 endif
 
+ifdef LUA_CPP_SUPPORT
+CC= g++
+LLVM_CC= llvm-g++
+CFLAGS += -fexceptions -DLUA_CPP_SUPPORT=1
+endif
+
 MYCFLAGS=
 MYLDFLAGS=
 MYLIBS=

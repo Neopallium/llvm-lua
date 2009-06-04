@@ -1,6 +1,6 @@
 /*
 
-  Copyright (c) 2008 Robert G. Jakabosky
+  Copyright (c) 2009 Robert G. Jakabosky
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,9 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <string.h>
 #include "lua_core.h"
@@ -159,4 +162,8 @@ LUALIB_API int load_compiled_module(lua_State *L, jit_proto *p) {
 
 	return 1;
 }
+
+#ifdef __cplusplus
+}
+#endif
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2008 Robert G. Jakabosky
+  Copyright (c) 2009 Robert G. Jakabosky
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal

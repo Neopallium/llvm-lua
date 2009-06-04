@@ -4,6 +4,10 @@
 ** See Copyright Notice in lua.h
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -220,3 +224,8 @@ int luac_main(int argc, char* argv[])
  lua_close(L);
  return EXIT_SUCCESS;
 }
+
+#ifdef __cplusplus
+}
+#endif
+

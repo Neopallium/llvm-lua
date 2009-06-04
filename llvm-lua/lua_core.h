@@ -13,6 +13,10 @@ extern "C" {
 /* Lua interpreter with LLVM JIT support. */
 #define JIT_SUPPORT
 
+/* extra variables for global_State */
+#define JIT_COMPILER_STATE \
+	void *llvm_compiler;
+
 /* state */
 #define JIT_PROTO_STATE \
 	lua_CFunction jit_func; /* jit compiled function */ \

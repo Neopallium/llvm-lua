@@ -1,6 +1,4 @@
 /*
-  lua_core.c -- Lua core, libraries and JIT hooks compiled into a single file
-
   Copyright (c) 2009 Robert G. Jakabosky
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,66 +22,18 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
+#ifndef llvm_compiler_private_h
+#define llvm_compiler_private_h
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "lua_core.h"
-#include "lobject.h"
-#include "llvm_compiler.h"
-
-void llvm_newproto (lua_State *L, Proto *f);
-void llvm_freeproto (lua_State *L, Proto *f);
-
-/* functions */
-#define JIT_NEW_STATE(L) llvm_new_compiler(L)
-#define JIT_CLOSE_STATE(L) llvm_free_compiler(L)
-#define JIT_NEWPROTO(L,f) llvm_newproto(L,f)
-#define JIT_FREEPROTO(L,f) llvm_freeproto(L,f)
-#define JIT_PRECALL llvm_precall_lua
-
-#include "lapi.c"
-#include "lcode.c"
-#include "ldebug.c"
-#include "ldump.c"
-#include "lfunc.c"
-#include "lgc.c"
-#include "llex.c"
-#include "lmem.c"
-#include "lobject.c"
-#include "lopcodes.c"
-#include "lparser.c"
-#include "lstate.c"
-#include "lstring.c"
-#include "ltable.c"
-#include "ltm.c"
-#include "lundump.c"
-#include "lvm.c"
-#include "lzio.c"
-
-#include "lbaselib.c"
-#include "lcoco.c"
-#include "ldblib.c"
-#include "liolib.c"
-#include "linit.c"
-#include "llvm_lmathlib.c"
-#include "loadlib.c"
-#include "loslib.c"
-#include "lstrlib.c"
-#include "ltablib.c"
-
-#include "lauxlib.c"
-
-void llvm_newproto (lua_State *L, Proto *f) {
-	f->jit_func = NULL;
-	f->func_ref = NULL;
-}
-
-void llvm_freeproto (lua_State *L, Proto *f) {
-	llvm_compiler_free(L, f);
-}
+LLVMCompiler *llvm_get_compiler(lua_State *L);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 

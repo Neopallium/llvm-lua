@@ -50,12 +50,14 @@ struct coco_State {
 
 #else /* !defined(_WIN32) */
 
+#include "llimits.h"
+
 /* The Coco state depends on the context switch method used. See lcoco.c. */
 /* It's stored at the end of the stack. Only need a pointer in front of L. */
 #define L2COCO(L)		(((coco_State **)(L))[-1])
 #define LHASCOCO(L)		(L2COCO(L))
 /* This wastes some space on 32 bit systems, but gets better alignment. */
-#define LUAI_EXTRASPACE		sizeof(LUAI_USER_ALIGNMENT_T)
+#define LUAI_EXTRASPACE		sizeof(L_Umaxalign)
 #define luai_userstateopen(L)	L2COCO(L) = NULL
 #define luai_userstatethread(L,L1)	L2COCO(L1) = NULL
 

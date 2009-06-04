@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2008 Robert G. Jakabosky
+  Copyright (c) 2009 Robert G. Jakabosky
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@
 #include "llvm/PassManager.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Target/TargetData.h"
+#include "llvm/Target/TargetOptions.h" 
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Utils/Cloning.h"
@@ -353,6 +354,9 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	if(llvm::TimePassesIsEnabled) load_jit.startTimer();
 	// Create the JIT.
 	if(useJIT) {
+#ifdef LUA_CPP_SUPPORT
+		llvm::ExceptionHandling = true; 
+#endif
 		TheExecutionEngine = llvm::ExecutionEngine::create(MP, false, &error, Fast);
 		if(!TheExecutionEngine && !error.empty()) {
 			printf("Error creating JIT engine: %s\n", error.c_str());

@@ -66,7 +66,7 @@ typedef struct {
 	int opcode; /* Lua opcode */
 	hint_t hint; /* Specialized version. [0=generic] */
 	val_t ret_type; /* return type */
-	char *name; /* function name */
+	const char *name; /* function name */
 	val_t params[10]; /* an 'VOID' type ends the parameter list */
 } vm_func_info;
 

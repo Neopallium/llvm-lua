@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2008 Robert G. Jakabosky
+  Copyright (c) 2009 Robert G. Jakabosky
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +25,13 @@
 #include "LLVMCompiler.h"
 #include "LLVMDumper.h"
 #include "llvm_compiler.h"
+#include "llvm_compiler_private.h"
 #include "llvm_dumper.h"
 
 extern "C" {
 
-extern LLVMCompiler *compiler;
-
 void llvm_dumper_dump(const char *output, lua_State *L, Proto *p, int stripping) {
+	LLVMCompiler *compiler = llvm_get_compiler(L);
 	LLVMDumper *dumper = new LLVMDumper(compiler);
 	dumper->dump(output, L, p, stripping);
 	delete dumper;

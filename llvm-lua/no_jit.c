@@ -1,6 +1,6 @@
 /*
 
-  Copyright (c) 2008 Robert G. Jakabosky
+  Copyright (c) 2009 Robert G. Jakabosky
   
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,10 @@
 */
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "lua_core.h"
 
 #include "lua.h"
@@ -39,10 +43,15 @@
  * link against this file to use the Lua VM core without LLVM.
  * This will disable JIT support, but still allow loading static compiled Lua scripts.
  */
-void llvm_compiler_cleanup() {}
+void llvm_new_compiler(lua_State *L) {}
+void llvm_free_compiler(lua_State *L) {}
 void llvm_compiler_compile(lua_State *L, Proto *p) {}
 void llvm_compiler_compile_all(lua_State *L, Proto *p) {}
 void llvm_compiler_free(lua_State *L, Proto *p) {}
 
 void llvm_dumper_dump(const char *output, lua_State *L, Proto *p, int stripping) {}
+
+#ifdef __cplusplus
+}
+#endif
 

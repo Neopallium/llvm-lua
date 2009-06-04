@@ -2,6 +2,10 @@
 ** See Copyright Notice in lua.h
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * lua_vm_ops.c -- Lua ops functions for use by LLVM IR gen.
  *
@@ -473,4 +477,8 @@ lua_Long vm_get_long(lua_State *L, int idx) {
 void vm_set_long(lua_State *L, int idx, lua_Long num) {
   setnvalue(L->base + idx, (lua_Number)num);  /* write number to Lua-stack */
 }
+
+#ifdef __cplusplus
+}
+#endif
 

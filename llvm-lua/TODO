@@ -1,4 +1,5 @@
 
 optimizations:
 * When the internal index/limit/step variable of a OP_FORLOOP get moved to the C-Stack the space on the Lua-stack is unused.  We should be able to decrease the maxstacksize by re-using those stack slots.
+* Try to inline some table/global lookups if they have a constant key.
 
