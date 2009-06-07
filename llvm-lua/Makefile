@@ -79,7 +79,7 @@ COMPILER_OBJS=llvm-luac.o lua_compiler.o LLVMDumper.o llvm_dumper.o load_liblua_
 LIB_NAME=liblua.la
 LIB_OBJS=$(NO_JIT_OBJS:.o=.lo)
 
-LLVM_LIB_NAME=liblua-llvm.a
+LLVM_LIB_NAME=liblua-llvm.la
 LLVM_LIB_OBJS=lua_interpreter.lo $(COMMON_OBJS:.o=.lo)
 
 BINS = lua llvm-lua llvm-luac bin2c
@@ -87,7 +87,7 @@ EMB_BCS = lua_vm_ops_bc.h liblua_main_bc.h
 
 default: $(PLAT)
 
-all: llvm-lua llvm-luac $(LIB_NAME) $(LIB_NAME:.la=.a) $(LLVM_LIB_NAME)
+all: llvm-lua llvm-luac $(LIB_NAME) $(LIB_NAME:.la=.a) $(LLVM_LIB_NAME) $(LLVM_LIB_NAME:.la=.a)
 
 %.lo %.o: %.c
 	$(LIBTOOL) --mode=compile $(CC) -c $(LUA_CFLAGS) -o $@ $<
@@ -131,7 +131,11 @@ $(LIB_NAME:.la=.a): $(LIB_OBJS)
 	$(LIBTOOL) --mode=link $(CC) -static -o $(LIB_NAME:.la=.a) $(LIB_OBJS)
 
 $(LLVM_LIB_NAME): $(LLVM_LIB_OBJS)
-	$(LIBTOOL) --mode=link $(CC) -static -o $(LLVM_LIB_NAME) $(LLVM_LIB_OBJS)
+	$(LIBTOOL) --mode=link $(CC) -version-info $(LIB_VERSION) \
+            -rpath $(RPATH) -o $(LLVM_LIB_NAME) $(LLVM_LIB_OBJS)
+
+$(LLVM_LIB_NAME:.la=.a): $(LLVM_LIB_OBJS)
+	$(LIBTOOL) --mode=link $(CC) -static -o $(LLVM_LIB_NAME:.la=.a) $(LLVM_LIB_OBJS)
 
 llvm-lua: $(INTERPRETER_OBJS) lua_vm_ops_static.o
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(INTERPRETER_OBJS) $(LLVM_LFLAGS)
