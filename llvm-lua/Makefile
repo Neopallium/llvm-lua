@@ -76,18 +76,25 @@ NO_JIT_OBJS=no_jit.o $(NON_LLVM_OBJS)
 INTERPRETER_OBJS=llvm-lua.o lua_interpreter.o $(COMMON_OBJS)
 COMPILER_OBJS=llvm-luac.o lua_compiler.o LLVMDumper.o llvm_dumper.o load_liblua_main.o $(COMMON_OBJS)
 
+BIN_EXT=
+
 LIB_NAME=liblua.la
 LIB_OBJS=$(NO_JIT_OBJS:.o=.lo)
 
 LLVM_LIB_NAME=liblua-llvm.la
 LLVM_LIB_OBJS=lua_interpreter.lo $(COMMON_OBJS:.o=.lo)
 
-BINS = lua llvm-lua llvm-luac bin2c
+LUA_T=lua$(BIN_EXT)
+BIN2C_T=bin2c$(BIN_EXT)
+LLVM_LUA_T=llvm-lua$(BIN_EXT)
+LLVM_LUAC_T=llvm-luac$(BIN_EXT)
+
+BINS = $(LUA_T) $(LLVM_LUA_T) $(LLVM_LUAC_T) $(BIN2C_T)
 EMB_BCS = lua_vm_ops_bc.h liblua_main_bc.h
 
 default: $(PLAT)
 
-all: llvm-lua llvm-luac $(LIB_NAME) $(LIB_NAME:.la=.a) $(LLVM_LIB_NAME) $(LLVM_LIB_NAME:.la=.a)
+all: $(LLVM_LUA_T) $(LLVM_LUAC_T) $(LIB_NAME) $(LIB_NAME:.la=.a) $(LLVM_LIB_NAME) $(LLVM_LIB_NAME:.la=.a)
 
 %.lo %.o: %.c
 	$(LIBTOOL) --mode=compile $(CC) -c $(LUA_CFLAGS) -o $@ $<
@@ -114,8 +121,8 @@ load_vm_ops.lo load_vm_ops.o: load_vm_ops.cpp lua_vm_ops_bc.h
 load_liblua_main.lo load_liblua_main.o: load_liblua_main.cpp liblua_main_bc.h
 	$(LIBTOOL) --mode=compile $(CXX) -c $(LUA_CFLAGS) $(LLVM_CFLAGS) -o $@ $<
 
-%_bc.h: %.bc bin2c
-	./bin2c -z -c $< $@
+%_bc.h: %.bc $(BIN2C_T)
+	./$(BIN2C_T) -z -c $< $@
 
 lua_normal.o: lua_normal.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 	$(CC) -c $(LUA_CFLAGS) -o $@ lua_normal.c
@@ -137,13 +144,13 @@ $(LLVM_LIB_NAME): $(LLVM_LIB_OBJS)
 $(LLVM_LIB_NAME:.la=.a): $(LLVM_LIB_OBJS)
 	$(LIBTOOL) --mode=link $(CC) -static -o $(LLVM_LIB_NAME:.la=.a) $(LLVM_LIB_OBJS)
 
-llvm-lua: $(INTERPRETER_OBJS) lua_vm_ops_static.o
+$(LLVM_LUA_T): $(INTERPRETER_OBJS) lua_vm_ops_static.o
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(INTERPRETER_OBJS) $(LLVM_LFLAGS)
 
-llvm-luac: $(COMPILER_OBJS) liblua_main.bc liblua_main.a
+$(LLVM_LUAC_T): $(COMPILER_OBJS) liblua_main.bc liblua_main.a
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(COMPILER_OBJS) $(LLVM_LFLAGS)
 
-bin2c: bin2c.c
+$(BIN2C_T): bin2c.c
 	$(CC) -O3 -o $@ $<
 
 clean:
@@ -196,10 +203,10 @@ macosx:
 #	$(MAKE) all MYCFLAGS=-DLUA_USE_MACOSX
 
 mingw:
-	$(MAKE) "LUA_A=lua51.dll" "LUA_T=lua.exe" \
+	$(MAKE) "BIN_EXT=.exe" \
 	"AR=$(CC) -shared -o" "RANLIB=strip --strip-unneeded" \
-	"MYCFLAGS=-DLUA_BUILD_AS_DLL" "MYLIBS=" "MYLDFLAGS=-s" lua.exe
-	$(MAKE) "LUAC_T=luac.exe" luac.exe
+	"MYCFLAGS=-DLUA_BUILD_AS_DLL" "MYLIBS=-rdynamic -Wl,-E -ldl" "MYLDFLAGS=-s" llvm-lua.exe
+	$(MAKE) "BIN_EXT=.exe" llvm-luac.exe
 
 posix:
 	$(MAKE) all MYCFLAGS=-DLUA_USE_POSIX
