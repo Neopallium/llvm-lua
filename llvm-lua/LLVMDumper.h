@@ -25,6 +25,7 @@
 #ifndef LLVMDUMPER_h
 #define LLVMDUMPER_h
 
+#include "llvm/Module.h"
 #include "lua_core.h"
 
 #ifdef __cplusplus
@@ -51,7 +52,7 @@ class LLVMCompiler;
 class LLVMDumper {
 private:
 	LLVMCompiler *compiler;
-	llvm::Module *TheModule;
+	llvm::Module *M;
 
 	// types.
 	const llvm::Type *Ty_str_ptr;
@@ -72,6 +73,10 @@ public:
 	LLVMDumper(LLVMCompiler *compiler);
 
 	void dump(const char *output, lua_State *L, Proto *p, int stripping);
+
+	llvm::LLVMContext& getCtx() const {
+		return compiler->getCtx();
+	}
 
 private:
 	llvm::Constant *get_ptr(llvm::Constant *val);

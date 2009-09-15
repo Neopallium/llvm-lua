@@ -26,6 +26,7 @@
 #define LLVMCOMPILER_h
 
 #include "llvm/Support/IRBuilder.h"
+#include "llvm/Module.h"
 
 #include "lua_core.h"
 
@@ -63,8 +64,8 @@ private:
 		}
 	};
 private:
-	llvm::Module *TheModule;
-	llvm::IRBuilder<> Builder;
+	llvm::LLVMContext Context;
+	llvm::Module *M;
 	llvm::FunctionPassManager *TheFPM;
 	llvm::ExecutionEngine *TheExecutionEngine;
 	bool strip_code;
@@ -116,7 +117,11 @@ public:
 	 * return the module.
 	 */
 	llvm::Module *getModule() {
-		return TheModule;
+		return M;
+	}
+
+	llvm::LLVMContext& getCtx() {
+		return Context;
 	}
 
 	llvm::FunctionType *get_lua_func_type() {

@@ -25,14 +25,15 @@
 #include <stdlib.h>
 
 #include "llvm/ModuleProvider.h"
+#include "llvm/LLVMContext.h"
 
 #include "load_liblua_main.h"
 #include "load_embedded_bc.h"
 
 #include "liblua_main_bc.h"
 
-llvm::ModuleProvider *load_liblua_main(bool NoLazyCompilation) {
-	return load_embedded_bc("liblua_main_bc", liblua_main_bc,
+llvm::ModuleProvider *load_liblua_main(llvm::LLVMContext &context, bool NoLazyCompilation) {
+	return load_embedded_bc(context, "liblua_main_bc", liblua_main_bc,
 		sizeof(liblua_main_bc), NoLazyCompilation);
 }
 

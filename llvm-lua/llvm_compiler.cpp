@@ -24,7 +24,8 @@
 
 #include "LLVMCompiler.h"
 #include "LLVMDumper.h"
-#include "llvm/Support/ManagedStatic.h"
+#include "llvm-c/ExecutionEngine.h"
+#include "llvm-c/Target.h"
 #include "llvm_compiler.h"
 #include "llvm_compiler_private.h"
 
@@ -37,6 +38,8 @@ static int g_useJIT = 1;
 
 int llvm_compiler_main(int useJIT) {
 	g_useJIT = useJIT;
+	LLVMLinkInJIT();
+	LLVMInitializeNativeTarget();
 	return 0;
 }
 

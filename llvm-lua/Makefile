@@ -5,8 +5,7 @@ PLAT= none
 
 CC= gcc
 CXX= g++
-LLVM_CC= llvm-gcc
-LLVM_CXX= llvm-g++
+LLVM_CC= clang
 LLVM_LD= llvm-link
 LLC= llc
 LD= g++

@@ -25,7 +25,7 @@
 #ifndef load_vm_ops_h
 #define load_vm_ops_h
 
-extern llvm::ModuleProvider *load_vm_ops(bool NoLazyCompilation);
+extern llvm::ModuleProvider *load_vm_ops(llvm::LLVMContext &context, bool NoLazyCompilation);
 
 #endif
 

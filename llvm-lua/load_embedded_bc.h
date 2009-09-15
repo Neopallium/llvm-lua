@@ -25,8 +25,8 @@
 #ifndef load_embedded_bc_h
 #define load_embedded_bc_h
 
-extern llvm::ModuleProvider *load_embedded_bc(const char *name, 
-	const unsigned char *start, size_t len, bool NoLazyCompilation);
+extern llvm::ModuleProvider *load_embedded_bc(llvm::LLVMContext &context,
+	const char *name, const unsigned char *start, size_t len, bool NoLazyCompilation);
 
 #endif
 

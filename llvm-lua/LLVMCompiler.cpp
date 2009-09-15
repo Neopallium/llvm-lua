@@ -22,6 +22,7 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
+#include "llvm/LLVMContext.h"
 #include "llvm/DerivedTypes.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/Module.h"
@@ -29,6 +30,7 @@
 #include "llvm/PassManager.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Target/TargetData.h"
+#include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h" 
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/IPO.h"
@@ -154,7 +156,7 @@ public:
 const llvm::Type *LLVMCompiler::get_var_type(val_t type, hint_t hints) {
 	switch(type) {
 	case VAR_T_VOID:
-		return llvm::Type::VoidTy;
+		return llvm::Type::getVoidTy(getCtx());
 	case VAR_T_INT:
 	case VAR_T_ARG_A:
 	case VAR_T_ARG_B:
@@ -171,7 +173,7 @@ const llvm::Type *LLVMCompiler::get_var_type(val_t type, hint_t hints) {
 	case VAR_T_PC_OFFSET:
 	case VAR_T_INSTRUCTION:
 	case VAR_T_NEXT_INSTRUCTION:
-		return llvm::Type::Int32Ty;
+		return llvm::Type::getInt32Ty(getCtx());
 	case VAR_T_LUA_STATE_PTR:
 		return Ty_lua_State_ptr;
 	case VAR_T_K:
@@ -182,9 +184,9 @@ const llvm::Type *LLVMCompiler::get_var_type(val_t type, hint_t hints) {
 	case VAR_T_OP_VALUE_1:
 	case VAR_T_OP_VALUE_2:
 		if(hints & HINT_USE_LONG) {
-			return llvm::Type::Int64Ty;
+			return llvm::Type::getInt64Ty(getCtx());
 		}
-		return llvm::Type::DoubleTy;
+		return llvm::Type::getDoubleTy(getCtx());
 	default:
 		fprintf(stderr, "Error: missing var_type=%d\n", type);
 		exit(1);
@@ -197,10 +199,10 @@ llvm::Value *LLVMCompiler::get_proto_constant(TValue *constant) {
 	llvm::Value *val = NULL;
 	switch(ttype(constant)) {
 	case LUA_TBOOLEAN:
-		val = llvm::ConstantInt::get(llvm::APInt(sizeof(LUA_NUMBER), !l_isfalse(constant)));
+		val = llvm::ConstantInt::get(getCtx(), llvm::APInt(sizeof(LUA_NUMBER), !l_isfalse(constant)));
 		break;
 	case LUA_TNUMBER:
-		val = llvm::ConstantFP::get(llvm::APFloat(nvalue(constant)));
+		val = llvm::ConstantFP::get(getCtx(), llvm::APFloat(nvalue(constant)));
 		break;
 	case LUA_TSTRING:
 		break;
@@ -246,81 +248,81 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		NoLazyCompilation = true;
 	}
 	// load vm op functions
-	MP = load_vm_ops(NoLazyCompilation);
-	TheModule = MP->getModule();
+	MP = load_vm_ops(getCtx(), NoLazyCompilation);
+	M = MP->getModule();
 
 	// get important struct types.
-	Ty_TValue = TheModule->getTypeByName("struct.TValue");
+	Ty_TValue = M->getTypeByName("struct.lua_TValue");
 	Ty_TValue_ptr = llvm::PointerType::getUnqual(Ty_TValue);
-	Ty_LClosure = TheModule->getTypeByName("struct.LClosure");
+	Ty_LClosure = M->getTypeByName("struct.LClosure");
 	Ty_LClosure_ptr = llvm::PointerType::getUnqual(Ty_LClosure);
-	Ty_lua_State = TheModule->getTypeByName("struct.lua_State");
+	Ty_lua_State = M->getTypeByName("struct.lua_State");
 	Ty_lua_State_ptr = llvm::PointerType::getUnqual(Ty_lua_State);
 	// setup argument lists.
 	func_args.clear();
 	func_args.push_back(Ty_lua_State_ptr);
-	lua_func_type = llvm::FunctionType::get(llvm::Type::Int32Ty, func_args, false);
+	lua_func_type = llvm::FunctionType::get(llvm::Type::getInt32Ty(getCtx()), func_args, false);
 	// define extern vm_next_OP
-	vm_next_OP = TheModule->getFunction("vm_next_OP");
+	vm_next_OP = M->getFunction("vm_next_OP");
 	if(vm_next_OP == NULL) {
 		func_args.clear();
 		func_args.push_back(Ty_lua_State_ptr);
 		func_args.push_back(Ty_LClosure_ptr);
-		func_args.push_back(llvm::Type::Int32Ty);
-		func_type = llvm::FunctionType::get(llvm::Type::VoidTy, func_args, false);
+		func_args.push_back(llvm::Type::getInt32Ty(getCtx()));
+		func_type = llvm::FunctionType::get(llvm::Type::getVoidTy(getCtx()), func_args, false);
 		vm_next_OP = llvm::Function::Create(func_type,
-			llvm::Function::ExternalLinkage, "vm_next_OP", TheModule);
+			llvm::Function::ExternalLinkage, "vm_next_OP", M);
 	}
 	// define extern vm_print_OP
-	vm_print_OP = TheModule->getFunction("vm_print_OP");
+	vm_print_OP = M->getFunction("vm_print_OP");
 	if(vm_print_OP == NULL) {
 		func_args.clear();
 		func_args.push_back(Ty_lua_State_ptr);
 		func_args.push_back(Ty_LClosure_ptr);
-		func_args.push_back(llvm::Type::Int32Ty);
-		func_args.push_back(llvm::Type::Int32Ty);
-		func_type = llvm::FunctionType::get(llvm::Type::VoidTy, func_args, false);
+		func_args.push_back(llvm::Type::getInt32Ty(getCtx()));
+		func_args.push_back(llvm::Type::getInt32Ty(getCtx()));
+		func_type = llvm::FunctionType::get(llvm::Type::getVoidTy(getCtx()), func_args, false);
 		vm_print_OP = llvm::Function::Create(func_type,
-			llvm::Function::ExternalLinkage, "vm_print_OP", TheModule);
+			llvm::Function::ExternalLinkage, "vm_print_OP", M);
 	}
 	// function for counting each executed op.
 	if(RunOpCodeStats) {
-		vm_count_OP = TheModule->getFunction("vm_count_OP");
+		vm_count_OP = M->getFunction("vm_count_OP");
 		if(vm_count_OP == NULL) {
 			func_args.clear();
-			func_args.push_back(llvm::Type::Int32Ty);
-			func_type = llvm::FunctionType::get(llvm::Type::VoidTy, func_args, false);
+			func_args.push_back(llvm::Type::getInt32Ty(getCtx()));
+			func_type = llvm::FunctionType::get(llvm::Type::getVoidTy(getCtx()), func_args, false);
 			vm_count_OP = llvm::Function::Create(func_type,
-				llvm::Function::ExternalLinkage, "vm_count_OP", TheModule);
+				llvm::Function::ExternalLinkage, "vm_count_OP", M);
 		}
 		for(int i = 0; i < NUM_OPCODES; i++) {
 			vm_op_run_count[i] = 0;
 		}
 	}
 	// define extern vm_mini_vm
-	vm_mini_vm = TheModule->getFunction("vm_mini_vm");
+	vm_mini_vm = M->getFunction("vm_mini_vm");
 	if(vm_mini_vm == NULL) {
 		func_args.clear();
 		func_args.push_back(Ty_lua_State_ptr);
 		func_args.push_back(Ty_LClosure_ptr);
-		func_args.push_back(llvm::Type::Int32Ty);
-		func_args.push_back(llvm::Type::Int32Ty);
-		func_type = llvm::FunctionType::get(llvm::Type::VoidTy, func_args, false);
+		func_args.push_back(llvm::Type::getInt32Ty(getCtx()));
+		func_args.push_back(llvm::Type::getInt32Ty(getCtx()));
+		func_type = llvm::FunctionType::get(llvm::Type::getVoidTy(getCtx()), func_args, false);
 		vm_mini_vm = llvm::Function::Create(func_type,
-			llvm::Function::ExternalLinkage, "vm_mini_vm", TheModule);
+			llvm::Function::ExternalLinkage, "vm_mini_vm", M);
 	}
 	// define extern vm_get_current_closure
-	vm_get_current_closure = TheModule->getFunction("vm_get_current_closure");
+	vm_get_current_closure = M->getFunction("vm_get_current_closure");
 	// define extern vm_get_current_constants
-	vm_get_current_constants = TheModule->getFunction("vm_get_current_constants");
+	vm_get_current_constants = M->getFunction("vm_get_current_constants");
 	// define extern vm_get_number
-	vm_get_number = TheModule->getFunction("vm_get_number");
+	vm_get_number = M->getFunction("vm_get_number");
 	// define extern vm_get_long
-	vm_get_long = TheModule->getFunction("vm_get_long");
+	vm_get_long = M->getFunction("vm_get_long");
 	// define extern vm_set_number
-	vm_set_number = TheModule->getFunction("vm_set_number");
+	vm_set_number = M->getFunction("vm_set_number");
 	// define extern vm_set_long
-	vm_set_long = TheModule->getFunction("vm_set_long");
+	vm_set_long = M->getFunction("vm_set_long");
 
 
 	// create prototype for vm_* functions.
@@ -331,7 +333,7 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		opcode = func_info->opcode;
 		if(opcode < 0) break;
 		vm_op_funcs[opcode] = new OPFunc(func_info, vm_op_funcs[opcode]);
-		func = TheModule->getFunction(func_info->name);
+		func = M->getFunction(func_info->name);
 		if(func != NULL) {
 			vm_op_funcs[opcode]->func = func;
 			vm_op_funcs[opcode]->compiled = !useJIT; // lazy compile ops when JIT is enabled.
@@ -344,7 +346,7 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		func_type = llvm::FunctionType::get(
 			get_var_type(func_info->ret_type, func_info->hint), func_args, false);
 		func = llvm::Function::Create(func_type, llvm::Function::ExternalLinkage,
-							func_info->name, TheModule);
+							func_info->name, M);
 		vm_op_funcs[opcode]->func = func;
 		vm_op_funcs[opcode]->compiled = true; // built-in op function.
 	}
@@ -354,11 +356,19 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	if(llvm::TimePassesIsEnabled) load_jit.startTimer();
 	// Create the JIT.
 	if(useJIT) {
+		llvm::EngineBuilder engine(M);
+		llvm::CodeGenOpt::Level optLevel = llvm::CodeGenOpt::Aggressive;
+		if(Fast) {
+			optLevel = llvm::CodeGenOpt::Default;
+		}
 #ifdef LUA_CPP_SUPPORT
 		llvm::ExceptionHandling = true; 
 #endif
-		TheExecutionEngine = llvm::ExecutionEngine::create(MP, false, &error, Fast);
-		if(!TheExecutionEngine && !error.empty()) {
+		//TheExecutionEngine = llvm::ExecutionEngine::create(MP, false, &error, optLevel);
+		engine.setErrorStr(&error);
+		engine.setOptLevel(optLevel);
+		TheExecutionEngine = engine.create();
+		if(!TheExecutionEngine) {
 			printf("Error creating JIT engine: %s\n", error.c_str());
 		}
 		if (NoLazyCompilation)
@@ -389,7 +399,7 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		if(useJIT) {
 			TheFPM->add(new llvm::TargetData(*TheExecutionEngine->getTargetData()));
 		} else {
-			TheFPM->add(new llvm::TargetData(TheModule));
+			TheFPM->add(new llvm::TargetData(M));
 		}
 		// mem2reg
 		TheFPM->add(llvm::createPromoteMemoryToRegisterPass());
@@ -463,7 +473,7 @@ LLVMCompiler::~LLVMCompiler() {
 	delete[] vm_op_funcs;
 
 	// Print out all of the generated code.
-	//TheModule->dump();
+	//M->dump();
 
 	if(TheExecutionEngine) {
 		TheExecutionEngine->runStaticConstructorsDestructors(true);
@@ -513,6 +523,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	int opcode;
 	int mini_op_repeat=0;
 	int i;
+	llvm::IRBuilder<> Builder(getCtx());
 
 	// don't JIT large functions.
 	if(code_len >= MaxFunctionSize && TheExecutionEngine != NULL && !CompileLargeFunctions) {
@@ -539,12 +550,12 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	}
 	snprintf(tmp,128,"_%d_%d",p->linedefined, p->lastlinedefined);
 	name += tmp;
-	func = llvm::Function::Create(lua_func_type, llvm::Function::ExternalLinkage, name, TheModule);
+	func = llvm::Function::Create(lua_func_type, llvm::Function::ExternalLinkage, name, M);
 	// name arg1 = "L"
 	func_L = func->arg_begin();
 	func_L->setName("L");
 	// entry block
-	entry_block = llvm::BasicBlock::Create("entry", func);
+	entry_block = llvm::BasicBlock::Create(getCtx(),"entry", func);
 	Builder.SetInsertPoint(entry_block);
 	// get LClosure & constants.
 	call=Builder.CreateCall(vm_get_current_closure, func_L);
@@ -668,7 +679,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 								nums[ra] = num;
 								// test if number is a whole number
 								all_longs &= (floor(num) == num);
-								vals->set(ra,llvm::ConstantFP::get(llvm::APFloat(num)));
+								vals->set(ra,llvm::ConstantFP::get(getCtx(), llvm::APFloat(num)));
 								is_const_num[ra] = true;
 								op_hints[i - x] |= HINT_SKIP_OP;
 								continue;
@@ -680,10 +691,10 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 					// create for_idx OP_FORPREP will inialize it.
 					op_hints[branch] = HINT_FOR_N_N_N;
 					if(all_longs) {
-						vals->set(3, Builder.CreateAlloca(llvm::Type::Int64Ty, 0, "for_idx"));
+						vals->set(3, Builder.CreateAlloca(llvm::Type::getInt64Ty(getCtx()), 0, "for_idx"));
 						op_hints[branch] |= HINT_USE_LONG;
 					} else {
-						vals->set(3, Builder.CreateAlloca(llvm::Type::DoubleTy, 0, "for_idx"));
+						vals->set(3, Builder.CreateAlloca(llvm::Type::getDoubleTy(getCtx()), 0, "for_idx"));
 					}
 					op_values[branch] = vals;
 					// check if step, init, limit are constants
@@ -723,7 +734,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 					}
 					if(all_longs) {
 						for(int x = 0; x < 3; ++x) {
-							vals->set(x,llvm::ConstantInt::get(llvm::APInt(64,(lua_Long)nums[x])));
+							vals->set(x,llvm::ConstantInt::get(getCtx(), llvm::APInt(64,(lua_Long)nums[x])));
 						}
 					}
 					// make sure OP_FORPREP doesn't subtract 'step' from 'init'
@@ -759,7 +770,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			op_intr=code[i];
 			opcode = GET_OPCODE(op_intr);
 			snprintf(tmp,128,"op_block_%s_%d",luaP_opnames[opcode],i);
-			op_blocks[i] = llvm::BasicBlock::Create(tmp, func);
+			op_blocks[i] = llvm::BasicBlock::Create(getCtx(),tmp, func);
 		} else {
 			op_blocks[i] = NULL;
 		}
@@ -805,8 +816,8 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			if(op_count >= 3) {
 				// large block of mini ops add function call to vm_mini_vm()
 				Builder.CreateCall4(vm_mini_vm, func_L, func_cl,
-					llvm::ConstantInt::get(llvm::APInt(32,op_count)),
-					llvm::ConstantInt::get(llvm::APInt(32,i - strip_ops)));
+					llvm::ConstantInt::get(getCtx(), llvm::APInt(32,op_count)),
+					llvm::ConstantInt::get(getCtx(), llvm::APInt(32,i - strip_ops)));
 				if(strip_code && strip_ops > 0) {
 					while(op_count > 0) {
 						code[i - strip_ops] = code[i];
@@ -834,15 +845,15 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		//fprintf(stderr, "%d: func: '%s', func hints=0x%X\n", i, opfunc->info->name,opfunc->info->hint);
 		if(PrintRunOpCodes) {
 			Builder.CreateCall4(vm_print_OP, func_L, func_cl,
-				llvm::ConstantInt::get(llvm::APInt(32,op_intr)),
-				llvm::ConstantInt::get(llvm::APInt(32,i)));
+				llvm::ConstantInt::get(getCtx(), llvm::APInt(32,op_intr)),
+				llvm::ConstantInt::get(getCtx(), llvm::APInt(32,i)));
 		}
 		if(RunOpCodeStats) {
-			Builder.CreateCall(vm_count_OP, llvm::ConstantInt::get(llvm::APInt(32,op_intr)));
+			Builder.CreateCall(vm_count_OP, llvm::ConstantInt::get(getCtx(), llvm::APInt(32,op_intr)));
 		}
 		if(DebugOpCodes) {
 			/* vm_next_OP function is used to call count/line debug hooks. */
-			Builder.CreateCall3(vm_next_OP, func_L, func_cl, llvm::ConstantInt::get(llvm::APInt(32,i)));
+			Builder.CreateCall3(vm_next_OP, func_L, func_cl, llvm::ConstantInt::get(getCtx(), llvm::APInt(32,i)));
 		}
 		if(op_hints[i] & HINT_SKIP_OP) {
 			if(strip_code) strip_ops++;
@@ -885,7 +896,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				Builder.CreateStore(next_idx, idx_var); // store 'for_init' value.
 				// create extra BasicBlock for vm_OP_FORLOOP_*
 				snprintf(tmp,128,"op_block_%s_%d_loop_test",luaP_opnames[opcode],i);
-				loop_test = llvm::BasicBlock::Create(tmp, func);
+				loop_test = llvm::BasicBlock::Create(getCtx(),tmp, func);
 				// create unconditional jmp from current block to loop test block
 				Builder.CreateBr(loop_test);
 				// create unconditional jmp from forprep block to loop test block
@@ -897,9 +908,9 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				Builder.SetInsertPoint(current_block);
 				// Emit merge block
 				if(op_hints[i] & HINT_USE_LONG) {
-					PN = Builder.CreatePHI(llvm::Type::Int64Ty, "idx");
+					PN = Builder.CreatePHI(llvm::Type::getInt64Ty(getCtx()), "idx");
 				} else {
-					PN = Builder.CreatePHI(llvm::Type::DoubleTy, "idx");
+					PN = Builder.CreatePHI(llvm::Type::getDoubleTy(getCtx()), "idx");
 				}
 				PN->addIncoming(init, prep_block);
 				PN->addIncoming(next_idx, incr_block);
@@ -911,13 +922,13 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			llvm::Value *val=NULL;
 			switch(func_info->params[x]) {
 			case VAR_T_ARG_A:
-				val = llvm::ConstantInt::get(llvm::APInt(32,GETARG_A(op_intr)));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,GETARG_A(op_intr)));
 				break;
 			case VAR_T_ARG_C:
-				val = llvm::ConstantInt::get(llvm::APInt(32,GETARG_C(op_intr)));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,GETARG_C(op_intr)));
 				break;
 			case VAR_T_ARG_C_FB2INT:
-				val = llvm::ConstantInt::get(llvm::APInt(32,luaO_fb2int(GETARG_C(op_intr))));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,luaO_fb2int(GETARG_C(op_intr))));
 				break;
 			case VAR_T_ARG_Bx_NUM_CONSTANT:
 				val = get_proto_constant(k + INDEXK(GETARG_Bx(op_intr)));
@@ -934,29 +945,29 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 						if(strip_code) strip_ops++;
 					}
 				}
-				val = llvm::ConstantInt::get(llvm::APInt(32,c));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,c));
 				break;
 			}
 			case VAR_T_ARG_B:
-				val = llvm::ConstantInt::get(llvm::APInt(32,GETARG_B(op_intr)));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,GETARG_B(op_intr)));
 				break;
 			case VAR_T_ARG_B_FB2INT:
-				val = llvm::ConstantInt::get(llvm::APInt(32,luaO_fb2int(GETARG_B(op_intr))));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,luaO_fb2int(GETARG_B(op_intr))));
 				break;
 			case VAR_T_ARG_Bx:
-				val = llvm::ConstantInt::get(llvm::APInt(32,GETARG_Bx(op_intr)));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,GETARG_Bx(op_intr)));
 				break;
 			case VAR_T_ARG_sBx:
-				val = llvm::ConstantInt::get(llvm::APInt(32,GETARG_sBx(op_intr)));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,GETARG_sBx(op_intr)));
 				break;
 			case VAR_T_PC_OFFSET:
-				val = llvm::ConstantInt::get(llvm::APInt(32,i + 1 - strip_ops));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,i + 1 - strip_ops));
 				break;
 			case VAR_T_INSTRUCTION:
-				val = llvm::ConstantInt::get(llvm::APInt(32,op_intr));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,op_intr));
 				break;
 			case VAR_T_NEXT_INSTRUCTION:
-				val = llvm::ConstantInt::get(llvm::APInt(32,code[i+1]));
+				val = llvm::ConstantInt::get(getCtx(), llvm::APInt(32,code[i+1]));
 				break;
 			case VAR_T_LUA_STATE_PTR:
 				val = func_L;
@@ -1041,7 +1052,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				//call->setTailCall(true);
 				brcond=call;
 				brcond=Builder.CreateICmpNE(brcond,
-						llvm::ConstantInt::get(llvm::APInt(32, PCRTAILRECUR)), "brcond");
+						llvm::ConstantInt::get(getCtx(), llvm::APInt(32, PCRTAILRECUR)), "brcond");
 				i++; // skip return opcode.
 				false_block = op_blocks[0]; // branch to start of function if this is a recursive tail-call.
 				true_block = op_blocks[i]; // branch to return instruction if not recursive.
@@ -1065,7 +1076,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				inline_call = true;
 			case OP_TFORLOOP:
 				brcond=call;
-				brcond=Builder.CreateICmpNE(brcond, llvm::ConstantInt::get(llvm::APInt(32,0)), "brcond");
+				brcond=Builder.CreateICmpNE(brcond, llvm::ConstantInt::get(getCtx(), llvm::APInt(32,0)), "brcond");
 				false_block=op_blocks[branch+1];
 				/* inlined JMP op. */
 				branch = ++i + 1;
@@ -1088,7 +1099,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 
 				inline_call = true;
 				brcond=call;
-				brcond=Builder.CreateICmpNE(brcond, llvm::ConstantInt::get(llvm::APInt(32,0)), "brcond");
+				brcond=Builder.CreateICmpNE(brcond, llvm::ConstantInt::get(getCtx(), llvm::APInt(32,0)), "brcond");
 				true_block=op_blocks[branch + GETARG_sBx(op_intr)];
 				false_block=op_blocks[branch];
 				branch = BRANCH_COND; // do conditional branch
@@ -1102,11 +1113,11 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 					}
 					// create extra BasicBlock
 					snprintf(tmp,128,"op_block_%s_%d_set_for_idx",luaP_opnames[opcode],i);
-					idx_block = llvm::BasicBlock::Create(tmp, func);
+					idx_block = llvm::BasicBlock::Create(getCtx(),tmp, func);
 					Builder.SetInsertPoint(idx_block);
 					// copy idx value to Lua-stack.
 					call2=Builder.CreateCall3(set_func,func_L,
-						llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 3))), vals->get(0));
+						llvm::ConstantInt::get(getCtx(), llvm::APInt(32,(GETARG_A(op_intr) + 3))), vals->get(0));
 					inlineList.push_back(call2);
 					// create jmp to true_block
 					Builder.CreateBr(true_block);
@@ -1133,7 +1144,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				// get non-constant init from Lua stack.
 				if(vals->get(0) == NULL) {
 					call2=Builder.CreateCall2(get_func,func_L,
-						llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 0))), "for_init");
+						llvm::ConstantInt::get(getCtx(), llvm::APInt(32,(GETARG_A(op_intr) + 0))), "for_init");
 					inlineList.push_back(call2);
 					vals->set(0, call2);
 				}
@@ -1141,14 +1152,14 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				// get non-constant limit from Lua stack.
 				if(vals->get(1) == NULL) {
 					call2=Builder.CreateCall2(get_func,func_L,
-						llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 1))), "for_limit");
+						llvm::ConstantInt::get(getCtx(), llvm::APInt(32,(GETARG_A(op_intr) + 1))), "for_limit");
 					inlineList.push_back(call2);
 					vals->set(1, call2);
 				}
 				// get non-constant step from Lua stack.
 				if(vals->get(2) == NULL) {
 					call2=Builder.CreateCall2(get_func,func_L,
-						llvm::ConstantInt::get(llvm::APInt(32,(GETARG_A(op_intr) + 2))), "for_step");
+						llvm::ConstantInt::get(getCtx(), llvm::APInt(32,(GETARG_A(op_intr) + 2))), "for_step");
 					inlineList.push_back(call2);
 					vals->set(2, call2);
 				}

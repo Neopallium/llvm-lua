@@ -26,6 +26,7 @@
 
 #include "llvm/Module.h"
 #include "llvm/ModuleProvider.h"
+#include "llvm/LLVMContext.h"
 
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Bitcode/ReaderWriter.h"
@@ -34,8 +35,8 @@
 
 #include "load_embedded_bc.h"
 
-llvm::ModuleProvider *load_embedded_bc(const char *name, 
-		const unsigned char *start, size_t len, bool NoLazyCompilation)
+llvm::ModuleProvider *load_embedded_bc(llvm::LLVMContext &context,
+	const char *name, const unsigned char *start, size_t len, bool NoLazyCompilation)
 {
 	llvm::ModuleProvider *MP = NULL;
 	llvm::Module *module = NULL;
@@ -48,7 +49,7 @@ llvm::ModuleProvider *load_embedded_bc(const char *name,
 	llvm::MemoryBuffer* buffer;
 	buffer= llvm::MemoryBuffer::getMemBuffer((const char *)start, end, name);
 	if(buffer != NULL) {
-		MP = llvm::getBitcodeModuleProvider(buffer, &error);
+		MP = llvm::getBitcodeModuleProvider(buffer, context, &error);
 		if(!MP) delete buffer;
 	}
 	if(!MP) {
