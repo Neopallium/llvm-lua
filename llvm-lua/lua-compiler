@@ -12,11 +12,12 @@ fi
 #ARCH=i686
 #ARCH=pentium4
 #ARCH=athlon64
-FILE=${1/.lua/}
+FILE=lua-native-out
+FILES=""
 DEBUG="0"
 KEEP_TMPS="0"
+STATIC="0"
 MODE="full_bc"
-LUA_MODULE="0"
 EXTRA_ARGS=
 LIBS=
 
@@ -60,7 +61,8 @@ llvm-luac '-help' output:
 # parse command line parameters.
 for arg in "$@" ; do
 	case "$arg" in
-	-lua-module*)  LUA_MODULE="1"; MODE="lua_mod"; EXTRA_ARGS="$EXTRA_ARGS $arg" ;;
+	-lua-module*)  MODE="lua_mod"; EXTRA_ARGS="$EXTRA_ARGS $arg" ;;
+	-static)  STATIC="1" ;;
 	-c++)  CC=g++ ;;
 	-debug)  DEBUG="1" ;;
 	-keep-tmps)  KEEP_TMPS="1" ;;
@@ -69,7 +71,7 @@ for arg in "$@" ; do
 	-help|--help|-h)  usage ;;
 	-version|--version|-v)  version ;;
 	-*)  EXTRA_ARGS="$EXTRA_ARGS $arg" ;;
-	*) FILE=${arg/.lua/} ;;
+	*) FILE=${arg/.lua/}; FILES="$FILES $arg" ;;
 	esac
 done
 
@@ -106,12 +108,16 @@ if [[ $MODE == "cbe" ]]; then
 	LIBS="$LIBS -L$DIR -L$DIR/../lib "
 	DIR=`dirname $0`
 	LIBS="$LIBS -L$DIR -L$DIR/../lib "
+elif [[ $MODE == "c" ]]; then
+	EXTRA_ARGS="$EXTRA_ARGS -no-main "
 fi
 
+echo "file: $FILE"
+echo "files: $FILES"
 #
 # run llvm-luac to compile Lua source/bytecode to LLVM bitcode.
 #
-$LLVM_LUAC $EXTRA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILE}.lua || {
+$LLVM_LUAC $EXTRA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILES} || {
 	echo "llvm-luac: failed to compile Lua code into LLVM bitcode."
 	exit 1;
 }
@@ -122,11 +128,13 @@ case "$MODE" in
 	cbe)
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.c"
 		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
-		llc $LLC_FLAGS --march=c -f -o ${FILE}_run.c ${FILE}_opt.bc && \
+		llc $LLC_FLAGS -f --march=c -o ${FILE}_run.c ${FILE}_opt.bc && \
 		$CC $CFLAGS $LIBS -o ${FILE} ${FILE}_run.c -llua_main -lm -ldl
 		;;
 	c)
-		llc $LLC_FLAGS -f -march=c -o ${FILE}.c ${FILE}.bc
+		TMPS="$TMPS ${FILE}_opt.bc"
+		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
+		llc $LLC_FLAGS -f --march=c -o ${FILE}.c ${FILE}_opt.bc
 		;;
 	ll)
 		llvm-dis -f -o ${FILE}.ll ${FILE}.bc
@@ -140,13 +148,21 @@ case "$MODE" in
 	lua_mod)
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_mod.c ${FILE}_mod_tmp.c ${FPATH}/${FNAME}.lo ${FPATH}/lib${FNAME}.la"
 		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
-		llc $LLC_FLAGS --march=c -f -o ${FILE}_mod_tmp.c ${FILE}_opt.bc && \
-		cat ${FILE}_mod_tmp.c | grep -v "^#line " >${FILE}_mod.c && \
-		$LIBTOOL --mode=compile $CC $CFLAGS -c -o ${FILE}.lo ${FILE}_mod.c && \
-		$LIBTOOL --mode=link $CC -rpath ${RPATH} -o ${FPATH}/lib${FNAME}.la ${FILE}.lo && \
-		cp -p ${FPATH}/.libs/lib${FNAME}.so ${RPATH}/${FILE}.so
-		if [[ $KEEP_TMPS == "0" ]]; then
-			$LIBTOOL --mode=clean rm -f $TMPS
+		llc $LLC_FLAGS --march=c -f -o ${FILE}_mod_tmp.c ${FILE}_opt.bc || {
+			echo "Error compiling LLVM bitcode to C code."
+			exit 1;
+		}
+		# strip "#line"'s file c file.
+		cat ${FILE}_mod_tmp.c | grep -v "^#line " >${FILE}_mod.c
+		# compile C code to object file.
+		$LIBTOOL --mode=compile $CC $CFLAGS -c -o ${FILE}.lo ${FILE}_mod.c
+		# compile to dynamic module
+		if [[ $STATIC == "0" ]]; then
+			$LIBTOOL --mode=link $CC -rpath ${RPATH} -o ${FPATH}/lib${FNAME}.la ${FILE}.lo && \
+			cp -p ${FPATH}/.libs/lib${FNAME}.so ${RPATH}/${FILE}.so
+			if [[ $KEEP_TMPS == "0" ]]; then
+				$LIBTOOL --mode=clean rm -f $TMPS
+			fi
 		fi
 		;;
 	*)

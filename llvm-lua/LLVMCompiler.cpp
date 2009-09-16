@@ -253,6 +253,9 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 
 	// get important struct types.
 	Ty_TValue = M->getTypeByName("struct.lua_TValue");
+	if(Ty_TValue == NULL) {
+		Ty_TValue = M->getTypeByName("struct.TValue");
+	}
 	Ty_TValue_ptr = llvm::PointerType::getUnqual(Ty_TValue);
 	Ty_LClosure = M->getTypeByName("struct.LClosure");
 	Ty_LClosure_ptr = llvm::PointerType::getUnqual(Ty_LClosure);
