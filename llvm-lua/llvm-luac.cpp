@@ -22,10 +22,37 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
+#include "llvm/LLVMContext.h"
+#include "llvm/Module.h"
+#include "llvm/ModuleProvider.h"
+#include "llvm/PassManager.h"
+#include "llvm/Pass.h"
+#include "llvm/ADT/Triple.h"
+#include "llvm/Analysis/Verifier.h"
+#include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/CodeGen/FileWriters.h"
+#include "llvm/CodeGen/LinkAllAsmWriterComponents.h"
+#include "llvm/CodeGen/LinkAllCodegenComponents.h"
+#include "llvm/CodeGen/ObjectCodeEmitter.h"
+#include "llvm/Config/config.h"
+#include "llvm/LinkAllVMCore.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/FileUtilities.h"
+#include "llvm/Support/FormattedStream.h"
+#include "llvm/Support/ManagedStatic.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/PluginLoader.h"
+#include "llvm/Support/PrettyStackTrace.h"
+#include "llvm/System/Host.h"
+#include "llvm/System/Signals.h"
+#include "llvm/Target/SubtargetFeature.h"
+#include "llvm/Target/TargetData.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetRegistry.h"
+#include "llvm/Target/TargetSelect.h"
 #include "llvm-luac.h"
 #include "llvm_compiler.h"
 #include "lua_compiler.h"
-#include "llvm/Support/CommandLine.h"
 
 namespace {
   llvm::cl::list<std::string>
@@ -68,9 +95,15 @@ void print_version() {
  *
  */
 int main(int argc, char ** argv) {
+  llvm::sys::PrintStackTraceOnErrorSignal();
+  llvm::PrettyStackTraceProgram X(argc, argv);
 	std::vector<std::string> arg_list;
 	int new_argc=0;
 	int ret;
+
+  // Initialize targets first.
+  llvm::InitializeAllTargets();
+  llvm::InitializeAllAsmPrinters();
 
 	llvm::cl::SetVersionPrinter(print_version);
 	llvm::cl::ParseCommandLineOptions(argc, argv, 0, true);
