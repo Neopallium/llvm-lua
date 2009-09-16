@@ -12,6 +12,7 @@ fi
 #ARCH=i686
 #ARCH=pentium4
 #ARCH=athlon64
+FORCE_ARCH="0"
 FILE=lua-native-out
 FILES=""
 DEBUG="0"
@@ -67,7 +68,7 @@ for arg in "$@" ; do
 	-debug)  DEBUG="1" ;;
 	-keep-tmps)  KEEP_TMPS="1" ;;
 	-mode=*)  MODE=` echo "$arg" | sed -e 's/-mode=//'` ;;
-	-arch=*)  ARCH=` echo "$arg" | sed -e 's/-arch=//'` ;;
+	-arch=*)  FORCE_ARCH="1"; ARCH=` echo "$arg" | sed -e 's/-arch=//'` ;;
 	-help|--help|-h)  usage ;;
 	-version|--version|-v)  version ;;
 	-*)  EXTRA_ARGS="$EXTRA_ARGS $arg" ;;
@@ -87,6 +88,9 @@ if [[ $DEBUG == "1" ]]; then
 	#CFLAGS=" -ggdb -O3 -fomit-frame-pointer -pipe -Wall "
 	OPT_FLAGS=" -disable-opt "
 	LLC_FLAGS=" "
+	if [[ ! -z $ARCH && $FORCE_ARCH == "1" ]]; then
+		CFLAGS=" -march=$ARCH $CFLAGS "
+	fi
 else
 	LUA_FLAGS=" -O3 -s "
 	#LUA_FLAGS=" -O3 -g "
