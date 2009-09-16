@@ -50,10 +50,10 @@ outputs: ./script.so
 The Lua C API is unchanged and no extra API functions are exposed by llvm-lua.  The only change is how host app. is linked with the 'liblua-llvm.a' library instead of the normal 'liblua.a' library.
 
 Use the following command to link your C app with llvm-lua:
-gcc -o embed.o -c embed.c
+gcc -o embed.o -c etc/embed_jit.c
 g++ -o embed embed.o -llua-llvm `llvm-config --ldflags --libs core jit native linker` -rdynamic -Wl,-E -lm -ldl
 
 Use the following command to link your C++ app with llvm-lua:
-g++ -o embed.o -c embed.cpp
+g++ -o embed.o -c etc/embed_jit.cpp
 g++ -o embed embed.o -llua-llvm `llvm-config --ldflags --libs core jit native linker` -rdynamic -Wl,-E -lm -ldl
 
