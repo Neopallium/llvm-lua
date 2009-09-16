@@ -112,8 +112,6 @@ elif [[ $MODE == "c" ]]; then
 	EXTRA_ARGS="$EXTRA_ARGS -no-main "
 fi
 
-echo "file: $FILE"
-echo "files: $FILES"
 #
 # run llvm-luac to compile Lua source/bytecode to LLVM bitcode.
 #
