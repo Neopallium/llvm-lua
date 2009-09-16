@@ -35,11 +35,10 @@ extern "C" {
 
 /* only used to turn off JIT for static compiler llvm-luac. */
 static int g_useJIT = 1;
+static int g_need_init = 1;
 
 int llvm_compiler_main(int useJIT) {
 	g_useJIT = useJIT;
-	LLVMLinkInJIT();
-	LLVMInitializeNativeTarget();
 	return 0;
 }
 
@@ -50,6 +49,11 @@ LLVMCompiler *llvm_get_compiler(lua_State *L) {
 
 void llvm_new_compiler(lua_State *L) {
 	global_State *g = G(L);
+	if(g_need_init) {
+		LLVMLinkInJIT();
+		LLVMInitializeNativeTarget();
+		g_need_init = 0;
+	}
 	g->llvm_compiler = new LLVMCompiler(g_useJIT);
 }
 
