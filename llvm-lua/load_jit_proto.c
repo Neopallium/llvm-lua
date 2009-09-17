@@ -90,21 +90,21 @@ Proto *load_jit_proto(lua_State *L, jit_proto *p) {
 	/* sizep */
 	f->sizep = p->sizep;
 	/* p */
-	f->p=luaM_newvector(L,p->sizep,Proto*);
+	f->p=luaM_newvector(L,(size_t)p->sizep,Proto*);
 	for(i = 0; i < p->sizep; i++) {
 		f->p[i] = load_jit_proto(L, &(p->p[i]));
 	}
 	/* sizecode */
 	f->sizecode = p->sizecode;
 	/* code */
-	f->code=luaM_newvector(L,p->sizecode,Instruction);
+	f->code=luaM_newvector(L,(size_t)p->sizecode,Instruction);
 	for(i = 0; i < p->sizecode; i++) {
 		f->code[i] = p->code[i];
 	}
 	/* sizelineinfo */
 	f->sizelineinfo = p->sizelineinfo;
 	/* lineinfo */
-	f->lineinfo=luaM_newvector(L,p->sizelineinfo,int);
+	f->lineinfo=luaM_newvector(L,(size_t)p->sizelineinfo,int);
 	for(i = 0; i < p->sizelineinfo; i++) {
 		f->lineinfo[i] = p->lineinfo[i];
 	}
@@ -121,7 +121,7 @@ Proto *load_jit_proto(lua_State *L, jit_proto *p) {
 	/* sizeupvalues */
 	f->sizeupvalues = p->sizeupvalues;
 	/* upvalues */
-	f->upvalues=luaM_newvector(L,p->sizeupvalues,TString*);
+	f->upvalues=luaM_newvector(L,(size_t)p->sizeupvalues,TString*);
 	for(i = 0; i < p->sizeupvalues; i++) {
 		f->upvalues[i] = luaS_new(L, p->upvalues[i]);
 	}

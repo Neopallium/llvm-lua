@@ -5,7 +5,7 @@ PLAT= none
 
 CC= gcc
 CXX= g++
-LLVM_CC= clang
+LLVM_CC= llvm-gcc
 LLVM_LD= llvm-link
 LLC= llc
 LD= g++
@@ -17,10 +17,11 @@ LIBTOOL = libtool --quiet --tag=CC
 LIB_VERSION = 6:4:1
 
 LIBS= -lm $(MYLIBS)
+BC_CFLAGS= -c -emit-llvm
 #ARCH=i686
 #ARCH=pentium4
 #ARCH=athlon64
-#LL_FLAGS= -m32 
+#BC_CFLAGS += -m32 
 ifdef DEBUG
 CFLAGS= -O0 -ggdb -Wall
 #CFLAGS= -ggdb -O3 -fomit-frame-pointer -pipe -Wall
@@ -38,6 +39,8 @@ CC= g++
 LLVM_CC= llvm-g++
 CFLAGS += -fexceptions -DLUA_CPP_SUPPORT=1
 endif
+
+BC_CFLAGS += $(CFLAGS)
 
 MYCFLAGS=
 MYLDFLAGS=
@@ -58,6 +61,14 @@ COCOCFLAGS=
 #COCOCFLAGS= -DCOCO_DEFAULT_CSTACKSIZE=524288
 # -- Coco =========
 
+#
+# Cross compile support
+#
+#### iPhone cross-compile
+#LLVM_CC=/path/to/llvm/libexec/clang-cc
+#CROSS_FLAGS= -nostdinc -isystem=/path/to/iphone/sdk/include -triple=arm-apple-darwin9 -mcpu=arm
+#BC_CFLAGS= -emit-llvm-bc $(CROSS_FLAGS) -O2
+
 # == END OF USER SETTINGS. NO NEED TO CHANGE ANYTHING BELOW THIS LINE =========
 
 PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
@@ -65,8 +76,10 @@ PLATS= aix ansi bsd freebsd generic linux macosx mingw posix solaris
 LUA_SRC= ../src
 
 LUA_CFLAGS= -I$(LUA_SRC) $(CFLAGS) $(MYCFLAGS) $(COCOCFLAGS)
+BC_CFLAGS += -I$(LUA_SRC) $(MYCFLAGS) $(COCOCFLAGS)
 LLVM_CFLAGS=`llvm-config --cppflags`
 LLVM_LFLAGS=`llvm-config --ldflags --libs core jit native linker bitreader bitwriter ipo`
+LLVM_ALL_LFLAGS=`llvm-config --ldflags --libs all`
 
 NON_LLVM_OBJS=lua_core.o lua_vm_ops_static.o load_jit_proto.o
 COMMON_OBJS=LLVMCompiler.o llvm_compiler.o load_vm_ops.o load_embedded_bc.o $(NON_LLVM_OBJS)
@@ -102,7 +115,7 @@ all: $(LLVM_LUA_T) $(LLVM_LUAC_T) $(LIB_NAME) $(LIB_NAME:.la=.a) $(LLVM_LIB_NAME
 	$(LIBTOOL) --mode=compile $(CXX) -c $(LUA_CFLAGS) $(LLVM_CFLAGS) -o $@ $<
 
 %.bc: %.c
-	$(LLVM_CC) $(LL_FLAGS) -emit-llvm -c $(LUA_CFLAGS) -o $@ $<
+	$(LLVM_CC) $(BC_CFLAGS) -o $@ $<
 
 lua_core.o: lua_core.c $(LUA_SRC)/*.c $(LUA_SRC)/*.h
 	$(CC) -c $(LUA_CFLAGS) -o $@ lua_core.c
@@ -147,7 +160,7 @@ $(LLVM_LUA_T): $(INTERPRETER_OBJS) lua_vm_ops_static.o
 	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(INTERPRETER_OBJS) $(LLVM_LFLAGS)
 
 $(LLVM_LUAC_T): $(COMPILER_OBJS) liblua_main.bc liblua_main.a
-	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(COMPILER_OBJS) $(LLVM_LFLAGS)
+	$(LD) $(MYLDFLAGS) $(MYLIBS) -o $@ $(COMPILER_OBJS) $(LLVM_ALL_LFLAGS)
 
 $(BIN2C_T): bin2c.c
 	$(CC) -O3 -o $@ $<

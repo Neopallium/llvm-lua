@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 
 CC=gcc
@@ -102,6 +102,9 @@ else
 	OPT_FLAGS=" -O3 -std-compile-opts -tailcallelim -tailduplicate "
 	LLC_FLAGS=" -tailcallopt "
 fi
+if [[ ! -z $ARCH && $FORCE_ARCH == "1" ]]; then
+	LLC_FLAGS=" -march=$ARCH $LLC_FLAGS "
+fi
 
 if [[ $MODE == "cbe" ]]; then
 	EXTRA_ARGS="$EXTRA_ARGS -no-main "
@@ -148,16 +151,14 @@ case "$MODE" in
 		$CC $CFLAGS -o ${FILE} ${FILE}_run.s -lm -ldl
 		;;
 	lua_mod)
-		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_mod.c ${FILE}_mod_tmp.c ${FPATH}/${FNAME}.lo ${FPATH}/lib${FNAME}.la"
+		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_mod.s ${FPATH}/${FNAME}.lo ${FPATH}/lib${FNAME}.la"
 		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
-		llc $LLC_FLAGS --march=c -f -o ${FILE}_mod_tmp.c ${FILE}_opt.bc || {
-			echo "Error compiling LLVM bitcode to C code."
+		llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_mod.s ${FILE}_opt.bc || {
+			echo "Error compiling LLVM bitcode to assembly code."
 			exit 1;
 		}
-		# strip "#line"'s file c file.
-		cat ${FILE}_mod_tmp.c | grep -v "^#line " >${FILE}_mod.c
-		# compile C code to object file.
-		$LIBTOOL --mode=compile $CC $CFLAGS -c -o ${FILE}.lo ${FILE}_mod.c
+		# compile assembly code to object file.
+		$LIBTOOL --mode=compile $CC $CFLAGS -c -o ${FILE}.lo ${FILE}_mod.s
 		# compile to dynamic module
 		if [[ $STATIC == "0" ]]; then
 			$LIBTOOL --mode=link $CC -rpath ${RPATH} -o ${FPATH}/lib${FNAME}.la ${FILE}.lo && \
