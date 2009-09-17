@@ -32,56 +32,57 @@ extern "C" {
 #endif
 
 #include "lobject.h"
-
-#define constant_type_len(type, length) (((length & 0x3FFFFFFF) << 3) + (type & 0x03))
-#define get_constant_type(type_length) (type_length & 0x03)
-#define get_constant_length(type_length) ((type_length >> 3) & 0x3FFFFFFF)
+#include <stdint.h>
 
 #define TYPE_NIL			0
 #define TYPE_NUMBER		1
 #define TYPE_BOOLEAN	2
 #define TYPE_STRING		3
 
-typedef struct {
-	int type_length; /* top 2 bits used for type, buttom 30 bits used for string length */
-	union {
-		/* nil doesn't need a value. */
-		int b; /* Lua boolean */
-		LUA_NUMBER num; /* Lua numbers */
-		char *str; /* Lua string. */
-	} val; /* value of Lua nil/boolean/number/string. */
-} constant_type;
+typedef union constant_value {
+	/* nil doesn't need a value. */
+	uint32_t b; /* Lua boolean */
+	LUA_NUMBER num; /* Lua numbers */
+	char *str; /* Lua string. */
+} constant_value;
 
-/* simplified version of Proto struct. */
-typedef struct jit_proto {
-	char *name;
-	lua_CFunction jit_func;
-	int linedefined;
-	int lastlinedefined;
-	unsigned char nups;
-	unsigned char numparams;
-	unsigned char is_vararg;
-	unsigned char maxstacksize;
-	int sizek;
-	constant_type *k;
-	int sizep;
-	struct jit_proto *p;
-	int sizecode;
-	unsigned int *code;
-	int sizelineinfo;
-	int *lineinfo;
-	int sizelocvars;
-	struct jit_LocVar *locvars;
-	int sizeupvalues;
-	char **upvalues;
-} jit_proto;
+typedef struct constant_type {
+	uint32_t type;   /* constant type. */
+	uint32_t length; /* string length */
+	constant_value val; /* value of Lua nil/boolean/number/string. */
+} constant_type;
 
 /* simplified version of LocVar struct. */
 typedef struct jit_LocVar {
 	char *varname;
-	int startpc;
-	int endpc;
+	uint32_t startpc;
+	uint32_t endpc;
 } jit_LocVar;
+
+/* simplified version of Proto struct. */
+typedef struct jit_proto jit_proto;
+struct jit_proto {
+	char          *name;
+	lua_CFunction jit_func;
+	uint32_t      linedefined;
+	uint32_t      lastlinedefined;
+	uint8_t       nups;
+	uint8_t       numparams;
+	uint8_t       is_vararg;
+	uint8_t       maxstacksize;
+	uint16_t      sizek;
+	uint16_t      sizelocvars;
+	uint32_t      sizeupvalues;
+	uint32_t      sizep;
+	uint32_t      sizecode;
+	uint32_t      sizelineinfo;
+	constant_type *k;
+	jit_LocVar    *locvars;
+	char          **upvalues;
+	jit_proto     *p;
+	uint32_t      *code;
+	uint32_t      *lineinfo;
+};
 
 Proto *load_jit_proto(lua_State *L, jit_proto *p);
 

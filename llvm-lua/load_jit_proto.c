@@ -71,10 +71,9 @@ Proto *load_jit_proto(lua_State *L, jit_proto *p) {
 	f->k=luaM_newvector(L,p->sizek,TValue);
 	for(i = 0; i < p->sizek; i++) {
 		TValue *o=&f->k[i];
-		switch(get_constant_type(p->k[i].type_length)) {
+		switch(p->k[i].type) {
 			case TYPE_STRING:
-				setsvalue2n(L,o, luaS_newlstr(L, p->k[i].val.str,
-					get_constant_length(p->k[i].type_length)));
+				setsvalue2n(L,o, luaS_newlstr(L, p->k[i].val.str, p->k[i].length));
 				break;
 			case TYPE_BOOLEAN:
 				setbvalue(o, p->k[i].val.b != 0);
