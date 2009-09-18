@@ -26,6 +26,7 @@
 #include "llvm_compiler.h"
 #include "lua_interpreter.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/ManagedStatic.h"
 
 namespace {
   llvm::cl::opt<std::string>
@@ -70,6 +71,7 @@ void print_version() {
  */
 int main(int argc, char ** argv) {
 	std::vector<std::string> arg_list;
+	llvm::llvm_shutdown_obj Y;   // Call llvm_shutdown() on exit.
 	int new_argc=0;
 	int ret;
 

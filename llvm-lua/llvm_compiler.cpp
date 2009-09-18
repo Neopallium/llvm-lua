@@ -58,7 +58,10 @@ void llvm_new_compiler(lua_State *L) {
 }
 
 void llvm_free_compiler(lua_State *L) {
-	delete llvm_get_compiler(L);
+	global_State *g = G(L);
+	LLVMCompiler *compiler = ((LLVMCompiler *)g->llvm_compiler);
+	g->llvm_compiler = NULL;
+	delete compiler;
 }
 
 void llvm_compiler_compile(lua_State *L, Proto *p) {

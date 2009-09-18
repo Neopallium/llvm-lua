@@ -214,7 +214,6 @@ llvm::Value *LLVMCompiler::get_proto_constant(TValue *constant) {
 }
 
 LLVMCompiler::LLVMCompiler(int useJIT) {
-	llvm::ModuleProvider *MP = NULL;
 	std::string error;
 	llvm::Timer load_ops("load_ops");
 	llvm::Timer load_jit("load_jit");
@@ -359,7 +358,7 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	if(llvm::TimePassesIsEnabled) load_jit.startTimer();
 	// Create the JIT.
 	if(useJIT) {
-		llvm::EngineBuilder engine(M);
+		llvm::EngineBuilder engine(MP);
 		llvm::CodeGenOpt::Level optLevel = llvm::CodeGenOpt::Aggressive;
 		if(Fast) {
 			optLevel = llvm::CodeGenOpt::Default;
@@ -367,7 +366,6 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 #ifdef LUA_CPP_SUPPORT
 		llvm::ExceptionHandling = true; 
 #endif
-		//TheExecutionEngine = llvm::ExecutionEngine::create(MP, false, &error, optLevel);
 		engine.setErrorStr(&error);
 		engine.setOptLevel(optLevel);
 		TheExecutionEngine = engine.create();
@@ -456,6 +454,8 @@ void print_opcode_stats(int *stats, const char *stats_name) {
 }
 
 LLVMCompiler::~LLVMCompiler() {
+	llvm::Module *mod = NULL;
+	std::string error;
 	// print opcode stats.
 	if(OpCodeStats) {
 		print_opcode_stats(opcode_stats, "Compiled OpCode counts");
@@ -479,8 +479,30 @@ LLVMCompiler::~LLVMCompiler() {
 	//M->dump();
 
 	if(TheExecutionEngine) {
+		TheExecutionEngine->freeMachineCodeForFunction(vm_get_current_closure);
+		TheExecutionEngine->freeMachineCodeForFunction(vm_get_current_constants);
+		TheExecutionEngine->freeMachineCodeForFunction(vm_get_number);
+		TheExecutionEngine->freeMachineCodeForFunction(vm_get_long);
+		TheExecutionEngine->freeMachineCodeForFunction(vm_set_number);
+		TheExecutionEngine->freeMachineCodeForFunction(vm_set_long);
 		TheExecutionEngine->runStaticConstructorsDestructors(true);
+		mod = TheExecutionEngine->removeModuleProvider(MP, &error);
+		if(!mod) {
+			printf("Failed cleanup ModuleProvider: %s\n", error.c_str());
+			exit(1);
+		}
 		delete TheExecutionEngine;
+	} else if(MP) {
+		mod = MP->releaseModule(&error);
+		if(!mod) {
+			printf("Failed cleanup ModuleProvider: %s\n", error.c_str());
+			exit(1);
+		}
+		delete MP;
+		MP = NULL;
+	}
+	if(mod) {
+		delete mod;
 	}
 }
 

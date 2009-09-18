@@ -98,6 +98,7 @@ int main(int argc, char ** argv) {
   llvm::sys::PrintStackTraceOnErrorSignal();
   llvm::PrettyStackTraceProgram X(argc, argv);
 	std::vector<std::string> arg_list;
+	llvm::llvm_shutdown_obj Y;   // Call llvm_shutdown() on exit.
 	int new_argc=0;
 	int ret;
 
