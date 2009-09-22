@@ -345,7 +345,7 @@ tailcall:
   cl = clvalue(func);
   ret = cl->l.precall(L,func,nresults);
   if(ret == PCRTAILCALL) {
-		func = L->base - 1;
+		func = L->base;
 		nresults = LUA_MULTRET;
 		goto tailcall;
   }

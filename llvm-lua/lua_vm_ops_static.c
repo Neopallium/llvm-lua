@@ -333,6 +333,7 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b) {
   }
   L->ci--;  /* remove new frame */
   L->savedpc = L->ci->savedpc;
+  L->base = cur_func; /* point base at new function to call.  This is needed by luaD_precall. */
   /* unwind stack back to luaD_precall */
   return PCRTAILCALL;
 }
