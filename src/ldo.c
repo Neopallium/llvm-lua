@@ -277,7 +277,6 @@ int luaD_precall_lua (lua_State *L, StkId func, int nresults) {
 
   funcr = savestack(L, func);
   cl = clvalue(func);
-  L->ci->savedpc = L->savedpc;
   p = cl->l.p;
   luaD_checkstack(L, p->maxstacksize);
   func = restorestack(L, funcr);
@@ -291,7 +290,7 @@ int luaD_precall_lua (lua_State *L, StkId func, int nresults) {
     base = adjust_varargs(L, p, nargs);
     func = restorestack(L, funcr);  /* previous call may change the stack */
   }
-  ci = inc_ci(L);  /* now `enter' new function */
+  ci = L->ci;  /* now `enter' new function */
   ci->func = func;
   L->base = ci->base = base;
   ci->top = L->base + p->maxstacksize;
@@ -315,9 +314,8 @@ int luaD_precall_c (lua_State *L, StkId func, int nresults) {
   int n;
 
   funcr = savestack(L, func);
-  L->ci->savedpc = L->savedpc;
   luaD_checkstack(L, LUA_MINSTACK);  /* ensure minimum stack size */
-  ci = inc_ci(L);  /* now `enter' new function */
+  ci = L->ci;  /* now `enter' new function */
   ci->func = restorestack(L, funcr);
   L->base = ci->base = ci->func + 1;
   ci->top = L->top + LUA_MINSTACK;
@@ -338,16 +336,21 @@ int luaD_precall_c (lua_State *L, StkId func, int nresults) {
 
 int luaD_precall (lua_State *L, StkId func, int nresults) {
   Closure *cl;
+  CallInfo *ci;
   int ret;
   if (!ttisfunction(func)) /* `func' is not a function? */
     func = luaD_tryfuncTM(L, func);  /* check the `function' tag method */
+  L->ci->savedpc = L->savedpc;
+  /* allocate callinfo. */
+  ci = inc_ci(L);
+  ci->tailcalls = 0;
 tailcall:
   cl = clvalue(func);
   ret = cl->l.precall(L,func,nresults);
   if(ret == PCRTAILCALL) {
-		func = L->base;
-		nresults = LUA_MULTRET;
-		goto tailcall;
+    ci->tailcalls++;
+    func = L->base;
+    goto tailcall;
   }
   return ret;
 }
@@ -368,8 +371,8 @@ int luaD_poscall (lua_State *L, StkId firstResult) {
   CallInfo *ci;
   if (L->hookmask & LUA_MASKRET)
     firstResult = callrethooks(L, firstResult);
-	L->ci->tailcalls = 0;
   ci = L->ci--;
+  ci->tailcalls = 0;
   res = ci->func;  /* res == final position of 1st result */
   wanted = ci->nresults;
   L->base = (ci - 1)->base;  /* restore base */

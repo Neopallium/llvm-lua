@@ -68,27 +68,26 @@ int llvm_precall_jit (lua_State *L, StkId func, int nresults) {
 
   funcr = savestack(L, func);
   cl = clvalue(func);
-  L->ci->savedpc = L->savedpc;
   p = cl->l.p;
   luaD_checkstack(L, p->maxstacksize);
   func = restorestack(L, funcr);
   base = func + 1;
   if (L->top > base + p->numparams)
     L->top = base + p->numparams;
-  ci = inc_ci(L);	/* now `enter' new function */
+  ci = L->ci;  /* now `enter' new function */
   ci->func = func;
   L->base = ci->base = base;
   ci->top = L->base + p->maxstacksize;
   lua_assert(ci->top <= L->stack_last);
-  L->savedpc = p->code;	/* starting point */
+  L->savedpc = p->code;  /* starting point */
   ci->nresults = nresults;
   for (st = L->top; st < ci->top; st++)
     setnilvalue(st);
   L->top = ci->top;
   if (L->hookmask & LUA_MASKCALL) {
-    L->savedpc++;	/* hooks assume 'pc' is already incremented */
+    L->savedpc++;  /* hooks assume 'pc' is already incremented */
     luaD_callhook(L, LUA_HOOKCALL, -1);
-    L->savedpc--;	/* correct 'pc' */
+    L->savedpc--;  /* correct 'pc' */
   }
   return (p->jit_func)(L); /* do the actual call */
 }
@@ -103,27 +102,26 @@ int llvm_precall_jit_vararg (lua_State *L, StkId func, int nresults) {
 
   funcr = savestack(L, func);
   cl = clvalue(func);
-  L->ci->savedpc = L->savedpc;
   p = cl->l.p;
   luaD_checkstack(L, p->maxstacksize);
   func = restorestack(L, funcr);
   nargs = cast_int(L->top - func) - 1;
   base = adjust_varargs(L, p, nargs);
-  func = restorestack(L, funcr);	/* previous call may change the stack */
-  ci = inc_ci(L);	/* now `enter' new function */
+  func = restorestack(L, funcr);  /* previous call may change the stack */
+  ci = L->ci;  /* now `enter' new function */
   ci->func = func;
   L->base = ci->base = base;
   ci->top = L->base + p->maxstacksize;
   lua_assert(ci->top <= L->stack_last);
-  L->savedpc = p->code;	/* starting point */
+  L->savedpc = p->code;  /* starting point */
   ci->nresults = nresults;
   for (st = L->top; st < ci->top; st++)
     setnilvalue(st);
   L->top = ci->top;
   if (L->hookmask & LUA_MASKCALL) {
-    L->savedpc++;	/* hooks assume 'pc' is already incremented */
+    L->savedpc++;  /* hooks assume 'pc' is already incremented */
     luaD_callhook(L, LUA_HOOKCALL, -1);
-    L->savedpc--;	/* correct 'pc' */
+    L->savedpc--;  /* correct 'pc' */
   }
   return (p->jit_func)(L); /* do the actual call */
 }

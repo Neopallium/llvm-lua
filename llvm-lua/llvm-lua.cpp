@@ -30,20 +30,24 @@
 
 namespace {
   llvm::cl::opt<std::string>
-  InputFile(llvm::cl::Positional, llvm::cl::desc("<script>"), llvm::cl::init("-"));
+  InputFile(llvm::cl::Positional, llvm::cl::desc("<script>"));
 
   llvm::cl::list<std::string>
   InputArgv(llvm::cl::ConsumeAfter, llvm::cl::desc("<script arguments>..."));
 
-  llvm::cl::opt<std::string>
+  llvm::cl::list<std::string>
   Execute("e",
             llvm::cl::desc("execuate string 'stat'"),
-              llvm::cl::value_desc("stat"));
+              llvm::cl::value_desc("stat"),
+              llvm::cl::ZeroOrMore,
+              llvm::cl::Prefix);
 
-  llvm::cl::opt<std::string>
+  llvm::cl::list<std::string>
   Library("l",
             llvm::cl::desc("require library 'name'"),
-              llvm::cl::value_desc("name"));
+              llvm::cl::value_desc("name"),
+              llvm::cl::ZeroOrMore,
+              llvm::cl::Prefix);
 
   llvm::cl::opt<std::string>
   MemLimit("m",
@@ -72,11 +76,26 @@ void print_version() {
 int main(int argc, char ** argv) {
 	std::vector<std::string> arg_list;
 	llvm::llvm_shutdown_obj Y;   // Call llvm_shutdown() on exit.
+	std::string tmp;
+	char **lua_argv;
+	int lua_argc=0;
 	int new_argc=0;
+	int pos;
 	int ret;
 
+	// check for '--' and '-' options to cut-off parsing at that point.
+	for(new_argc=0; new_argc < argc; new_argc++) {
+		if(argv[new_argc][0] == '-') {
+			if(argv[new_argc][1] == '\0') {
+				break;
+			} else if(argv[new_argc][1] == '-' && argv[new_argc][2] == '\0') {
+				break;
+			}
+		}
+	}
+
 	llvm::cl::SetVersionPrinter(print_version);
-	llvm::cl::ParseCommandLineOptions(argc, argv, 0, true);
+	llvm::cl::ParseCommandLineOptions(new_argc, argv, 0, true);
 	// Show version?
 	if(ShowVersion) {
 		print_version();
@@ -84,13 +103,31 @@ int main(int argc, char ** argv) {
 	}
 	// recreate arg list.
 	arg_list.push_back(argv[0]);
-	if(!Execute.empty()) {
-		arg_list.push_back("-e");
-		arg_list.push_back(Execute);
+	for(std::vector<std::string>::iterator I=Execute.begin(); I != Execute.end(); I++) {
+		pos = Execute.getPosition(I - Execute.begin());
+		// keep same format -e'statement' or -e 'statement'
+		if(argv[pos][0] == '-' && argv[pos][1] == 'e') {
+			tmp = "-e";
+			tmp.append(*I);
+			arg_list.push_back(tmp);
+		} else {
+			arg_list.push_back("-e");
+			arg_list.push_back(*I);
+		}
 	}
-	if(!Library.empty()) {
+	for(std::vector<std::string>::iterator I=Library.begin(); I != Library.end(); I++) {
+		pos = Library.getPosition(I - Library.begin());
 		arg_list.push_back("-l");
-		arg_list.push_back(Library);
+		arg_list.push_back(*I);
+		// keep same format -llibrary or -l library
+		if(argv[pos][0] == '-' && argv[pos][1] == 'l') {
+			tmp = "-l";
+			tmp.append(*I);
+			arg_list.push_back(tmp);
+		} else {
+			arg_list.push_back("-l");
+			arg_list.push_back(*I);
+		}
 	}
 	if(!MemLimit.empty()) {
 		arg_list.push_back("-m");
@@ -99,19 +136,28 @@ int main(int argc, char ** argv) {
 	if(Interactive) {
 		arg_list.push_back("-i");
 	}
-	arg_list.push_back(InputFile);
-	arg_list.insert(arg_list.end(),InputArgv.begin(), InputArgv.end());
-	for(std::vector<std::string>::iterator I=arg_list.begin(); I != arg_list.end(); I++) {
-		if(new_argc == argc) break;
-		argv[new_argc] = (char *)(*I).c_str();
-		new_argc++;
+	if(!InputFile.empty()) {
+		arg_list.push_back(InputFile);
 	}
-	argv[new_argc] = NULL;
+	// append options from cut-off point.
+	for(;new_argc < argc; new_argc++) {
+		arg_list.push_back(argv[new_argc]);
+	}
+	arg_list.insert(arg_list.end(),InputArgv.begin(), InputArgv.end());
+	/* construct lua_argc, lua_argv. */
+	new_argc = arg_list.size() + 1;
+	lua_argv = (char **)calloc(new_argc, sizeof(char *));
+	for(std::vector<std::string>::iterator I=arg_list.begin(); I != arg_list.end(); I++) {
+		if(lua_argc == new_argc) break;
+		lua_argv[lua_argc] = (char *)(*I).c_str();
+		lua_argc++;
+	}
+	lua_argv[lua_argc] = NULL;
 
 	// initialize the Lua to LLVM compiler.
 	ret = llvm_compiler_main(1);
 	// Run the main "interpreter loop" now.
-	ret = lua_main(new_argc, argv);
+	ret = lua_main(lua_argc, lua_argv);
 	return ret;
 }
 

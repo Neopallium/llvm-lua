@@ -1297,6 +1297,8 @@ void LLVMCompiler::free(lua_State *L, Proto *p)
 	func=(llvm::Function *)TheExecutionEngine->getGlobalValueAtAddress((void *)p->jit_func);
 	if(func != NULL) {
 		TheExecutionEngine->freeMachineCodeForFunction(func);
+		func->removeFromParent();
+		delete func;
 	}
 }
 

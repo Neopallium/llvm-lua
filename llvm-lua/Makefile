@@ -27,7 +27,7 @@ ifdef DEBUG
 CFLAGS= -O0 -ggdb -Wall
 #CFLAGS= -ggdb -O3 -fomit-frame-pointer -pipe -Wall
 else
-CFLAGS= -O3 -fomit-frame-pointer -pipe -Wall
+CFLAGS= -O3 -fomit-frame-pointer -pipe -Wall -DNDEBUG
 #CFLAGS= -O3 -fomit-frame-pointer -pipe -Wall
 #CFLAGS= -O2 -Wall
 endif
@@ -68,7 +68,7 @@ COCOCFLAGS=
 #### iPhone cross-compile
 #LLVM_CC=/path/to/llvm/libexec/clang-cc
 #CROSS_FLAGS= -nostdinc -isystem=/path/to/iphone/sdk/include -triple=arm-apple-darwin9 -mcpu=arm
-#BC_CFLAGS= -emit-llvm-bc $(CROSS_FLAGS) -O2
+#BC_CFLAGS= -emit-llvm-bc $(CROSS_FLAGS) -O2 -DFORCE_ALIGNMENT=4
 
 # == END OF USER SETTINGS. NO NEED TO CHANGE ANYTHING BELOW THIS LINE =========
 

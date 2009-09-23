@@ -279,6 +279,8 @@ int luaV_equalval (lua_State *L, const TValue *t1, const TValue *t2) {
 
 
 void luaV_concat (lua_State *L, int total, int last) {
+  lu_mem max_sizet = MAX_SIZET;
+  if (G(L)->memlimit < max_sizet) max_sizet = G(L)->memlimit;
   do {
     StkId top = L->base + last + 1;
     int n = 2;  /* number of elements handled in this pass (at least 2) */
@@ -295,7 +297,7 @@ void luaV_concat (lua_State *L, int total, int last) {
       /* collect total length */
       for (n = 1; n < total && tostring(L, top-n-1); n++) {
         size_t l = tsvalue(top-n-1)->len;
-        if (l >= MAX_SIZET - tl) luaG_runerror(L, "string length overflow");
+        if (l >= max_sizet - tl) luaG_runerror(L, "string length overflow");
         tl += l;
       }
       G(L)->buff.n = tl;

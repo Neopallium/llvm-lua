@@ -25,19 +25,9 @@ extern "C" {
 #define RADIANS_PER_DEGREE (PI/180.0)
 
 
-static void llvm_tag_error (lua_State *L, int narg, int tag) {
-  luaL_typerror(L, narg, lua_typename(L, tag));
-}
-
-static void llvm_arg_tonumber_internal(lua_State *L, StkId arg, int narg) {
-  if (luaV_tonumber(arg, arg) == NULL) {
-    llvm_tag_error(L, narg, LUA_TNUMBER);
-  }
-}
-
 #define llvm_arg_tonumber(L, arg, narg) \
   if(!ttisnumber(arg)) { \
-    llvm_arg_tonumber_internal(L, arg, narg); \
+    goto fallback; \
   }
 
 #define MATH_FASTCALL1(name, fname) \
@@ -45,9 +35,12 @@ static int math_ ## name ## _precall (lua_State *L, StkId func, int nresults) { 
   StkId arg1 = func + 1; \
   llvm_arg_tonumber(L, arg1, 1); \
   setnvalue(func, fname(nvalue(arg1))); \
+  L->ci--; \
   L->top = func + 1; \
   L->base = L->ci->base; \
   return PCRC; \
+fallback: \
+  return luaD_precall_c(L, func, nresults); \
 }
 
 #define MATH_FASTCALL2(name, fname) \
@@ -57,9 +50,12 @@ static int math_ ## name ## _precall (lua_State *L, StkId func, int nresults) { 
   llvm_arg_tonumber(L, arg1, 1); \
   llvm_arg_tonumber(L, arg2, 2); \
   setnvalue(func, fname(nvalue(arg1), nvalue(arg2))); \
+  L->ci--; \
   L->top = func + 1; \
   L->base = L->ci->base; \
   return PCRC; \
+fallback: \
+  return luaD_precall_c(L, func, nresults); \
 }
 
 

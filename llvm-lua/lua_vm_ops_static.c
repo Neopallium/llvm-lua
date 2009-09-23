@@ -213,47 +213,44 @@ void vm_count_OP(const Instruction i) {
 }
 
 void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i, int pc_offset) {
+  const Instruction *pc;
   int op = GET_OPCODE(i);
   int line = -1;
   if(cl->p->sizelineinfo > pc_offset) {
     line = cl->p->lineinfo[pc_offset];
   }
   if(pc_offset <= cl->p->sizecode) {
-    L->savedpc = cl->p->code + pc_offset;
+    pc = cl->p->code + pc_offset;
   } else {
-    L->savedpc = cl->p->code + cl->p->sizecode;
+    pc = cl->p->code + cl->p->sizecode;
   }
   fprintf(stderr, "%d: '%s' (%d) = 0x%08X, pc=%p, line=%d\n", pc_offset,
-    luaP_opnames[op], op, i, L->savedpc, line);
-  lua_assert(pc_offset == (L->savedpc - cl->p->code));
-  lua_assert(L->savedpc[0] == i);
+    luaP_opnames[op], op, i, pc, line);
+  lua_assert(pc_offset == (pc - cl->p->code));
+  lua_assert(pc[0] == i);
 }
 
 void vm_next_OP(lua_State *L, LClosure *cl, int pc_offset) {
+  const Instruction *pc = cl->p->code;
+  /* calculate current pc. */
   if(pc_offset <= cl->p->sizecode) {
-    L->savedpc = cl->p->code + pc_offset;
-  } else {
-    L->savedpc = cl->p->code;
+    pc += pc_offset;
   }
-  //vm_print_OP(L, cl, L->savedpc[0], pc_offset);
-  lua_assert(L->savedpc >= cl->p->code && (L->savedpc < &(cl->p->code[cl->p->sizecode])));
+  pc++;
+  //vm_print_OP(L, cl, pc[0], pc_offset);
+  lua_assert(pc >= cl->p->code && (pc < &(cl->p->code[cl->p->sizecode])));
   if ((L->hookmask & (LUA_MASKLINE | LUA_MASKCOUNT)) &&
       (--L->hookcount == 0 || L->hookmask & LUA_MASKLINE)) {
-    luaV_traceexec(L, L->savedpc + 1);
-    if(pc_offset <= cl->p->sizecode) {
-      L->savedpc = cl->p->code + pc_offset;
-    } else {
-      L->savedpc = cl->p->code;
-    }
+    luaV_traceexec(L, pc);
 #if 0
     if (L->status == LUA_YIELD) {  /* did hook yield? */
       // TODO: fix hook yield
-      L->savedpc = L->savedpc - 1;
+      L->savedpc = pc - 1;
       return;
     }
 #endif
   }
-  L->savedpc++;
+  L->savedpc = pc;
 }
 
 int vm_OP_CALL(lua_State *L, int a, int b, int c) {
@@ -314,9 +311,17 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b) {
     L->savedpc = p->code;
   } else {
     tail_recur=0;
+    ci->savedpc = L->savedpc;
     if (!ttisfunction(func)) /* `func' is not a function? */
       func = luaD_tryfuncTM(L, func);  /* check the `function' tag method */
     cl = clvalue(func);
+#ifndef NDEBUG
+    if(cl->l.isC) { /* can't tailcall into C functions.  Causes problems with getfenv() */
+      luaD_precall(L, func, LUA_MULTRET);
+      vm_OP_RETURN(L, a, 0);
+      return PCRC;
+    }
+#endif
   }
 
   /* clean up current frame to prepare to tailcall into next function. */
@@ -324,15 +329,12 @@ int vm_OP_TAILCALL(lua_State *L, int a, int b) {
   for (aux = 0; func+aux < L->top; aux++)  /* move frame down */
     setobjs2s(L, cur_func+aux, func+aux);
   L->top = cur_func+aux;
-  ci->tailcalls++;  /* one more call lost */
   /* JIT function calling it's self. */
   if(tail_recur) {
     for (st = L->top; st < ci->top; st++)
       setnilvalue(st);
     return PCRTAILRECUR;
   }
-  L->ci--;  /* remove new frame */
-  L->savedpc = L->ci->savedpc;
   L->base = cur_func; /* point base at new function to call.  This is needed by luaD_precall. */
   /* unwind stack back to luaD_precall */
   return PCRTAILCALL;

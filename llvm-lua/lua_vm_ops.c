@@ -6,6 +6,11 @@
 extern "C" {
 #endif
 
+/* This is a hack to force 32bit alignment when compiling with clang-cc for the ARM architecture. */
+#ifdef FORCE_ALIGNMENT
+#pragma pack(FORCE_ALIGNMENT)
+#endif
+
 /*
  * lua_vm_ops.c -- Lua ops functions for use by LLVM IR gen.
  *
