@@ -26,7 +26,6 @@ set(EMB_BCS
 set(LLVM_LUA_SRC
 	llvm-lua.cpp
 	lua_interpreter.c
-	${LLVM_COMMON_SRC}
 )
 set(LLVM_LUAC_SRC
 	llvm-luac.cpp
@@ -35,7 +34,6 @@ set(LLVM_LUAC_SRC
 	llvm_dumper.cpp
 	load_liblua_main.cpp
 	liblua_main_bc.h
-	${LLVM_COMMON_SRC}
 )
 set(LLVM_LUA_LIB_SRC
 	lua_interpreter.c
@@ -129,7 +127,7 @@ add_executable(llvm-lua.bin ${LLVM_LUA_SRC})
 add_target_properties(llvm-lua.bin COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
 add_target_properties(llvm-lua.bin LINK_FLAGS
 	"${LD_FLAGS} ${COMMON_LDFLAGS} ${LLVM_LFLAGS}")
-target_link_libraries(llvm-lua.bin llvm-lua;${LLVM_JIT_LIBS})
+target_link_libraries(llvm-lua.bin ${LLVM_LUA_STATIC_LIB};${LLVM_JIT_LIBS})
 # rename llvm-lub.bin to llvm-lua
 set_target_properties(llvm-lua.bin PROPERTIES OUTPUT_NAME llvm-lua)
 
