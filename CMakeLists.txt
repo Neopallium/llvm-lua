@@ -34,7 +34,7 @@ option(LUA_CPP_SUPPORT "Enable c++ support" OFF)
 option(COCO_USE_SETJMP "Coco: Force use of setjmp (instead of gccasm)" OFF)
 option(COCO_USE_UCONTEXT "Coco: Force use of ucontext (instead of gccasm or setjmp)" OFF)
 option(COCO_DISABLE "Disable coco" OFF)
-#option(COCO_DEFAULT_CSTACKSIZE "Coco default cstacksize")
+set(COCO_DEFAULT_CSTACKSIZE "" CACHE STRING "Coco default cstacksize")
 
 
 #

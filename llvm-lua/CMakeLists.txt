@@ -142,6 +142,10 @@ install(TARGETS llvm-luac llvm-lua.bin ${LLVM_LUA_LIBS}
 				ARCHIVE DESTINATION lib)
 
 install(FILES
+	lua-compiler
+	DESTINATION bin)
+
+install(FILES
 	${LUA_LIB_HEADERS}
 	DESTINATION include)
 
