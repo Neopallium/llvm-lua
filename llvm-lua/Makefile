@@ -21,7 +21,7 @@ LIBS= -lm $(MYLIBS)
 BC_CFLAGS= -c -emit-llvm
 #ARCH=i686
 #ARCH=pentium4
-#ARCH=athlon64
+ARCH=athlon64
 #BC_CFLAGS += -m32 
 ifdef DEBUG
 CFLAGS= -O0 -ggdb -Wall
