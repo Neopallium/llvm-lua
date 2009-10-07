@@ -1,3 +1,6 @@
+build
+llvm-lua/*.bc
+llvm-lua/*_bc.h
 src/.libs
 src/*.o
 src/*.lo

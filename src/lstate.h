@@ -98,7 +98,7 @@ typedef struct global_State {
   UpVal uvhead;  /* head of double-linked list of all open upvalues */
   struct Table *mt[NUM_TAGS];  /* metatables for basic types */
   TString *tmname[TM_N];  /* array with tag-method names */
-  JIT_COMPILER_STATE;
+  JIT_COMPILER_STATE
 } global_State;
 
 

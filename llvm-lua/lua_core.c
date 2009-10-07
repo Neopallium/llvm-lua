@@ -75,6 +75,7 @@ void llvm_freeproto (lua_State *L, Proto *f);
 #include "lauxlib.c"
 
 void llvm_newproto (lua_State *L, Proto *f) {
+	(void)L;
 	f->jit_func = NULL;
 	f->func_ref = NULL;
 }

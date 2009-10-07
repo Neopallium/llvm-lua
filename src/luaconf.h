@@ -36,7 +36,7 @@
 #if defined(LUA_USE_LINUX)
 #define LUA_USE_POSIX
 #define LUA_USE_DLOPEN		/* needs an extra library: -ldl */
-//#define LUA_USE_READLINE	/* needs some extra libraries */
+#define LUA_USE_READLINE	/* needs some extra libraries */
 #endif
 
 #if defined(LUA_USE_MACOSX)
@@ -377,7 +377,6 @@
 #if 0
 #define LUA_USE_APICHECK
 #define lua_assert(c) assert(c)
-//#define HARDSTACKTESTS
 #endif
 #if defined(LUA_USE_APICHECK)
 #include <assert.h>

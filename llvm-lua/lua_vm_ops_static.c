@@ -216,6 +216,7 @@ void vm_print_OP(lua_State *L, LClosure *cl, const Instruction i, int pc_offset)
   const Instruction *pc;
   int op = GET_OPCODE(i);
   int line = -1;
+  (void)L;
   if(cl->p->sizelineinfo > pc_offset) {
     line = cl->p->lineinfo[pc_offset];
   }
@@ -350,6 +351,7 @@ void vm_OP_FORPREP_slow(lua_State *L, int a, int sbx) {
   const TValue *init = ra;
   const TValue *plimit = ra+1;
   const TValue *pstep = ra+2;
+  (void)sbx;
   if (!tonumber(init, ra))
     luaG_runerror(L, LUA_QL("for") " initial value must be a number");
   else if (!tonumber(plimit, ra+1))

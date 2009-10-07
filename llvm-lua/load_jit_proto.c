@@ -47,7 +47,7 @@ extern "C" {
 
 Proto *load_jit_proto(lua_State *L, jit_proto *p) {
 	Proto *f = luaF_newproto(L);
-	int i;
+	unsigned int i;
 
 	/* proto source */
 	f->source = luaS_new(L, p->name);

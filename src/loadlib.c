@@ -389,30 +389,30 @@ static int loader_Lua (lua_State *L) {
 
 
 static const char *mkfuncname (lua_State *L, const char *modname) {
-  const char *funcname;
+  const char *fname;
   const char *mark = strchr(modname, *LUA_IGMARK);
   if (mark) modname = mark + 1;
-  funcname = luaL_gsub(L, modname, ".", LUA_OFSEP);
-  funcname = lua_pushfstring(L, POF"%s", funcname);
+  fname = luaL_gsub(L, modname, ".", LUA_OFSEP);
+  fname = lua_pushfstring(L, POF"%s", fname);
   lua_remove(L, -2);  /* remove 'gsub' result */
-  return funcname;
+  return fname;
 }
 
 
 static int loader_C (lua_State *L) {
-  const char *funcname;
+  const char *fname;
   const char *name = luaL_checkstring(L, 1);
   const char *filename = findfile(L, name, "cpath");
   if (filename == NULL) return 1;  /* library not found in this path */
-  funcname = mkfuncname(L, name);
-  if (ll_loadfunc(L, filename, funcname) != 0)
+  fname = mkfuncname(L, name);
+  if (ll_loadfunc(L, filename, fname) != 0)
     loaderror(L, filename);
   return 1;  /* library loaded successfully */
 }
 
 
 static int loader_Croot (lua_State *L) {
-  const char *funcname;
+  const char *fname;
   const char *filename;
   const char *name = luaL_checkstring(L, 1);
   const char *p = strchr(name, '.');
@@ -421,8 +421,8 @@ static int loader_Croot (lua_State *L) {
   lua_pushlstring(L, name, p - name);
   filename = findfile(L, lua_tostring(L, -1), "cpath");
   if (filename == NULL) return 1;  /* root not found */
-  funcname = mkfuncname(L, name);
-  if ((stat = ll_loadfunc(L, filename, funcname)) != 0) {
+  fname = mkfuncname(L, name);
+  if ((stat = ll_loadfunc(L, filename, fname)) != 0) {
     if (stat != ERRFUNC) loaderror(L, filename);  /* real error */
     lua_pushfstring(L, "\n\tno module " LUA_QS " in file " LUA_QS,
                        name, filename);

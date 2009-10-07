@@ -247,7 +247,7 @@ typedef struct Proto {
   lu_byte numparams;
   lu_byte is_vararg;
   lu_byte maxstacksize;
-  JIT_PROTO_STATE;
+  JIT_PROTO_STATE
 } Proto;
 
 
@@ -288,7 +288,7 @@ typedef struct UpVal {
 
 #define ClosureHeader \
 	CommonHeader; lu_byte isC; lu_byte nupvalues; GCObject *gclist; \
-	struct Table *env; lua_precall precall;
+	struct Table *env; lua_precall precall
 
 typedef struct CClosure {
   ClosureHeader;
