@@ -39,6 +39,8 @@ set(LLVM_LUA_LIB_SRC
 	lua_interpreter.c
 	${LLVM_COMMON_SRC}
 )
+set(LLVM_LUA_BINS)
+set(LUA_COMPILER)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 				${PROJECT_SOURCE_DIR}/src
@@ -46,18 +48,31 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 
 add_executable(bin2c bin2c.c)
 
+# cflags for LLVM bitcode files.
+string(REPLACE " " ";" BC_CFLAGS ${COMMON_CFLAGS})
+# setup cross-compiler flags.
+if(CROSS_COMPILE)
+	if(NOT CROSS_ISYSTEM STREQUAL "")
+		set(BC_CFLAGS ${BC_CFLAGS} -nostdinc -isystem=${CROSS_ISYSTEM})
+	endif(NOT CROSS_ISYSTEM STREQUAL "")
+	set(BC_CFLAGS ${BC_CFLAGS} -O2 -DFORCE_ALIGNMENT=${FORCE_ALIGNMENT})
+	set(BC_CFLAGS ${BC_CFLAGS} -triple=${CROSS_TRIPLE} -mcpu=${CROSS_CPU} -emit-llvm-bc -I../src)
+	# don't need shared library support for cross-compiler
+	set(WANT_SHARED_LIBRARY FALSE)
+else(CROSS_COMPILE)
+	set(BC_CFLAGS ${BC_CFLAGS} -c -emit-llvm -I../src)
+endif(CROSS_COMPILE)
+
 #
 # Embedded LLVM bitcode files
 #
-string(REPLACE " " ";" BC_CFLAGS ${COMMON_CFLAGS})
-set(BC_CFLAGS ${BC_CFLAGS} -c -emit-llvm -I../src)
 add_custom_command(OUTPUT lua_vm_ops.bc
-	COMMAND clang ARGS ${BC_CFLAGS} -o lua_vm_ops.bc lua_vm_ops.c
+	COMMAND ${LLVM_CC} ARGS ${BC_CFLAGS} -o lua_vm_ops.bc lua_vm_ops.c
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	DEPENDS lua_vm_ops.c
 )
 add_custom_command(OUTPUT liblua_main.bc
-	COMMAND clang ARGS ${BC_CFLAGS} -o liblua_main.bc lua_main.c
+	COMMAND ${LLVM_CC} ARGS ${BC_CFLAGS} -o liblua_main.bc lua_main.c
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	DEPENDS lua_main.c
 )
@@ -102,10 +117,12 @@ endif(WANT_SHARED_LIBRARY)
 #
 # static library liblua_main.a
 #
-add_library(lua_main STATIC ${LLVM_LUA_LIB_SRC})
-add_target_properties(lua_main COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
-add_target_properties(lua_main LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
-set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} lua_main)
+if(NOT CROSS_COMPILE)
+	add_library(lua_main STATIC ${LLVM_LUA_LIB_SRC})
+	add_target_properties(lua_main COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
+	add_target_properties(lua_main LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
+	set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} lua_main)
+endif(NOT CROSS_COMPILE)
 
 # set library version & soversion
 if(LLVM_LUA_LIBS)
@@ -170,17 +187,32 @@ add_target_properties(llvm-luac COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
 add_target_properties(llvm-luac LINK_FLAGS
 	"${LD_FLAGS} ${COMMON_LDFLAGS} ${LLVM_LFLAGS}")
 target_link_libraries(llvm-luac llvm-lua_static;${LLVM_ALL_LIBS})
+set(LLVM_LUA_BINS llvm-luac)
+
+#
+# build as a cross-compiler
+#
+if(CROSS_COMPILE)
+	set(LUA_COMPILER "${CMAKE_CURRENT_BINARY_DIR}/lua-cross-compiler")
+	set_target_properties(llvm-luac PROPERTIES OUTPUT_NAME ${CROSS_TRIPLE}-llvm-luac)
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/lua-cross-compiler.in" "${LUA_COMPILER}" @ONLY)
+else(CROSS_COMPILE)
+	set(LUA_COMPILER "lua-compiler")
+endif(CROSS_COMPILE)
 
 #
 # Lua stand-alone interpreter
 #
-add_executable(llvm-lua_binary ${LLVM_LUA_SRC})
-add_target_properties(llvm-lua_binary COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
-add_target_properties(llvm-lua_binary LINK_FLAGS
-	"${LD_FLAGS} ${COMMON_LDFLAGS} ${LLVM_LFLAGS}")
-target_link_libraries(llvm-lua_binary ${LLVM_LUA_MAIN_LIB};${LLVM_JIT_LIBS})
-# rename llvm-lub.bin to llvm-lua
-set_target_properties(llvm-lua_binary PROPERTIES OUTPUT_NAME llvm-lua)
+if(NOT CROSS_COMPILE)
+	add_executable(llvm-lua_binary ${LLVM_LUA_SRC})
+	add_target_properties(llvm-lua_binary COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
+	add_target_properties(llvm-lua_binary LINK_FLAGS
+		"${LD_FLAGS} ${COMMON_LDFLAGS} ${LLVM_LFLAGS}")
+	target_link_libraries(llvm-lua_binary ${LLVM_LUA_MAIN_LIB};${LLVM_JIT_LIBS})
+	# rename llvm-lub.bin to llvm-lua
+	set_target_properties(llvm-lua_binary PROPERTIES OUTPUT_NAME llvm-lua)
+	set(LLVM_LUA_BINS llvm-lua_binary)
+endif(NOT CROSS_COMPILE)
 
 #
 # install llvm-lua/llvm-luac & library.
@@ -248,10 +280,10 @@ if(APPLE AND WANT_SHARED_LIBRARY AND WANT_FRAMEWORK)
 	endif(LUA_FRAMEWORK_SYMLINKS)
 
 else(APPLE AND WANT_SHARED_LIBRARY AND WANT_FRAMEWORK)
-	install(TARGETS llvm-lua_binary llvm-luac
+	install(TARGETS ${LLVM_LUA_BINS}
 		RUNTIME DESTINATION bin
 	)
-	install(FILES lua-compiler
+	install(FILES ${LUA_COMPILER}
 		DESTINATION bin)
 
 	if(LLVM_LUA_LIBS)

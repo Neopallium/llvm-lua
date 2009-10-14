@@ -160,6 +160,17 @@ option(LUA_USE_APICHECK "Enable API checks." OFF)
 # llvm-lua options.
 #
 option(LUA_CPP_SUPPORT "Enable c++ support" OFF)
+set(LLVM_CC "clang" CACHE STRING "Command to compile C-code to LLVM bitcode (clang or llvm-gcc)")
+
+#
+# Cross-compile options.
+#
+option(CROSS_COMPILE "Build llvm-luac as a cross-compiler" OFF)
+set(CROSS_ARCH "arm" CACHE STRING "Cross-compiler target.")
+set(CROSS_TRIPLE "arm-apple-darwin9" CACHE STRING "Cross-compiler target triple.")
+set(CROSS_CPU "arm1176jzf-s" CACHE STRING "Cross-compiler target cpu name.")
+set(CROSS_ISYSTEM "" CACHE STRING "Path to target system includes.")
+set(FORCE_ALIGNMENT "4" CACHE STRING "Force byte alignment, for clang-cc hack.")
 
 #
 # LuaCoco options
@@ -226,6 +237,22 @@ if(LUA_USE_CURSES)
 	endif(CURSES_LIBRARY)
 endif(LUA_USE_CURSES)
 
+# LuaCoco flags
+if(COCO_DISABLE)
+	set(COMMON_CFLAGS "${COMMON_CFLAGS} -DCOCO_DISABLE")
+else(COCO_DISABLE)
+	if(COCO_USE_SETJMP)
+		set(COMMON_CFLAGS "${COMMON_CFLAGS} -DCOCO_USE_SETJMP")
+	elseif(COCO_USE_UCONTEXT)
+		set(COMMON_CFLAGS "${COMMON_CFLAGS} -DCOCO_USE_UCONTEXT")
+	endif(COCO_USE_SETJMP)
+
+	# check cstacksize variable.
+	if(COCO_DEFAULT_CSTACKSIZE)
+		set(COMMON_CFLAGS "${COMMON_CFLAGS} -DCOCO_DEFAULT_CSTACKSIZE=${COCO_DEFAULT_CSTACKSIZE}")
+	endif(COCO_DEFAULT_CSTACKSIZE)
+endif(COCO_DISABLE)
+
 #
 # standard flags to use for each build type.
 #
@@ -240,16 +267,16 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 #
 # For uninstall (needs cmake_uninstall.cmake.in in the top-level directory)
 #
-CONFIGURE_FILE(
+configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
   IMMEDIATE @ONLY)
-ADD_CUSTOM_TARGET(uninstall
+add_custom_target(uninstall
   "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
 
 #
 # sub-folders
 #
-ADD_SUBDIRECTORY(llvm-lua build)
-ADD_SUBDIRECTORY(test)
+add_subdirectory(llvm-lua build)
+add_subdirectory(test)
 
