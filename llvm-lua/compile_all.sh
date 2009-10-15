@@ -13,8 +13,7 @@ done
 
 for script in $FILES; do
 	echo "Compiling script: $script"
-	lua-cross-compiler $OPTS $script
-	#lua-compiler $OPTS $script
+	lua-compiler $OPTS $script
 	#./lua-compiler $OPTS $script
 done
 
