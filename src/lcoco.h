@@ -1,13 +1,13 @@
 /*
 ** Lua/Coco glue.
-** Copyright (C) 2004-2008 Mike Pall. See copyright notice in lcoco.c
+** Copyright (C) 2004-2009 Mike Pall. See copyright notice in lcoco.c
 */
 
 #ifndef lcoco_h
 #define lcoco_h
 
-#define LUACOCO_VERSION		"Coco 1.1.4"
-#define LUACOCO_VERSION_NUM	10104
+#define LUACOCO_VERSION		"Coco 1.1.6"
+#define LUACOCO_VERSION_NUM	10106
 
 /* Exported C API to add a C stack to a coroutine. */
 LUA_API lua_State *lua_newcthread(lua_State *L, int cstacksize);
