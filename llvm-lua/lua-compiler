@@ -122,6 +122,7 @@ fi
 #
 # run llvm-luac to compile Lua source/bytecode to LLVM bitcode.
 #
+echo "$LLVM_LUAC $EXTRA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILES}"
 $LLVM_LUAC $EXTRA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILES} || {
 	echo "llvm-luac: failed to compile Lua code into LLVM bitcode."
 	exit 1;

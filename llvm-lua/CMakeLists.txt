@@ -66,23 +66,15 @@ endif(CROSS_COMPILE)
 #
 # Embedded LLVM bitcode files
 #
-add_custom_command(OUTPUT lua_vm_ops.bc
-	COMMAND ${LLVM_CC} ARGS ${BC_CFLAGS} -o lua_vm_ops.bc lua_vm_ops.c
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	DEPENDS lua_vm_ops.c
-)
-add_custom_command(OUTPUT liblua_main.bc
-	COMMAND ${LLVM_CC} ARGS ${BC_CFLAGS} -o liblua_main.bc lua_main.c
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	DEPENDS lua_main.c
-)
-add_custom_command(OUTPUT lua_vm_ops_bc.h
-	COMMAND bin2c -z -c lua_vm_ops.bc lua_vm_ops_bc.h
+add_llvm_bc_library(lua_vm_ops lua_vm_ops.c)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lua_vm_ops_bc.h
+	COMMAND bin2c -z -c ${CMAKE_CURRENT_BINARY_DIR}/lua_vm_ops.bc ${CMAKE_CURRENT_BINARY_DIR}/lua_vm_ops_bc.h
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	DEPENDS bin2c lua_vm_ops.bc
 )
-add_custom_command(OUTPUT liblua_main_bc.h
-	COMMAND bin2c -z -c liblua_main.bc liblua_main_bc.h
+add_llvm_bc_library(liblua_main lua_main.c ${NO_JIT_SRC})
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/liblua_main_bc.h
+	COMMAND bin2c -z -c ${CMAKE_CURRENT_BINARY_DIR}/liblua_main.bc ${CMAKE_CURRENT_BINARY_DIR}/liblua_main_bc.h
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	DEPENDS bin2c liblua_main.bc
 )
@@ -107,7 +99,7 @@ if(WANT_SHARED_LIBRARY)
 	add_target_properties(llvm-lua_dynamic COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
 	add_target_properties(llvm-lua_dynamic LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
 	target_link_libraries(llvm-lua_dynamic ${LIBS})
-	set_target_properties(llvm-lua_dynamic PROPERTIES OUTPUT_NAME lua-llvm)
+	set_target_properties(llvm-lua_dynamic PROPERTIES OUTPUT_NAME llvm-lua)
 
 	# link lua interpreter with dynamic library
 	set(LLVM_LUA_MAIN_LIB llvm-lua_dynamic)
@@ -118,7 +110,7 @@ endif(WANT_SHARED_LIBRARY)
 # static library liblua_main.a
 #
 if(NOT CROSS_COMPILE)
-	add_library(lua_main STATIC ${LLVM_LUA_LIB_SRC})
+	add_library(lua_main STATIC lua_main.c ${NO_JIT_SRC})
 	add_target_properties(lua_main COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
 	add_target_properties(lua_main LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
 	set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} lua_main)
@@ -211,7 +203,7 @@ if(NOT CROSS_COMPILE)
 	target_link_libraries(llvm-lua_binary ${LLVM_LUA_MAIN_LIB};${LLVM_JIT_LIBS})
 	# rename llvm-lub.bin to llvm-lua
 	set_target_properties(llvm-lua_binary PROPERTIES OUTPUT_NAME llvm-lua)
-	set(LLVM_LUA_BINS llvm-lua_binary)
+	set(LLVM_LUA_BINS ${LLVM_LUA_BINS} llvm-lua_binary)
 endif(NOT CROSS_COMPILE)
 
 #
@@ -284,7 +276,10 @@ else(APPLE AND WANT_SHARED_LIBRARY AND WANT_FRAMEWORK)
 		RUNTIME DESTINATION bin
 	)
 	install(FILES ${LUA_COMPILER}
-		DESTINATION bin)
+		DESTINATION bin
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE
+		WORLD_WRITE WORLD_EXECUTE
+	)
 
 	if(LLVM_LUA_LIBS)
 		install(TARGETS ${LLVM_LUA_LIBS}
