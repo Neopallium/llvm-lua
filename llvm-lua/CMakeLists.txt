@@ -83,27 +83,40 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/liblua_main_bc.h
 # Lua library.
 #
 set(LLVM_LUA_LIBS)
-# lua static library.
+# llvm-lua static library.
 add_library(llvm-lua_static STATIC ${LLVM_LUA_LIB_SRC})
 add_target_properties(llvm-lua_static COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
 add_target_properties(llvm-lua_static LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
 target_link_libraries(llvm-lua_static ${LIBS})
 set(LLVM_LUA_MAIN_LIB llvm-lua_static)
 if(WANT_STATIC_LIBRARY)
-	set(LLVM_LUA_LIBS llvm-lua_static)
+	# lua static library without LLVM JIT support.
+	add_library(lua_static STATIC ${NO_JIT_SRC})
+	add_target_properties(lua_static COMPILE_FLAGS "${COMMON_CFLAGS}")
+	add_target_properties(lua_static LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
+	target_link_libraries(lua_static ${LIBS})
+
+	set(LLVM_LUA_LIBS llvm-lua_static lua_static)
 endif(WANT_STATIC_LIBRARY)
 
-# lua dynamic library
 if(WANT_SHARED_LIBRARY)
+	# llvm-lua dynamic library
 	add_library(llvm-lua_dynamic SHARED ${LLVM_LUA_LIB_SRC})
 	add_target_properties(llvm-lua_dynamic COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
 	add_target_properties(llvm-lua_dynamic LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
 	target_link_libraries(llvm-lua_dynamic ${LIBS})
 	set_target_properties(llvm-lua_dynamic PROPERTIES OUTPUT_NAME llvm-lua)
 
+	# lua dynamic library without LLVM JIT support.
+	add_library(lua_dynamic SHARED ${NO_JIT_SRC})
+	add_target_properties(lua_dynamic COMPILE_FLAGS "${COMMON_CFLAGS}")
+	add_target_properties(lua_dynamic LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
+	target_link_libraries(lua_dynamic ${LIBS})
+	set_target_properties(lua_dynamic PROPERTIES OUTPUT_NAME lua)
+
 	# link lua interpreter with dynamic library
 	set(LLVM_LUA_MAIN_LIB llvm-lua_dynamic)
-	set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} llvm-lua_dynamic)
+	set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} llvm-lua_dynamic lua_dynamic)
 endif(WANT_SHARED_LIBRARY)
 
 #

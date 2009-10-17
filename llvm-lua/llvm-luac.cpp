@@ -62,9 +62,17 @@ namespace {
   Bitcode("bc",
             llvm::cl::desc("output LLVM bitcode"));
 
-  llvm::cl::opt<bool>
+  llvm::cl::list<std::string>
+  Libraries("L",
+            llvm::cl::desc("preload Lua library 'name'"),
+              llvm::cl::value_desc("name"),
+              llvm::cl::ZeroOrMore,
+              llvm::cl::Prefix);
+
+  llvm::cl::list<bool>
   ListOpcodes("l",
-            llvm::cl::desc("list opcodes"));
+            llvm::cl::desc("list opcodes"),
+              llvm::cl::ZeroOrMore);
 
   llvm::cl::opt<std::string>
   Output("o",
@@ -99,7 +107,11 @@ int main(int argc, char ** argv) {
   llvm::PrettyStackTraceProgram X(argc, argv);
 	std::vector<std::string> arg_list;
 	llvm::llvm_shutdown_obj Y;   // Call llvm_shutdown() on exit.
+	std::string tmp;
+	char **luac_argv;
+	int luac_argc=0;
 	int new_argc=0;
+	int pos;
 	int ret;
 
   // Initialize targets first.
@@ -115,10 +127,22 @@ int main(int argc, char ** argv) {
 	}
 	// recreate arg list.
 	arg_list.push_back(argv[0]);
+	for(std::vector<std::string>::iterator I=Libraries.begin(); I != Libraries.end(); I++) {
+		pos = Libraries.getPosition(I - Libraries.begin());
+		// keep same format -llibrary or -l library
+		if(argv[pos][0] == '-' && argv[pos][1] == 'L') {
+			tmp = "-L";
+			tmp.append(*I);
+			arg_list.push_back(tmp);
+		} else {
+			arg_list.push_back("-L");
+			arg_list.push_back(*I);
+		}
+	}
 	if(Bitcode) {
 		arg_list.push_back("-bc");
 	}
-	if(ListOpcodes) {
+	for(std::vector<bool>::iterator I=ListOpcodes.begin(); I != ListOpcodes.end(); I++) {
 		arg_list.push_back("-l");
 	}
 	if(!Output.empty()) {
@@ -132,17 +156,20 @@ int main(int argc, char ** argv) {
 		arg_list.push_back("-s");
 	}
 	arg_list.insert(arg_list.end(),InputFiles.begin(), InputFiles.end());
+	/* construct luac_argc, luac_argv. */
+	new_argc = arg_list.size() + 1;
+	luac_argv = (char **)calloc(new_argc, sizeof(char *));
 	for(std::vector<std::string>::iterator I=arg_list.begin(); I != arg_list.end(); I++) {
-		if(new_argc == argc) break;
-		argv[new_argc] = (char *)(*I).c_str();
-		new_argc++;
+		if(luac_argc == new_argc) break;
+		luac_argv[luac_argc] = (char *)(*I).c_str();
+		luac_argc++;
 	}
-	argv[new_argc] = NULL;
+	luac_argv[luac_argc] = NULL;
 
 	// initialize the Lua to LLVM compiler.
 	ret = llvm_compiler_main(0);
 	// Run the main Lua compiler
-	ret = luac_main(new_argc, argv);
+	ret = luac_main(luac_argc, luac_argv);
 	return ret;
 }
 

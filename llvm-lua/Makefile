@@ -94,7 +94,7 @@ BIN_EXT=
 LIB_NAME=liblua.la
 LIB_OBJS=$(NO_JIT_OBJS:.o=.lo)
 
-LLVM_LIB_NAME=liblua-llvm.la
+LLVM_LIB_NAME=libllvm-lua.la
 LLVM_LIB_OBJS=lua_interpreter.lo $(COMMON_OBJS:.o=.lo)
 
 LUA_T=lua$(BIN_EXT)

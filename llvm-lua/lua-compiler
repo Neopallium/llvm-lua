@@ -13,8 +13,9 @@ fi
 #ARCH=pentium4
 #ARCH=athlon64
 FORCE_ARCH="0"
-FILE=lua-native-out
+FILE=
 FILES=""
+OUTPUT_FILE=""
 DEBUG="0"
 KEEP_TMPS="0"
 STATIC="0"
@@ -60,9 +61,18 @@ llvm-luac '-help' output:
 }
 
 # parse command line parameters.
+CONSUME=""
 for arg in "$@" ; do
+	case "$CONSUME" in
+	-o)  OUTPUT_FILE=` echo "$arg" | sed -e 's/-o=//'` ;;
+	-L)  EXTRA_ARGS="$EXTRA_ARGS -L $arg" ;;
+	esac
+	if [[ ! -z "$CONSUME" ]]; then
+		CONSUME=""
+		continue
+	fi
 	case "$arg" in
-	-lua-module*)  MODE="lua_mod"; EXTRA_ARGS="$EXTRA_ARGS $arg" ;;
+	-lua-mod*)  MODE="lua_mod"; EXTRA_ARGS="$EXTRA_ARGS $arg" ;;
 	-static)  STATIC="1" ;;
 	-c++)  CC=g++ ;;
 	-debug)  DEBUG="1" ;;
@@ -71,10 +81,25 @@ for arg in "$@" ; do
 	-arch=*)  FORCE_ARCH="1"; ARCH=` echo "$arg" | sed -e 's/-arch=//'` ;;
 	-help|--help|-h)  usage ;;
 	-version|--version|-v)  version ;;
+	-o|-L)  CONSUME="$arg" ;;
+	-L*)  EXTRA_ARGS="$EXTRA_ARGS $arg" ;;
 	-*)  EXTRA_ARGS="$EXTRA_ARGS $arg" ;;
 	*) FILE=${arg/.lua/}; FILES="$FILES $arg" ;;
 	esac
 done
+
+# find the mode's output file extension.
+OUTPUT_EXT=""
+case "$MODE" in
+	c) OUTPUT_EXT=".c" ;;
+	ll) OUTPUT_EXT=".ll" ;;
+	lua_mod) OUTPUT_EXT=".so" ;;
+esac
+if [[ -z "$OUTPUT_FILE" ]]; then
+	OUTPUT_FILE="${FILE}${OUTPUT_EXT}"
+else
+	FILE=${OUTPUT_FILE}
+fi
 
 # get source file's path & filename.
 FPATH=`dirname ${FILE}`
@@ -135,21 +160,21 @@ case "$MODE" in
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.c"
 		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
 		llc $LLC_FLAGS -f --march=c -o ${FILE}_run.c ${FILE}_opt.bc && \
-		$CC $CFLAGS $LIBS -o ${FILE} ${FILE}_run.c -llua_main -lm -ldl
+		$CC $CFLAGS $LIBS -o ${OUTPUT_FILE} ${FILE}_run.c -llua_main -lm -ldl
 		;;
 	c)
 		TMPS="$TMPS ${FILE}_opt.bc"
 		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc && \
-		llc $LLC_FLAGS -f --march=c -o ${FILE}.c ${FILE}_opt.bc
+		llc $LLC_FLAGS -f --march=c -o ${OUTPUT_FILE} ${FILE}_opt.bc
 		;;
 	ll)
-		llvm-dis -f -o ${FILE}.ll ${FILE}.bc
+		llvm-dis -f -o ${OUTPUT_FILE} ${FILE}.bc
 		;;
 	full_bc)
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.bc ${FILE}_run.s"
 		opt $OPT_FLAGS -f -o ${FILE}_run.bc ${FILE}.bc && \
 		llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_run.s ${FILE}_run.bc && \
-		$CC $CFLAGS -o ${FILE} ${FILE}_run.s -lm -ldl
+		$CC $CFLAGS -o ${OUTPUT_FILE} ${FILE}_run.s -lm -ldl
 		;;
 	lua_mod)
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_mod.s ${FPATH}/${FNAME}.lo ${FPATH}/lib${FNAME}.la"
@@ -163,7 +188,7 @@ case "$MODE" in
 		# compile to dynamic module
 		if [[ $STATIC == "0" ]]; then
 			$LIBTOOL --mode=link $CC -rpath ${RPATH} -o ${FPATH}/lib${FNAME}.la ${FILE}.lo && \
-			cp -p ${FPATH}/.libs/lib${FNAME}.so ${RPATH}/${FILE}.so
+			cp -p ${FPATH}/.libs/lib${FNAME}.so ${RPATH}/${OUTPUT_FILE}
 			if [[ $KEEP_TMPS == "0" ]]; then
 				$LIBTOOL --mode=clean rm -f $TMPS
 			fi

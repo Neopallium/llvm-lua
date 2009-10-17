@@ -36,14 +36,14 @@ namespace {
   InputArgv(llvm::cl::ConsumeAfter, llvm::cl::desc("<script arguments>..."));
 
   llvm::cl::list<std::string>
-  Execute("e",
+  Executes("e",
             llvm::cl::desc("execuate string 'stat'"),
               llvm::cl::value_desc("stat"),
               llvm::cl::ZeroOrMore,
               llvm::cl::Prefix);
 
   llvm::cl::list<std::string>
-  Library("l",
+  Libraries("l",
             llvm::cl::desc("require library 'name'"),
               llvm::cl::value_desc("name"),
               llvm::cl::ZeroOrMore,
@@ -103,8 +103,8 @@ int main(int argc, char ** argv) {
 	}
 	// recreate arg list.
 	arg_list.push_back(argv[0]);
-	for(std::vector<std::string>::iterator I=Execute.begin(); I != Execute.end(); I++) {
-		pos = Execute.getPosition(I - Execute.begin());
+	for(std::vector<std::string>::iterator I=Executes.begin(); I != Executes.end(); I++) {
+		pos = Executes.getPosition(I - Executes.begin());
 		// keep same format -e'statement' or -e 'statement'
 		if(argv[pos][0] == '-' && argv[pos][1] == 'e') {
 			tmp = "-e";
@@ -115,10 +115,8 @@ int main(int argc, char ** argv) {
 			arg_list.push_back(*I);
 		}
 	}
-	for(std::vector<std::string>::iterator I=Library.begin(); I != Library.end(); I++) {
-		pos = Library.getPosition(I - Library.begin());
-		arg_list.push_back("-l");
-		arg_list.push_back(*I);
+	for(std::vector<std::string>::iterator I=Libraries.begin(); I != Libraries.end(); I++) {
+		pos = Libraries.getPosition(I - Libraries.begin());
 		// keep same format -llibrary or -l library
 		if(argv[pos][0] == '-' && argv[pos][1] == 'l') {
 			tmp = "-l";
