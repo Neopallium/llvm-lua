@@ -450,9 +450,10 @@ static const int sentinel_ = 0;
 
 static int ll_require (lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
+  int preload = lua_toboolean(L, 2);
   int i;
-  lua_settop(L, 1);  /* _LOADED table will be at index 2 */
-  lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");
+  lua_settop(L, 1);  /* _PRELOAD/_LOADED table will be at index 2 */
+  lua_getfield(L, LUA_REGISTRYINDEX, (preload)?"_PRELOAD":"_LOADED");
   lua_getfield(L, 2, name);
   if (lua_toboolean(L, -1)) {  /* is it there? */
     if (lua_touserdata(L, -1) == sentinel)  /* check loops */
@@ -477,6 +478,11 @@ static int ll_require (lua_State *L) {
       lua_concat(L, 2);  /* accumulate it */
     else
       lua_pop(L, 1);
+  }
+  if (preload) { /* add library to preload list, don't run it yet. */
+    lua_pushvalue(L, -1);  /* dup module function */
+    lua_setfield(L, 2, name);  /* _PRELOAD[name] = library load function. */
+    return 1;
   }
   lua_pushlightuserdata(L, sentinel);
   lua_setfield(L, 2, name);  /* _LOADED[name] = sentinel */
@@ -656,7 +662,7 @@ LUALIB_API int luaopen_package (lua_State *L) {
   luaL_findtable(L, LUA_REGISTRYINDEX, "_LOADED", 2);
   lua_setfield(L, -2, "loaded");
   /* set field `preload' */
-  lua_newtable(L);
+  luaL_findtable(L, LUA_REGISTRYINDEX, "_PRELOAD", 0);
   lua_setfield(L, -2, "preload");
   lua_pushvalue(L, LUA_GLOBALSINDEX);
   luaL_register(L, NULL, ll_funcs);  /* open lib into global table */

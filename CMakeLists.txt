@@ -254,6 +254,16 @@ else(COCO_DISABLE)
 endif(COCO_DISABLE)
 
 #
+# Support for embedding llvm-lua into c++ programs with exception support.
+#
+if(LUA_CPP_SUPPORT)
+	message(STATUS "Lua C++ support enabled, forcing usage of g++ & llvm-g++")
+	include(CMakeForceCompiler)
+	CMAKE_FORCE_C_COMPILER(${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ID})
+	set(LLVM_CC "llvm-g++")
+endif(LUA_CPP_SUPPORT)
+
+#
 # standard flags to use for each build type.
 #
 if(CMAKE_COMPILER_IS_GNUCC)

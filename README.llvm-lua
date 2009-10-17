@@ -1,25 +1,24 @@
 README for llvm-lua
 
 === Requires ===
- * LLVM 2.4 or later
- * llvm-gcc 4.2.1
+ * LLVM 2.6
+ * Clang or llvm-gcc 4.2.x from llvm.org
 
 === Compile ===
-compile Lua as C code:
- * make linux
-
-Compile Lua as C++ code with support for try/catch:
- * make linux LUA_CPP_SUPPORT=1
-
-Compile with no optimization + debug info:
- * make linux DEBUG=1
+ * mkdir build
+ * cd build
+ for Release build:
+ * cmake .. -DCMAKE_BUILD_TYPE=Release
+ for Debug build:
+ * cmake .. -DCMAKE_BUILD_TYPE=Debug
+ * make
 
 === Install ===
  * make install
 
 === Patches to lua/src ===
  * Emergency Garbage Collector: http://lua-users.org/wiki/EmergencyGarbageCollector
- * LuaCoco-1.1.4: http://luajit.org/coco.html + (x86_64 support added)
+ * LuaCoco-1.1.6: http://luajit.org/coco.html + (x86_64 support added)
  * a few hooks where added to support JIT compiled functions.
 
 === Programs ===
@@ -28,9 +27,14 @@ Compile with no optimization + debug info:
  * lua-compiler: This is a bash script that wraps llvm-luac to compile Lua scripts into standalone executables or loadable modules.
 
 === Libraries ===
- * liblua.a & liblua.so  -- Lua core without LLVM JIT support, but compatible with compiled modules.  Can be used as drop-in replacements of the normal Lua libraries.
- * liblua-llvm.a  -- Static library with LLVM JIT support requires static linking with LLVM libraries.
- * liblua_main.a  -- Used for compling Lua scripts to standalone executables.
+ -- Lua core without LLVM JIT support, but compatible with compiled modules.  Can be used as drop-in replacements of the normal Lua libraries.
+ * liblua_static.a & liblua.so
+
+ -- Static library with LLVM JIT support requires static linking with LLVM libraries.
+ * libllvm-lua_static.a & libllvm-lua.so
+
+ -- Used for compling Lua scripts to standalone executables.
+ * liblua_main.a
 
 === Using llvm-lua ===
 The JIT/interpreter command 'llvm-lua' can be used just like the normal 'lua'.  There are a lot of extra command line options that expose some options from LLVM, they are not required for normal use.  The JIT will compile Lua code with optimization level 3 by default.
@@ -51,9 +55,9 @@ The Lua C API is unchanged and no extra API functions are exposed by llvm-lua.  
 
 Use the following command to link your C app with llvm-lua:
 gcc -o embed.o -c etc/embed_jit.c
-g++ -o embed embed.o -llua-llvm `llvm-config --ldflags --libs core jit native linker` -rdynamic -Wl,-E -lm -ldl
+g++ -o embed embed.o -lllvm-lua `llvm-config --ldflags --libs core jit native linker` -rdynamic -Wl,-E -lm -ldl
 
 Use the following command to link your C++ app with llvm-lua:
 g++ -o embed.o -c etc/embed_jit.cpp
-g++ -o embed embed.o -llua-llvm `llvm-config --ldflags --libs core jit native linker` -rdynamic -Wl,-E -lm -ldl
+g++ -o embed embed.o -lllvm-lua `llvm-config --ldflags --libs core jit native linker` -rdynamic -Wl,-E -lm -ldl
 
