@@ -258,6 +258,7 @@ endif(COCO_DISABLE)
 #
 if(LUA_CPP_SUPPORT)
 	message(STATUS "Lua C++ support enabled, forcing usage of g++ & llvm-g++")
+	set(COMMON_CFLAGS "${COMMON_CFLAGS} -DLUA_CPP_SUPPORT")
 	include(CMakeForceCompiler)
 	CMAKE_FORCE_C_COMPILER(${CMAKE_CXX_COMPILER} ${CMAKE_CXX_COMPILER_ID})
 	set(LLVM_CC "llvm-g++")
