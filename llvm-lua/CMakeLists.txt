@@ -202,7 +202,8 @@ if(CROSS_COMPILE)
 	set_target_properties(llvm-luac PROPERTIES OUTPUT_NAME ${CROSS_TRIPLE}-llvm-luac)
 	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/lua-cross-compiler.in" "${LUA_COMPILER}" @ONLY)
 else(CROSS_COMPILE)
-	set(LUA_COMPILER "lua-compiler")
+	set(LUA_COMPILER "${CMAKE_CURRENT_BINARY_DIR}/lua-compiler")
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/lua-compiler.in" "${LUA_COMPILER}" @ONLY)
 endif(CROSS_COMPILE)
 
 #

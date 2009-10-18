@@ -102,10 +102,9 @@ static int doargs(int argc, char* argv[]) {
     else if (IS("-bc")) {		/* output LLVM bitcode */
       llvm_bitcode=1;
       dumping=0;
-    } else if (IS("-L")) {	/*  */
+    } else if (IS("-L")) {	/* preload library */
       if (preloads >= MAX_PRELOADS) usage(LUA_QL("-L") " too many preloads");
       preload_libs[preloads]=argv[++i];
-      if (IS("-")) preload_libs[preloads]=NULL;
       preloads++;
     } else if (IS("-l"))		/* list */
       ++listing;

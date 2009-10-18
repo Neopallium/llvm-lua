@@ -1,0 +1,534 @@
+2009-10-17  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* CMakeLists.txt, README.llvm-lua, src/loadlib.c:
+	  Last commit missed these files.
+	* llvm-lua/CMakeLists.txt, llvm-lua/Makefile,
+	  llvm-lua/llvm-lua.cpp, llvm-lua/llvm-luac.cpp,
+	  llvm-lua/lua-compiler, llvm-lua/lua_compiler.c:
+	  Added support for preloading libraries during static compilling.
+	  
+	  Updated README.llvm-lua file.
+	  Improved lua-compilers argument parsing.
+	  
+	  Now it is possible to static compile multiple Lua scripts and
+	  there required sub-scripts into one standalone executable.
+
+2009-10-15  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/compile_all.sh:
+	  Wrong compiler in compile_all.sh.
+	* cmake/CustomMacros.cmake, llvm-lua/CMakeLists.txt,
+	  llvm-lua/compile_all.sh, llvm-lua/lua-compiler,
+	  llvm-lua/lua-cross-compiler.in, llvm-lua/lua_core.h,
+	  llvm-lua/lua_vm_ops.c, src/ldo.c:
+	  Fixed bugs. Improved cross-compiler support.
+	* src/lcoco.c, src/lcoco.h:
+	  Update LuaCoco patch to 1.1.6
+
+2009-10-14  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* CMakeLists.txt, llvm-lua/CMakeLists.txt,
+	  llvm-lua/lua-cross-compiler.in:
+	  Adding cross-compiler support to CMake build scripts.
+
+2009-10-07  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* .svnignore, CMakeLists.txt, cmake_uninstall.cmake.in,
+	  llvm-lua/CMakeLists.txt, llvm-lua/load_jit_proto.c,
+	  llvm-lua/lua_core.c, llvm-lua/lua_vm_ops_static.c, src/loadlib.c,
+	  src/lobject.h, src/lstate.h, src/ltable.c, src/luaconf.h:
+	  Added MacOSX framework support.
+
+2009-09-27  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/CMakeLists.txt:
+	  Remove duplicate source files
+	* CMakeLists.txt, llvm-lua/CMakeLists.txt:
+	  Added lua-compiler to CMake build.
+	* CMakeLists.txt, cmake, cmake/CustomMacros.cmake,
+	  cmake/FindLLVM.cmake, llvm-lua/CMakeLists.txt, llvm-lua/Makefile:
+	  Add CMake build scripts.
+
+2009-09-23  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/Makefile,
+	  llvm-lua/hook_parser.c, llvm-lua/llvm-lua.cpp,
+	  llvm-lua/llvm_lmathlib.c, llvm-lua/lua_vm_ops.c,
+	  llvm-lua/lua_vm_ops_static.c, llvm-lua/tests/coroutine.lua,
+	  llvm-lua/tests/test_lineerror.lua, llvm-lua/tests/test_tail.lua,
+	  llvm-lua/tests/test_tail_nil_multret.lua, src/lauxlib.c,
+	  src/ldo.c, src/lvm.c:
+	  Fixed memory leak, tailcalls, memlimit.
+	  Release LLVM Function objects when Lua Proto's are garbage
+	  collected.
+	  Fixed a few of tailcall bugs.
+	  Fixed a bug with the memlimit code.
+	  Improved command line option parsing.
+	  Added hack for iPhone support.
+
+2009-09-22  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/tests/test_varg_tail2.lua:
+	  Add testcase: tailcall from varg function.
+	* llvm-lua/lua_vm_ops_static.c, src/ldo.c:
+	  Fixed tailcall inside varg function bug.
+
+2009-09-18  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/Makefile, llvm-lua/llvm-lua.cpp, llvm-lua/llvm-luac.cpp,
+	  llvm-lua/llvm_compiler.cpp:
+	  Fixed memory leaks and a memory access error.
+
+2009-09-17  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/Makefile, llvm-lua/compile_all.sh,
+	  llvm-lua/load_jit_proto.c, llvm-lua/lua-compiler:
+	  Improved cross-compiling support.
+	* llvm-lua/LLVMDumper.cpp, llvm-lua/LLVMDumper.h,
+	  llvm-lua/load_jit_proto.c, llvm-lua/load_jit_proto.h:
+	  Made jit_proto & constant_type structures more portable.
+	  Added correct amount of padding for target architecture.
+
+2009-09-16  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/llvm-luac.cpp:
+	  Adding support for all native backends to llvm-luac.
+	* README.llvm-lua, etc/embed_jit.c, etc/embed_jit.cpp:
+	  Added example 'embed_jit.c' & 'embed_jit.cpp' files.
+	* llvm-lua/llvm_compiler.cpp:
+	  Fixed bug with native target initialization.
+	* llvm-lua/lua-compiler:
+	  Add better support for -arch flag
+	* llvm-lua/lua-compiler:
+	  Removed debug messages.
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/lua-compiler:
+	  Added support for compiling static lua-modules.
+	* llvm-lua/lua-compiler:
+	  Removed unneeded "-rdynamic -Wl,-E" from 'lua-compiler' script.
+
+2009-09-15  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/LLVMDumper.cpp, llvm-lua/LLVMDumper.h,
+	  llvm-lua/Makefile, llvm-lua/llvm_compiler.cpp,
+	  llvm-lua/load_embedded_bc.cpp, llvm-lua/load_embedded_bc.h,
+	  llvm-lua/load_liblua_main.cpp, llvm-lua/load_liblua_main.h,
+	  llvm-lua/load_vm_ops.cpp, llvm-lua/load_vm_ops.h, src/lcode.c,
+	  src/ldblib.c, src/lvm.c:
+	  Ported code to LLVM 2.6 API.
+	  Applied patches for Lua 5.1.4:
+	  3. Wrong code generation for some particular boolean expressions
+	  4. luaV_settable may invalidate a reference to a table and try to
+	  reuse it.
+	  5. debug.getfenv does not check whether it has an argument.
+
+2009-06-16  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/Makefile:
+	  Fixing MinGW support.
+
+2009-06-07  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* Makefile, llvm-lua/Makefile:
+	  Add support for compiling shared library liblua-llvm.so
+
+2009-06-04  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/lua-compiler:
+	  Fixed bug with lua-compiler.
+	  Added '-c++' option for static compiling Lua code with C++
+	  exception support.
+	* README.llvm-lua, llvm-lua/LLVMCompiler.cpp,
+	  llvm-lua/LLVMCompiler.h, llvm-lua/LLVMDumper.cpp,
+	  llvm-lua/LLVMDumper.h, llvm-lua/Makefile, llvm-lua/TODO,
+	  llvm-lua/hook_parser.c, llvm-lua/llvm-lua.cpp,
+	  llvm-lua/llvm-lua.h, llvm-lua/llvm-luac.cpp,
+	  llvm-lua/llvm-luac.h, llvm-lua/llvm_compiler.cpp,
+	  llvm-lua/llvm_compiler.h, llvm-lua/llvm_compiler_private.h,
+	  llvm-lua/llvm_dumper.cpp, llvm-lua/llvm_dumper.h,
+	  llvm-lua/llvm_lmathlib.c, llvm-lua/load_embedded_bc.cpp,
+	  llvm-lua/load_embedded_bc.h, llvm-lua/load_jit_proto.c,
+	  llvm-lua/load_jit_proto.h, llvm-lua/load_liblua_main.cpp,
+	  llvm-lua/load_liblua_main.h, llvm-lua/load_vm_ops.cpp,
+	  llvm-lua/load_vm_ops.h, llvm-lua/lua-compiler,
+	  llvm-lua/lua_compiler.c, llvm-lua/lua_core.c,
+	  llvm-lua/lua_core.h, llvm-lua/lua_interpreter.c,
+	  llvm-lua/lua_main.c, llvm-lua/lua_normal.c,
+	  llvm-lua/lua_vm_ops.c, llvm-lua/lua_vm_ops.h,
+	  llvm-lua/lua_vm_ops_static.c, llvm-lua/no_jit.c, src/lcoco.h,
+	  src/ldebug.c, src/ldebug.h, src/lstate.c, src/lstate.h,
+	  src/luaconf.h, src/lvm.c, src/print.c:
+	  Add C++ exception support. llvm-lua is now thread-safe.
+	  
+	  Moved LLVMCompiler instance from global variable to
+	  'global_State'
+	  to help make llvm-lua thread-safe.
+
+2009-05-31  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* README.llvm-lua, llvm-lua/lua-compiler:
+	  Fixed bug with lua-compiler script and the 'cbe' mode.
+	  Fixed example compile/link commands in README.llvm-lua.
+	* README.llvm-lua, llvm-lua/Makefile, llvm-lua/compile_all.sh,
+	  llvm-lua/llvm_compiler.cpp, llvm-lua/llvm_compiler.h,
+	  llvm-lua/lua-compiler:
+	  Bump version to 1.0.
+	  Add for information to README.llvm-lua
+	  Fixed some bugs with embedding llvm-lua.
+	  Added -help option to lua-compiler script.
+
+2009-05-30  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/tests, llvm-lua/tests/NOTES, llvm-lua/tests/add.lua,
+	  llvm-lua/tests/arg_test.lua, llvm-lua/tests/big_table.lua,
+	  llvm-lua/tests/dump.lua, llvm-lua/tests/for.lua,
+	  llvm-lua/tests/hash2.lua, llvm-lua/tests/loadk.lua,
+	  llvm-lua/tests/local_nil.lua, llvm-lua/tests/loops.lua,
+	  llvm-lua/tests/lua_tail.lua, llvm-lua/tests/nestedloop.lua,
+	  llvm-lua/tests/nestedloop2.lua, llvm-lua/tests/nums.lua,
+	  llvm-lua/tests/scimark_loop.lua, llvm-lua/tests/scimark_rand.lua,
+	  llvm-lua/tests/stress_for.lua, llvm-lua/tests/test.lua,
+	  llvm-lua/tests/test2.lua, llvm-lua/tests/test3.lua,
+	  llvm-lua/tests/test4.lua, llvm-lua/tests/test_math.lua,
+	  llvm-lua/tests/test_tail.lua:
+	  Added lua scripts used for regression testing.
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/TODO,
+	  llvm-lua/llvm_lmathlib.c, llvm-lua/lua_core.c, src/lauxlib.c,
+	  src/lauxlib.h, src/ldo.c:
+	  Improved speed of math.* functions by lowering the call overhead.
+
+2009-05-28  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp:
+	  Fixed some bugs with numeric forloop optimizations.
+
+2009-05-24  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/TODO, llvm-lua/lua-compiler, llvm-lua/lua_vm_ops.c,
+	  llvm-lua/lua_vm_ops.h, llvm-lua/lua_vm_ops_static.c, src/ldo.c:
+	  Improved performance of numeric for loops.
+
+2009-05-21  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/llvm_dumper.cpp, llvm-lua/llvm_dumper.h,
+	  llvm-lua/lua_compiler.c, llvm-lua/lua_vm_ops.c,
+	  llvm-lua/lua_vm_ops.h, llvm-lua/lua_vm_ops_static.c,
+	  llvm-lua/no_jit.c:
+	  Added some optimizations.
+	  Fixed a few bugs.
+
+2009-05-20  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* Makefile, llvm-lua/LLVMDumper.cpp, llvm-lua/Makefile,
+	  llvm-lua/compile_all.sh, llvm-lua/lua-compiler,
+	  llvm-lua/lua_compiler.c:
+	  Fixed support for using c-backend to compile Lua scripts to
+	  standalone binaries.
+	* Makefile, llvm-lua/Makefile, llvm-lua/compile.sh,
+	  llvm-lua/compile_all.sh, llvm-lua/llvm_compiler.h,
+	  llvm-lua/lua-compiler:
+	  Bump version number to 0.9
+	  Cleaned up Makefile.
+	  Renamed llvm-luac wrapper script from compile.sh to lua-compiler.
+	* Makefile, README.llvm-lua, llvm-lua/LLVMDumper.cpp,
+	  llvm-lua/Makefile, llvm-lua/bin2c.c, llvm-lua/compile.sh,
+	  llvm-lua/llvm_compiler.cpp, llvm-lua/llvm_compiler.h,
+	  llvm-lua/llvm_dumper.cpp, llvm-lua/llvm_dumper.h,
+	  llvm-lua/load_embedded_bc.cpp, llvm-lua/load_embedded_bc.h,
+	  llvm-lua/load_liblua_main.cpp, llvm-lua/load_liblua_main.h,
+	  llvm-lua/load_vm_ops.cpp, llvm-lua/lua_vm_ops_module.cpp,
+	  llvm-lua/lua_vm_ops_module.h:
+	  Embedded lua_vm_ops.bc & liblua_main.bc instead of
+	  loading/linking them at run-time.
+
+2009-05-19  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* Makefile, llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/LLVMDumper.cpp, llvm-lua/LLVMDumper.h,
+	  llvm-lua/Makefile, llvm-lua/TODO, llvm-lua/compile.sh,
+	  llvm-lua/hook_parser.c, llvm-lua/load_jit_proto.c,
+	  llvm-lua/load_jit_proto.h, llvm-lua/lua_main.c,
+	  llvm-lua/lua_vm_ops.c, llvm-lua/lua_vm_ops.h,
+	  llvm-lua/lua_vm_ops_static.c, llvm-lua/no_jit.c, src/ldo.c,
+	  src/luaconf.h:
+	  Fixed bugs with debug hooks.
+	  Added line/upvalues/locals info to jit_proto, to support
+	  debugging info of JITed code.
+	  Allow debuging info be stripped when compling Lua scripts.
+
+2009-05-17  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* Makefile, etc/lua.pc, llvm-lua/LLVMCompiler.cpp,
+	  llvm-lua/compile.sh, llvm-lua/load_vm_ops.cpp, src/ldebug.c:
+	  Fixed compile bug.
+	  Fixed lua debug libraries handling of JIT functions that have Lua
+	  bytecode stripped.
+
+2009-03-12  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/LLVMDumper.cpp, llvm-lua/LLVMDumper.h,
+	  llvm-lua/Makefile, llvm-lua/TODO, llvm-lua/compile.sh,
+	  llvm-lua/compile_all.sh, llvm-lua/compile_bc.sh,
+	  llvm-lua/compile_c.sh, llvm-lua/hook_parser.c,
+	  llvm-lua/llvm-lua.cpp, llvm-lua/llvm-luac.cpp,
+	  llvm-lua/llvm_compiler.cpp, llvm-lua/llvm_compiler.h,
+	  llvm-lua/load_jit_proto.c, llvm-lua/load_jit_proto.h,
+	  llvm-lua/lua_compiler.c, llvm-lua/lua_core.c,
+	  llvm-lua/lua_main.c, llvm-lua/lua_vm_ops.h,
+	  llvm-lua/lua_vm_ops_static.c:
+	  Added support for stripping Lua opcodes from compiled Lua code
+	  (can be used for obfucation).
+	  Added support for compiling Lua code as native code modules
+	  instead of just standalone binaries.
+	  Added support for compiling llvm-lua as an embeddable library
+	  with JIT support.
+	  Improved compile.sh wrapper script.
+
+2009-03-06  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/Makefile, llvm-lua/lua_vm_ops.c, src/lvm.c:
+	  Fixed bug with Lua stack re-allocation.
+
+2009-01-22  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/Makefile, llvm-lua/compile_c.sh, llvm-lua/llvm-lua.cpp,
+	  llvm-lua/llvm-luac.cpp:
+	  fixed bug with llvm asserts.
+	  Added bash script for compiling lua scripts to C code.
+
+2008-10-09  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/Makefile, llvm-lua/compile.sh, llvm-lua/compile_all.sh,
+	  llvm-lua/compile_bc.sh:
+	  compile llvm bitcode to assembly instead of 'C' code.
+
+2008-10-08  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/Makefile, llvm-lua/compile.sh:
+	  remove '-foptimize-sibling-calls'
+	  disabled '-march=athlon64'
+	* llvm-lua/llvm_compiler.h:
+	  bump version to 0.5
+	* src/ldo.h:
+	  Added 'PCRTAILRECUR' for tail-recursive calls from JIT functions.
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/compile.sh,
+	  llvm-lua/hook_parser.c, llvm-lua/llvm-lua.cpp,
+	  llvm-lua/llvm-luac.cpp, llvm-lua/llvm_compiler.cpp,
+	  llvm-lua/lua_vm_ops.c, llvm-lua/lua_vm_ops_static.c:
+	  Fixed memory offset bug & memory leaks.
+	  Fixed '-time-passes' to display info about passes run by JIT.
+	  Changed default Optimization level to '3'.
+
+2008-10-07  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/LLVMDumper.cpp, llvm-lua/LLVMDumper.h, llvm-lua/TODO,
+	  llvm-lua/compile.sh, llvm-lua/hook_parser.c,
+	  llvm-lua/llvm-lua.cpp, llvm-lua/llvm-luac.cpp,
+	  llvm-lua/llvm_compiler.cpp, llvm-lua/llvm_compiler.h,
+	  llvm-lua/lua_compiler.c, llvm-lua/lua_main.c,
+	  llvm-lua/lua_vm_ops.c, llvm-lua/lua_vm_ops.h,
+	  llvm-lua/lua_vm_ops_static.c:
+	  Added specialized functions for OP_EQ.
+	  Added support to Lower for loop's internal idx variable from the
+	  Lua stack to the c-stack.
+	  Added support to remove "LOADK" opcodes used for constant for
+	  loop parameters and turn then into llvm constants.
+	  Added command-line options for controlling the optimization
+	  level.
+	  Fixed bug with passing command-line options to the Lua core
+	  interpreter & compiler.
+
+2008-10-05  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMDumper.cpp,
+	  llvm-lua/lua_vm_ops_static.c:
+	  Fixed a few bugs.
+	  Improved tail-calls from JIT function to non-JIT Lua function.
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/TODO, llvm-lua/llvm-lua.cpp,
+	  llvm-lua/llvm-luac.cpp, llvm-lua/llvm_compiler.h:
+	  Added LLVM command options to llvm-luac.
+	  Don't compiled inlined opcode functions, since they will not be
+	  called.
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/LLVMDumper.cpp, llvm-lua/Makefile, llvm-lua/compile.sh,
+	  llvm-lua/hook_parser.c, llvm-lua/lua_vm_ops.c,
+	  llvm-lua/lua_vm_ops.h, llvm-lua/lua_vm_ops_static.c, src/ldo.c,
+	  src/ldo.h:
+	  Fixed tail-call support, now lua scripts can make tail-calls
+	  without the c-stack/lua callstack growing.
+	  Added some optimizations of the Lua bytecode and generated
+	  machine code.
+	  Lowered the opcode limit from 800 down to 200 for the max
+	  function size that is JITed.
+	  Added support for specialized versions of each opcode function to
+	  support more optimizations.
+
+2008-10-03  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/lua_vm_ops.h, llvm-lua/lua_vm_ops_static.c:
+	  remove unused argument.
+	* llvm-lua/LLVMDumper.cpp, llvm-lua/LLVMDumper.h,
+	  llvm-lua/load_jit_proto.h, llvm-lua/lua_main.c:
+	  Fixed 32bit support for static compiling Lua scripts.
+	* Makefile, README.llvm-lua, llvm-lua/Makefile:
+	  Improve Makefile support for other platforms.
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/Makefile, llvm-lua/compile.sh, llvm-lua/compile_bc.sh,
+	  llvm-lua/hook_parser.c, llvm-lua/llvm_compiler.cpp,
+	  llvm-lua/llvm_compiler.h, llvm-lua/lua_core.c,
+	  llvm-lua/lua_vm_ops.c, llvm-lua/lua_vm_ops.h,
+	  llvm-lua/lua_vm_ops_static.c:
+	  Improved true tailcall support when calling a JIT/C function from
+	  a JIT function.
+	  Removed 'func_state' structure from JIT functions to allow
+	  tailcalls into vm_OP_* functions.
+	* src/ldo.c, src/ldo.h, src/luaconf.h:
+	  Export 'tryfuncTM' function as 'luaD_tryfuncTM' from ldo.c
+	  disable HARDSTACKTESTS tests.
+
+2008-09-29  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/Makefile, llvm-lua/compile.sh, llvm-lua/lua_compiler.h,
+	  llvm-lua/lua_core.c, llvm-lua/lua_core.h, llvm-lua/lua_vm_ops.c,
+	  llvm-lua/lua_vm_ops.h, llvm-lua/lua_vm_ops_module.cpp,
+	  llvm-lua/lua_vm_ops_static.c:
+	  Moved some large vm_OP_* functions from loadable bitcode file
+	  into llvm-lua.
+	  Added LLVM timers to compiler.
+	  Added support for LLVM command line options.
+	  Some code clean up.
+
+2008-09-28  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/lua_vm_ops_module.cpp:
+	  fixed compile bug.
+
+2008-09-27  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/llvm-lua.cpp:
+	  Add command line parsing support for LLVM options.
+	* llvm-lua/load_vm_ops.cpp:
+	  search current directory & LLVM_LIB_SEARCH_PATH for lua_vm_ops.bc
+	  file.
+	* llvm-lua/LLVMCompiler.cpp, llvm-lua/LLVMCompiler.h,
+	  llvm-lua/LLVMDumper.cpp, llvm-lua/LLVMDumper.h,
+	  llvm-lua/Makefile, llvm-lua/compile.sh, llvm-lua/hook_parser.c,
+	  llvm-lua/llvm-compiler.cpp, llvm-lua/llvm-compiler.h,
+	  llvm-lua/llvm-lua.cpp, llvm-lua/llvm-luac.cpp,
+	  llvm-lua/llvm_compiler.cpp, llvm-lua/llvm_compiler.h,
+	  llvm-lua/load_jit_proto.c, llvm-lua/load_vm_ops.cpp,
+	  llvm-lua/load_vm_ops.h, llvm-lua/lua_compiler.c,
+	  llvm-lua/lua_core.c, llvm-lua/lua_main.c, llvm-lua/lua_vm_ops.c,
+	  llvm-lua/lua_vm_ops_module.cpp, llvm-lua/lua_vm_ops_module.h:
+	  Added a new way to load the lua_vm_ops.bc by compiling it into
+	  C++ LLVM API calls and embedding it into the llvm-lua & llvm-luac
+	  programs.
+	  Re-factored Lua bytecode to LLVM IR compiler code into two
+	  classes LLVMCompiler & LLVMDumper.
+	  Fixed some other bugs.
+
+2008-09-23  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* src/lcoco.c:
+	  Mac OS X 64bit fix from Mike Pall
+
+2008-09-19  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* Makefile, doc/manual.html, doc/readme.html, etc/lua.pc,
+	  src/lapi.c, src/loadlib.c, src/lobject.h, src/lstrlib.c,
+	  src/lua.h:
+	  Update to Official Lua-5.1.4
+
+2008-08-30  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* src/lcoco.c:
+	  Changed from using %rbp & %rbx to %r12 & %r13 for wrap function.
+	* llvm-lua/lua_vm_ops.c, src/lvm.c, src/lvm.h:
+	  Fixed support for line/count debug hooks.
+	* src/lcoco.c:
+	  Added wrap function to set register %rdi (to lua_State *) on
+	  first resume of a coroutine, instead of very resume/yield.
+
+2008-08-28  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/Makefile, llvm-lua/llvm-compiler.cpp:
+	  Patch from "Kay Ropke" fixes bug with compiling on OS X with the
+	  latest LLVM revision(55456).
+
+2008-08-27  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/llvm-compiler.cpp, llvm-lua/load_jit_proto.h:
+	  fixed bug with boolean constants when static compiling Lua
+	  scripts.
+
+2008-08-26  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/compile_all.sh:
+	  add message
+
+2008-08-25  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/Makefile, llvm-lua/compile.sh, llvm-lua/compile_all.sh,
+	  llvm-lua/hook_parser.c, llvm-lua/llvm-compiler.cpp,
+	  llvm-lua/lua_vm_ops.c:
+	  Fixed bugs with calling non-JITed Lua functions.
+	  Manually inline opcode functions instead of using the inliner
+	  pass.
+	  Code cleanup.
+
+2008-08-23  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* src/lcoco.c:
+	  fixed bug with assembly coco_switcher for x86_64.
+	* src/Makefile, src/lcoco.c:
+	  Added added assembly ctx_switcher for x86_64-linux to LuaCoco.
+	* .svnignore, COPYRIGHT, HISTORY, INSTALL, Makefile, README,
+	  README.llvm-lua, doc, doc/amazon.gif, doc/contents.html,
+	  doc/cover.png, doc/logo.gif, doc/lua.1, doc/lua.css,
+	  doc/lua.html, doc/luac.1, doc/luac.html, doc/manual.css,
+	  doc/manual.html, doc/readme.html, etc, etc/Makefile, etc/README,
+	  etc/all.c, etc/lua.hpp, etc/lua.ico, etc/lua.pc, etc/luavs.bat,
+	  etc/min.c, etc/noparser.c, etc/strict.lua, llvm-lua,
+	  llvm-lua/COPYRIGHT.llvm-lua, llvm-lua/Makefile,
+	  llvm-lua/compile.sh, llvm-lua/hook_parser.c,
+	  llvm-lua/llvm-compiler.cpp, llvm-lua/llvm-compiler.h,
+	  llvm-lua/llvm-lua.cpp, llvm-lua/llvm-lua.h,
+	  llvm-lua/llvm-luac.cpp, llvm-lua/llvm-luac.h,
+	  llvm-lua/load_jit_proto.c, llvm-lua/load_jit_proto.h,
+	  llvm-lua/lua_compiler.c, llvm-lua/lua_compiler.h,
+	  llvm-lua/lua_core.c, llvm-lua/lua_core.h,
+	  llvm-lua/lua_interpreter.c, llvm-lua/lua_interpreter.h,
+	  llvm-lua/lua_main.c, llvm-lua/lua_normal.c,
+	  llvm-lua/lua_vm_ops.c, llvm-lua/lua_vm_ops.h, src, src/Makefile,
+	  src/lapi.c, src/lapi.h, src/lauxlib.c, src/lauxlib.h,
+	  src/lbaselib.c, src/lcoco.c, src/lcoco.h, src/lcode.c,
+	  src/lcode.h, src/ldblib.c, src/ldebug.c, src/ldebug.h, src/ldo.c,
+	  src/ldo.h, src/ldump.c, src/lfunc.c, src/lfunc.h, src/lgc.c,
+	  src/lgc.h, src/linit.c, src/liolib.c, src/llex.c, src/llex.h,
+	  src/llimits.h, src/lmathlib.c, src/lmem.c, src/lmem.h,
+	  src/loadlib.c, src/lobject.c, src/lobject.h, src/lopcodes.c,
+	  src/lopcodes.h, src/loslib.c, src/lparser.c, src/lparser.h,
+	  src/lstate.c, src/lstate.h, src/lstring.c, src/lstring.h,
+	  src/lstrlib.c, src/ltable.c, src/ltable.h, src/ltablib.c,
+	  src/ltm.c, src/ltm.h, src/lua.c, src/lua.h, src/luac.c,
+	  src/luaconf.h, src/lualib.h, src/lundump.c, src/lundump.h,
+	  src/lvm.c, src/lvm.h, src/lzio.c, src/lzio.h, src/print.c, test,
+	  test/README, test/bisect.lua, test/cf.lua, test/echo.lua,
+	  test/env.lua, test/factorial.lua, test/fib.lua, test/fibfor.lua,
+	  test/globals.lua, test/hello.lua, test/life.lua, test/luac.lua,
+	  test/printf.lua, test/readonly.lua, test/sieve.lua,
+	  test/sort.lua, test/table.lua, test/trace-calls.lua,
+	  test/trace-globals.lua, test/xd.lua:
+	  Initial 0.1 release
+
+2008-08-23  
+
+	* .:
+	  Initial directory structure.
+
