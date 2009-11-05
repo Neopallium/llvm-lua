@@ -133,7 +133,10 @@ void luaV_gettable (lua_State *L, const TValue *t, TValue *key, StkId val) {
 
 void luaV_settable (lua_State *L, const TValue *t, TValue *key, StkId val) {
   int loop;
-  TValue tmp;
+  TValue temp;
+  setnilvalue(L->top);
+  L->top++;
+  fixedstack(L);
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
     const TValue *tm;
     if (ttistable(t)) {  /* `t' is a table? */
@@ -141,6 +144,8 @@ void luaV_settable (lua_State *L, const TValue *t, TValue *key, StkId val) {
       TValue *oldval = luaH_set(L, h, key); /* do a primitive set */
       if (!ttisnil(oldval) ||  /* result is no nil? */
           (tm = fasttm(L, h->metatable, TM_NEWINDEX)) == NULL) { /* or no TM? */
+        L->top--;
+        unfixedstack(L);
         setobj2t(L, oldval, val);
         luaC_barriert(L, h, val);
         return;
@@ -150,12 +155,15 @@ void luaV_settable (lua_State *L, const TValue *t, TValue *key, StkId val) {
     else if (ttisnil(tm = luaT_gettmbyobj(L, t, TM_NEWINDEX)))
       luaG_typeerror(L, t, "index");
     if (ttisfunction(tm)) {
+      L->top--;
+      unfixedstack(L);
       callTM(L, tm, t, key, val);
       return;
     }
     /* else repeat with `tm' */
-    setobj(L, &tmp, tm);  /* avoid pointing inside table (may rehash) */
-    t = &tmp;
+    setobj(L, &temp, tm);  /* avoid pointing inside table (may rehash) */
+    t = &temp;
+    setobj2s(L, L->top-1, t);  /* need to protect value from EGC. */
   }
   luaG_runerror(L, "loop in settable");
 }
@@ -294,6 +302,7 @@ void luaV_concat (lua_State *L, int total, int last) {
       size_t tl = tsvalue(top-1)->len;
       char *buffer;
       int i;
+      fixedstack(L);
       /* collect total length */
       for (n = 1; n < total && tostring(L, top-n-1); n++) {
         size_t l = tsvalue(top-n-1)->len;
@@ -310,6 +319,7 @@ void luaV_concat (lua_State *L, int total, int last) {
       }
       setsvalue2s(L, top-n, luaS_newlstr(L, buffer, tl));
       luaZ_resetbuffer(&G(L)->buff);
+      unfixedstack(L);
     }
     total -= n-1;  /* got `n' strings to create 1 new */
     last -= n-1;

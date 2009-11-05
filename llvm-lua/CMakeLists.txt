@@ -215,7 +215,7 @@ if(NOT CROSS_COMPILE)
 	add_target_properties(llvm-lua_binary LINK_FLAGS
 		"${LD_FLAGS} ${COMMON_LDFLAGS} ${LLVM_LFLAGS}")
 	target_link_libraries(llvm-lua_binary ${LLVM_LUA_MAIN_LIB};${LLVM_JIT_LIBS})
-	# rename llvm-lub.bin to llvm-lua
+	# rename llvm-lua.bin to llvm-lua
 	set_target_properties(llvm-lua_binary PROPERTIES OUTPUT_NAME llvm-lua)
 	set(LLVM_LUA_BINS ${LLVM_LUA_BINS} llvm-lua_binary)
 endif(NOT CROSS_COMPILE)
