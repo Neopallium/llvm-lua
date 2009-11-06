@@ -384,6 +384,7 @@ void vm_OP_SETLIST(lua_State *L, int a, int b, int c) {
   TValue *ra = base + a;
   int last;
   Table *h;
+  fixedstack(L);
   if (b == 0) {
     b = cast_int(L->top - ra) - 1;
     L->top = L->ci->top;
@@ -398,6 +399,7 @@ void vm_OP_SETLIST(lua_State *L, int a, int b, int c) {
     setobj2t(L, luaH_setnum(L, h, last--), val);
     luaC_barriert(L, h, val);
   }
+  unfixedstack(L);
 }
 
 void vm_OP_CLOSURE(lua_State *L, LClosure *cl, int a, int bx, int pseudo_ops_offset) {
@@ -411,6 +413,7 @@ void vm_OP_CLOSURE(lua_State *L, LClosure *cl, int a, int bx, int pseudo_ops_off
   p = cl->p->p[bx];
   pc=cl->p->code + pseudo_ops_offset;
   nup = p->nups;
+  fixedstack(L);
   ncl = luaF_newLclosure(L, nup, cl->env);
   setclvalue(L, ra, ncl);
   ncl->l.p = p;
@@ -422,6 +425,7 @@ void vm_OP_CLOSURE(lua_State *L, LClosure *cl, int a, int bx, int pseudo_ops_off
       ncl->l.upvals[j] = luaF_findupval(L, base + GETARG_B(*pc));
     }
   }
+  unfixedstack(L);
   luaC_checkGC(L);
 }
 

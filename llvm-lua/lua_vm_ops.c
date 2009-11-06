@@ -215,8 +215,9 @@ void vm_OP_LEN(lua_State *L, int a, int b) {
       break;
     }
     default: {  /* try metamethod */
+      ptrdiff_t br = savestack(L, rb);
       if (!luaV_call_binTM(L, rb, luaO_nilobject, ra, TM_LEN))
-        luaG_typeerror(L, rb, "get length of");
+        luaG_typeerror(L, restorestack(L, br), "get length of");
     }
   }
 }
