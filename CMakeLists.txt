@@ -289,5 +289,4 @@ add_custom_target(uninstall
 # sub-folders
 #
 add_subdirectory(llvm-lua build)
-add_subdirectory(test)
 
