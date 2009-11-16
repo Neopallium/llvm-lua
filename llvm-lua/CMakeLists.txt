@@ -265,7 +265,7 @@ if(APPLE AND WANT_SHARED_LIBRARY AND WANT_FRAMEWORK)
 		COMMENT "Static lib")
 
 	# Will install framework to /Library/Frameworks directory or user specified
-	install(TARGETS llvm-lua
+	install(TARGETS llvm-lua_dynamic
 		FRAMEWORK DESTINATION ${CMAKE_FRAMEWORK_INSTALL_DIR}
 	)
 
