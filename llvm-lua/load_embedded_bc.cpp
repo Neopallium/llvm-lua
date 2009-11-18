@@ -23,6 +23,7 @@
 */
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "llvm/Module.h"
 #include "llvm/ModuleProvider.h"
