@@ -39,17 +39,21 @@ extern "C" {
 #define ENABLE_PARSER_HOOK 1
 #include "hook_parser.c"
 
+#ifndef UNUSED
+#define UNUSED(x) ((void)x)
+#endif
+
 /*
  * link against this file to use the Lua VM core without LLVM.
  * This will disable JIT support, but still allow loading static compiled Lua scripts.
  */
-void llvm_new_compiler(lua_State *L) {}
-void llvm_free_compiler(lua_State *L) {}
-void llvm_compiler_compile(lua_State *L, Proto *p) {}
-void llvm_compiler_compile_all(lua_State *L, Proto *p) {}
-void llvm_compiler_free(lua_State *L, Proto *p) {}
+void llvm_new_compiler(lua_State *L) {UNUSED(L);}
+void llvm_free_compiler(lua_State *L) {UNUSED(L);}
+void llvm_compiler_compile(lua_State *L, Proto *p) {UNUSED(L);UNUSED(p);}
+void llvm_compiler_compile_all(lua_State *L, Proto *p) {UNUSED(L);UNUSED(p);}
+void llvm_compiler_free(lua_State *L, Proto *p) {UNUSED(L);UNUSED(p);}
 
-void llvm_dumper_dump(const char *output, lua_State *L, Proto *p, int stripping) {}
+void llvm_dumper_dump(const char *output, lua_State *L, Proto *p, int stripping) {UNUSED(L);UNUSED(p);UNUSED(output);UNUSED(stripping);}
 
 #ifdef __cplusplus
 }
