@@ -68,6 +68,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	set(DEFAULT_READLINE ON)
 	set(COMMON_LDFLAGS "${COMMON_LDFLAGS} -Wl,-E")
 	set(USE_RPATH TRUE)
+	# This is a HACK.  We need to put the flags from `llvm-config --lflags` at
+	# the end of the linker command.  If you know a better way to fix this let
+	# me know.
+	set(CMAKE_CXX_LINK_EXECUTABLE
+		"<CMAKE_CXX_COMPILER>  <FLAGS> <CMAKE_CXX_LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES> <LINK_FLAGS>")
+	SET(CMAKE_C_LINK_EXECUTABLE
+		"<CMAKE_C_COMPILER> <FLAGS> <CMAKE_C_LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES> <LINK_FLAGS>")
 elseif(APPLE)
 	set(DEFAULT_POSIX TRUE)
 	set(DEFAULT_DLOPEN ON)
