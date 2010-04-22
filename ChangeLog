@@ -1,3 +1,26 @@
+2009-11-05  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* llvm-lua/CMakeLists.txt, llvm-lua/run_tests.sh, src/ldo.c,
+	  src/lgc.c, src/lgc.h, src/lobject.h, src/lvm.c, src/lzio.h:
+	  Emergency GC fixes.
+
+2009-10-18  Robert G. Jakabosky <bobby@neoawareness.com>
+
+	* CMakeLists.txt:
+	  Fixed bug
+	* AUTHORS, ChangeLog, gen_changelog.sh, llvm-lua/CMakeLists.txt,
+	  llvm-lua/lua-compiler, llvm-lua/lua-compiler.in,
+	  llvm-lua/lua-cross-compiler.in, llvm-lua/lua_compiler.c,
+	  llvm-lua/run_tests.sh:
+	  Added ChangeLog, Improved lua-compiler & lua-cross-compiler.
+	  
+	  Added -mcpu option to *-compiler scripts.
+	  Changed -arch to -target option.
+	  Embed the install prefix into lua-compiler so it can find
+	  liblua_main.a
+	  Added gen_changelog.sh script to generate ChangeLog from svn
+	  history.
+
 2009-10-17  Robert G. Jakabosky <bobby@neoawareness.com>
 
 	* CMakeLists.txt, README.llvm-lua, src/loadlib.c:

@@ -26,7 +26,6 @@
 #include <stdio.h>
 
 #include "llvm/Module.h"
-#include "llvm/ModuleProvider.h"
 #include "llvm/LLVMContext.h"
 
 #include "llvm/Support/MemoryBuffer.h"
@@ -36,10 +35,9 @@
 
 #include "load_embedded_bc.h"
 
-llvm::ModuleProvider *load_embedded_bc(llvm::LLVMContext &context,
+llvm::Module *load_embedded_bc(llvm::LLVMContext &context,
 	const char *name, const unsigned char *start, size_t len, bool NoLazyCompilation)
 {
-	llvm::ModuleProvider *MP = NULL;
 	llvm::Module *module = NULL;
 	const char *end = (const char *)start + len - 1;
 	std::string error;
@@ -50,22 +48,23 @@ llvm::ModuleProvider *load_embedded_bc(llvm::LLVMContext &context,
 	llvm::MemoryBuffer* buffer;
 	buffer= llvm::MemoryBuffer::getMemBuffer((const char *)start, end, name);
 	if(buffer != NULL) {
-		MP = llvm::getBitcodeModuleProvider(buffer, context, &error);
-		if(!MP) delete buffer;
+		module = llvm::getLazyBitcodeModule(buffer, context, &error);
+		if(!module) {
+			delete buffer;
+		}
 	}
-	if(!MP) {
+	if(!module) {
 		printf("Failed to parse embedded '%s' file: %s\n", name, error.c_str());
 		exit(1);
 	}
-	// Get Module from ModuleProvider.
+	// Materialize module
 	if(NoLazyCompilation) {
-		module = MP->materializeModule(&error);
-		if(!module) {
+		if(module->MaterializeAll(&error)) {
 			printf("Failed to materialize embedded '%s' file: %s\n", name, error.c_str());
 			exit(1);
 		}
 	}
 
-	return MP;
+	return module;
 }
 

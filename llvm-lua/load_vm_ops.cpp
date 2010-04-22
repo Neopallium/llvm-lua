@@ -24,15 +24,15 @@
 
 #include <stdlib.h>
 
-#include "llvm/ModuleProvider.h"
 #include "llvm/LLVMContext.h"
+#include "llvm/Module.h"
 
 #include "load_vm_ops.h"
 #include "load_embedded_bc.h"
 
 #include "lua_vm_ops_bc.h"
 
-llvm::ModuleProvider *load_vm_ops(llvm::LLVMContext &context, bool NoLazyCompilation) {
+llvm::Module *load_vm_ops(llvm::LLVMContext &context, bool NoLazyCompilation) {
 	return load_embedded_bc(context, "lua_vm_ops_bc", lua_vm_ops_bc,
 		sizeof(lua_vm_ops_bc), NoLazyCompilation);
 }

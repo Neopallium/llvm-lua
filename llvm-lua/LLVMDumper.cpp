@@ -24,13 +24,13 @@
 
 #include "llvm/DerivedTypes.h"
 #include "llvm/Module.h"
-#include "llvm/ModuleProvider.h"
 #include "llvm/Target/TargetData.h"
 #include "llvm/Linker.h"
 #include "llvm/TypeSymbolTable.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/raw_ostream.h"
 #include <string>
 #include <vector>
 #include <fstream>
@@ -182,12 +182,12 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler) : compiler(compiler) {
 }
 
 void LLVMDumper::dump(const char *output, lua_State *L, Proto *p, int stripping) {
-	std::ofstream OS(output, std::ios_base::out|std::ios::trunc|std::ios::binary);
-	llvm::ModuleProvider *MP = NULL;
-	llvm::Module *liblua_main = NULL;
+	llvm::raw_fd_ostream *out;
 	std::string error;
+	llvm::Module *liblua_main = NULL;
 
-	if(!OS.fail()) {
+	out = new llvm::raw_fd_ostream(output, error, llvm::raw_fd_ostream::F_Binary);
+	if(error.empty()) {
 		compiler->setStripCode(stripping);
 		// Internalize all opcode functions.
 		for (llvm::Module::iterator I = M->begin(), E = M->end(); I != E; ++I) {
@@ -207,8 +207,7 @@ void LLVMDumper::dump(const char *output, lua_State *L, Proto *p, int stripping)
 			//M->dump();
 			// link with liblua_main.bc
 			if(!NoMain) {
-				MP = load_liblua_main(getCtx(), true);
-				liblua_main = MP->getModule();
+				liblua_main = load_liblua_main(getCtx(), true);
 				if(llvm::Linker::LinkModules(M, liblua_main, &error)) {
 					fprintf(stderr, "Failed to link compiled Lua script with embedded 'liblua_main.bc': %s",
 						error.c_str());
@@ -218,7 +217,13 @@ void LLVMDumper::dump(const char *output, lua_State *L, Proto *p, int stripping)
 		}
 		//M->dump();
 		llvm::verifyModule(*M);
-		llvm::WriteBitcodeToFile(M, OS);
+		llvm::WriteBitcodeToFile(M, *out);
+		delete out;
+	} else {
+		delete out;
+		fprintf(stderr, "Failed to open output file: %s",
+			error.c_str());
+		exit(1);
 	}
 }
 

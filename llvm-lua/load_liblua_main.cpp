@@ -24,7 +24,7 @@
 
 #include <stdlib.h>
 
-#include "llvm/ModuleProvider.h"
+#include "llvm/Module.h"
 #include "llvm/LLVMContext.h"
 
 #include "load_liblua_main.h"
@@ -32,7 +32,7 @@
 
 #include "liblua_main_bc.h"
 
-llvm::ModuleProvider *load_liblua_main(llvm::LLVMContext &context, bool NoLazyCompilation) {
+llvm::Module *load_liblua_main(llvm::LLVMContext &context, bool NoLazyCompilation) {
 	return load_embedded_bc(context, "liblua_main_bc", liblua_main_bc,
 		sizeof(liblua_main_bc), NoLazyCompilation);
 }

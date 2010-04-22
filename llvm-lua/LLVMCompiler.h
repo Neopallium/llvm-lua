@@ -26,8 +26,8 @@
 #define LLVMCOMPILER_h
 
 #include "llvm/Support/IRBuilder.h"
-#include "llvm/ModuleProvider.h"
 #include "llvm/Module.h"
+#include "llvm/LLVMContext.h"
 
 #include "lua_core.h"
 
@@ -66,7 +66,6 @@ private:
 	};
 private:
 	llvm::LLVMContext Context;
-	llvm::ModuleProvider *MP;
 	llvm::Module *M;
 	llvm::FunctionPassManager *TheFPM;
 	llvm::ExecutionEngine *TheExecutionEngine;

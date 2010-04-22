@@ -1,3 +1,10 @@
 TODO:
 * handle coroutine c-stack alignment issues on x86_64 when compiling in DEBUG mode.
+* Add option to compile liblua_main.a without lua parser, lundump/ldump code.
+
+lua-compiler script:
+* fix linking bug reported by DigitalKiwi:
+ <DigitalKiwi> #CFLAGS=" -ggdb -O3 -fomit-frame-pointer -pipe -Wall "
+ <DigitalKiwi> CFLAGS=" -O3 -fomit-frame-pointer -pipe -Wl,-E "
+ <DigitalKiwi> http://www.tecgraf.puc-rio.br/~lhf/ftp/lua/install.html
 

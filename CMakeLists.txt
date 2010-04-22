@@ -188,6 +188,7 @@ set(FORCE_ALIGNMENT "4" CACHE STRING "Force byte alignment, for clang-cc hack.")
 #
 option(COCO_USE_SETJMP "Coco: Force use of setjmp (instead of gccasm)" OFF)
 option(COCO_USE_UCONTEXT "Coco: Force use of ucontext (instead of gccasm or setjmp)" OFF)
+option(COCO_USE_VALGRIND "Enable valgrind debugging support" OFF)
 option(COCO_DISABLE "Disable coco" OFF)
 set(COCO_DEFAULT_CSTACKSIZE "" CACHE STRING "Coco default cstacksize")
 

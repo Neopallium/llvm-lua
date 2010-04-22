@@ -26,7 +26,6 @@
 #include "llvm/DerivedTypes.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/Module.h"
-#include "llvm/ModuleProvider.h"
 #include "llvm/PassManager.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Target/TargetData.h"
@@ -247,8 +246,7 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		NoLazyCompilation = true;
 	}
 	// load vm op functions
-	MP = load_vm_ops(getCtx(), NoLazyCompilation);
-	M = MP->getModule();
+	M = load_vm_ops(getCtx(), NoLazyCompilation);
 
 	// get important struct types.
 	Ty_TValue = M->getTypeByName("struct.lua_TValue");
@@ -358,7 +356,7 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	if(llvm::TimePassesIsEnabled) load_jit.startTimer();
 	// Create the JIT.
 	if(useJIT) {
-		llvm::EngineBuilder engine(MP);
+		llvm::EngineBuilder engine(M);
 		llvm::CodeGenOpt::Level optLevel = llvm::CodeGenOpt::Aggressive;
 		if(Fast) {
 			optLevel = llvm::CodeGenOpt::Default;
@@ -390,7 +388,7 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	}
 
 	if(OptLevel > 1) {
-		TheFPM = new llvm::FunctionPassManager(MP);
+		TheFPM = new llvm::FunctionPassManager(M);
 		
 		/*
 		 * Function Pass Manager.
@@ -454,7 +452,6 @@ void print_opcode_stats(int *stats, const char *stats_name) {
 }
 
 LLVMCompiler::~LLVMCompiler() {
-	llvm::Module *mod = NULL;
 	std::string error;
 	// print opcode stats.
 	if(OpCodeStats) {
@@ -486,23 +483,15 @@ LLVMCompiler::~LLVMCompiler() {
 		TheExecutionEngine->freeMachineCodeForFunction(vm_set_number);
 		TheExecutionEngine->freeMachineCodeForFunction(vm_set_long);
 		TheExecutionEngine->runStaticConstructorsDestructors(true);
-		mod = TheExecutionEngine->removeModuleProvider(MP, &error);
-		if(!mod) {
-			printf("Failed cleanup ModuleProvider: %s\n", error.c_str());
+		if(!TheExecutionEngine->removeModule(M)) {
+			printf("Failed find Module in execution engine.\n");
 			exit(1);
 		}
 		delete TheExecutionEngine;
-	} else if(MP) {
-		mod = MP->releaseModule(&error);
-		if(!mod) {
-			printf("Failed cleanup ModuleProvider: %s\n", error.c_str());
-			exit(1);
-		}
-		delete MP;
-		MP = NULL;
 	}
-	if(mod) {
-		delete mod;
+	if(M) {
+		delete M;
+		M = NULL;
 	}
 }
 
