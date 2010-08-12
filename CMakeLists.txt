@@ -1,5 +1,5 @@
 #
-# llvm-lua 1.0
+# llvm-lua
 #
 cmake_minimum_required(VERSION 2.4 FATAL_ERROR)
 
@@ -32,7 +32,7 @@ set(LUA_SOVERSION
 # llvm-lua version
 #
 set(LLVM_LUA_VERSION_MAJOR 1)
-set(LLVM_LUA_VERSION_MINOR 1)
+set(LLVM_LUA_VERSION_MINOR 2)
 set(LLVM_LUA_VERSION_PATCH 0)
 set(LLVM_LUA_VERSION
 	"${LLVM_LUA_VERSION_MAJOR}.${LLVM_LUA_VERSION_MINOR}.${LLVM_LUA_VERSION_PATCH}")

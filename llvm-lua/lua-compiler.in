@@ -119,6 +119,8 @@ fi
 # get source file's path & filename.
 FPATH=`dirname ${FILE}`
 FNAME=`basename ${FILE}`
+# strip extension from filename.
+FILE="${FILE%\.*}"
 
 # select debug/optimize parameters.
 if [[ $DEBUG == "1" ]]; then
