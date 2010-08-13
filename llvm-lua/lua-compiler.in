@@ -32,8 +32,17 @@ DEBUG="0"
 KEEP_TMPS="0"
 STATIC="0"
 MODE="full_bc"
+EXPORT_SYMBOLS=" -Wl,-E "
+LLC_FLAGS=" -relocation-model=pic "
 EXTRA_ARGS=
 LIBS=
+
+function echo_cmd() {
+	CMD="$1"
+	shift 1
+	echo "$CMD" "$@"
+	$CMD "$@"
+}
 
 function version() {
 	$LLVM_LUAC -version
@@ -129,7 +138,6 @@ if [[ $DEBUG == "1" ]]; then
 	#LUA_FLAGS=" -O3 -do-not-inline-opcodes "
 	#CFLAGS=" -ggdb -O3 -fomit-frame-pointer -pipe -Wall "
 	OPT_FLAGS=" -disable-opt "
-	LLC_FLAGS=" "
 	if [[ ! -z $CPU && $FORCE_CPU == "1" ]]; then
 		CFLAGS=" -march=$CPU $CFLAGS "
 	fi
@@ -142,7 +150,7 @@ else
 		CFLAGS=" -march=$CPU $CFLAGS "
 	fi
 	OPT_FLAGS=" -O3 -std-compile-opts -tailcallelim -tailduplicate "
-	LLC_FLAGS=" -tailcallopt "
+	LLC_FLAGS=" -tailcallopt $LLC_FLAGS "
 fi
 if [[ ! -z $CPU && $FORCE_CPU == "1" ]]; then
 	LLC_FLAGS=" -mcpu=$CPU $LLC_FLAGS "
@@ -165,8 +173,7 @@ fi
 #
 # run llvm-luac to compile Lua source/bytecode to LLVM bitcode.
 #
-echo "$LLVM_LUAC $EXTRA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILES}"
-$LLVM_LUAC $EXTRA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILES} || {
+echo_cmd $LLVM_LUAC $EXTRA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILES} || {
 	echo "llvm-luac: failed to compile Lua code into LLVM bitcode."
 	exit 1;
 }
@@ -176,39 +183,28 @@ TMPS="${FILE}.bc"
 case "$MODE" in
 	cbe)
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.c"
-		echo "opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc"
-		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc
-		echo "llc $LLC_FLAGS -f --march=c -o ${FILE}_run.c ${FILE}_opt.bc"
-		llc $LLC_FLAGS -f --march=c -o ${FILE}_run.c ${FILE}_opt.bc
-		echo "$CC $CFLAGS $LIBS -o ${OUTPUT_FILE} ${FILE}_run.c -llua_main -lm -ldl"
-		$CC $CFLAGS $LIBS -o ${OUTPUT_FILE} ${FILE}_run.c -llua_main -lm -ldl
+		echo_cmd opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc
+		echo_cmd llc $LLC_FLAGS -f --march=c -o ${FILE}_run.c ${FILE}_opt.bc
+		echo_cmd $CC $EXPORT_SYMBOLS $CFLAGS $LIBS -o ${OUTPUT_FILE} ${FILE}_run.c -llua_main -lm -ldl
 		;;
 	c)
 		TMPS="$TMPS ${FILE}_opt.bc"
-		echo "opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc"
-		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc
-		echo "llc $LLC_FLAGS -f --march=c -o ${OUTPUT_FILE} ${FILE}_opt.bc"
-		llc $LLC_FLAGS -f --march=c -o ${OUTPUT_FILE} ${FILE}_opt.bc
+		echo_cmd opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc
+		echo_cmd llc $LLC_FLAGS -f --march=c -o ${OUTPUT_FILE} ${FILE}_opt.bc
 		;;
 	ll)
-		echo "llvm-dis -f -o ${OUTPUT_FILE} ${FILE}.bc"
-		llvm-dis -f -o ${OUTPUT_FILE} ${FILE}.bc
+		echo_cmd llvm-dis -f -o ${OUTPUT_FILE} ${FILE}.bc
 		;;
 	full_bc)
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.bc ${FILE}_run.s"
-		echo "opt $OPT_FLAGS -f -o ${FILE}_run.bc ${FILE}.bc"
-		opt $OPT_FLAGS -f -o ${FILE}_run.bc ${FILE}.bc
-		echo "llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_run.s ${FILE}_run.bc"
-		llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_run.s ${FILE}_run.bc
-		echo "$CC $CFLAGS -o ${OUTPUT_FILE} ${FILE}_run.s -lm -ldl"
-		$CC $CFLAGS -o ${OUTPUT_FILE} ${FILE}_run.s -lm -ldl
+		echo_cmd opt $OPT_FLAGS -f -o ${FILE}_run.bc ${FILE}.bc
+		echo_cmd llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_run.s ${FILE}_run.bc
+		echo_cmd $CC $EXPORT_SYMBOLS $CFLAGS -o ${OUTPUT_FILE} ${FILE}_run.s -lm -ldl
 		;;
 	lua_mod)
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_mod.s ${FPATH}/${FNAME}.lo ${FPATH}/lib${FNAME}.la"
-		echo "opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc"
-		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc
-		echo "llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_mod.s ${FILE}_opt.bc"
-		llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_mod.s ${FILE}_opt.bc || {
+		echo_cmd opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc
+		echo_cmd llc $LLC_FLAGS -f -filetype=asm -o ${FILE}_mod.s ${FILE}_opt.bc || {
 			echo "Error compiling LLVM bitcode to assembly code."
 			exit 1;
 		}
