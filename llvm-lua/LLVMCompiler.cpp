@@ -1250,8 +1250,9 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	if(DumpFunctions) func->dump();
 	// only run function inliner & optimization passes on same functions.
 	if(OptLevel > 0 && !DontInlineOpcodes) {
+		llvm::InlineFunctionInfo IFI;
 		for(std::vector<llvm::CallInst *>::iterator I=inlineList.begin(); I != inlineList.end() ; I++) {
-			InlineFunction(*I);
+			InlineFunction(*I, IFI);
 		}
 		// Validate the generated code, checking for consistency.
 		if(VerifyFunctions) verifyFunction(*func);

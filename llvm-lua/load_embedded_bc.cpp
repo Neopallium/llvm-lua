@@ -39,14 +39,14 @@ llvm::Module *load_embedded_bc(llvm::LLVMContext &context,
 	const char *name, const unsigned char *start, size_t len, bool NoLazyCompilation)
 {
 	llvm::Module *module = NULL;
-	const char *end = (const char *)start + len - 1;
+	llvm::StringRef mem_ref((const char *)start, len - 1);
 	std::string error;
 
 	// Load in the bitcode file containing the functions for each
 	// bytecode operation.
 
 	llvm::MemoryBuffer* buffer;
-	buffer= llvm::MemoryBuffer::getMemBuffer((const char *)start, end, name);
+	buffer= llvm::MemoryBuffer::getMemBuffer(mem_ref, name);
 	if(buffer != NULL) {
 		module = llvm::getLazyBitcodeModule(buffer, context, &error);
 		if(!module) {
