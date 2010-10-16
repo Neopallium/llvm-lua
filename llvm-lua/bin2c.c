@@ -1,20 +1,22 @@
-// bin2c.c
-//
-// convert a binary file into a C source vector
-//
-// THE "BEER-WARE LICENSE" (Revision 3.1415):
-// sandro AT sigala DOT it wrote this file. As long as you retain this notice you can do
-// whatever you want with this stuff.  If we meet some day, and you think this stuff is
-// worth it, you can buy me a beer in return.  Sandro Sigala
-//
-// syntax:  bin2c [-c] [-z] <input_file> <output_file>
-//
-//          -c    add the "const" keyword to definition
-//          -z    terminate the array with a zero (useful for embedded C strings)
-//
-// examples:
-//     bin2c -c myimage.png myimage_png.cpp
-//     bin2c -z sometext.txt sometext_txt.cpp
+/*
+ * bin2c.c
+ *
+ * convert a binary file into a C source vector
+ *
+ * THE "BEER-WARE LICENSE" (Revision 3.1415):
+ * sandro AT sigala DOT it wrote this file. As long as you retain this notice you can do
+ * whatever you want with this stuff.  If we meet some day, and you think this stuff is
+ * worth it, you can buy me a beer in return.  Sandro Sigala
+ *
+ * syntax:  bin2c [-c] [-z] <input_file> <output_file>
+ *
+ *          -c    add the "const" keyword to definition
+ *          -z    terminate the array with a zero (useful for embedded C strings)
+ *
+ * examples:
+ *     bin2c -c myimage.png myimage_png.cpp
+ *     bin2c -z sometext.txt sometext_txt.cpp
+ */
  
 #include <ctype.h>
 #include <stdio.h>

@@ -60,7 +60,7 @@ if(CROSS_COMPILE)
 	# don't need shared library support for cross-compiler
 	set(WANT_SHARED_LIBRARY FALSE)
 else(CROSS_COMPILE)
-	set(BC_CFLAGS ${BC_CFLAGS} -c -emit-llvm -I../src)
+	set(BC_CFLAGS ${BC_CFLAGS} -std=gnu89 -c -emit-llvm -I../src)
 endif(CROSS_COMPILE)
 
 #
@@ -70,13 +70,13 @@ add_llvm_bc_library(lua_vm_ops lua_vm_ops.c)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lua_vm_ops_bc.h
 	COMMAND bin2c -z -c ${CMAKE_CURRENT_BINARY_DIR}/lua_vm_ops.bc ${CMAKE_CURRENT_BINARY_DIR}/lua_vm_ops_bc.h
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	DEPENDS bin2c lua_vm_ops.bc
+	DEPENDS bin2c ${CMAKE_CURRENT_BINARY_DIR}/lua_vm_ops.bc
 )
 add_llvm_bc_library(liblua_main lua_main.c ${NO_JIT_SRC})
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/liblua_main_bc.h
 	COMMAND bin2c -z -c ${CMAKE_CURRENT_BINARY_DIR}/liblua_main.bc ${CMAKE_CURRENT_BINARY_DIR}/liblua_main_bc.h
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	DEPENDS bin2c liblua_main.bc
+	DEPENDS bin2c ${CMAKE_CURRENT_BINARY_DIR}/liblua_main.bc
 )
 
 #

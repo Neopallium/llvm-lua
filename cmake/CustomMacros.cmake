@@ -12,7 +12,7 @@ macro(add_llvm_bc_library _target)
 			)
 		endforeach(_file)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_target}.bc
-			COMMAND ${LLVM_LINK} ARGS -f -o ${CMAKE_CURRENT_BINARY_DIR}/${_target}.bc ${_bc_files}
+			COMMAND ${LLVM_LD} ARGS -o ${CMAKE_CURRENT_BINARY_DIR}/${_target}.bc ${_bc_files}
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 			DEPENDS ${_bc_files}
 		)
