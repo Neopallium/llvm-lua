@@ -80,13 +80,13 @@ elseif(APPLE)
 	set(DEFAULT_DLOPEN ON)
 	# use this on Mac OS X 10.3-
 	option(LUA_USE_MACOSX "Mac OS X 10.3-" OFF)
-	set(OSX_ARCHITECTURES "ppc;i386;ppc64;x86_64" CACHE STRING "Build architectures for OSX")
+	set(OSX_ARCHITECTURES "x86_64" CACHE STRING "Build architectures for OSX")
 	CMAKE_DEPENDENT_OPTION(WANT_FRAMEWORK
 		"Set to ON to build framework instead of dylib." ON
 		"WANT_SHARED_LIBRARY" ON
 	)
 	CMAKE_DEPENDENT_OPTION(LUA_FRAMEWORK_SYMLINKS
-		"Set to ON to create symlinks to lua & luac to CMAKE_PREFIX_PATH/bin." ON
+		"Set to ON to create symlinks to llvm-lua & llvm-luac to CMAKE_PREFIX_PATH/bin." ON
 		"WANT_FRAMEWORK;WANT_SHARED_LIBRARY" ON
 	)
 	set(CMAKE_FRAMEWORK_INSTALL_DIR "/Library/Frameworks" CACHE STRING "Directory to install frameworks to.")

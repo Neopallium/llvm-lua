@@ -906,7 +906,11 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				assert(idx_var != NULL);
 				incr_block = current_block;
 				cur_idx = Builder.CreateLoad(idx_var);
-				next_idx = Builder.CreateAdd(cur_idx, step, "next_idx");
+				if(op_hints[i] & HINT_USE_LONG) {
+					next_idx = Builder.CreateAdd(cur_idx, step, "next_idx");
+				} else {
+					next_idx = Builder.CreateFAdd(cur_idx, step, "next_idx");
+				}
 				Builder.CreateStore(next_idx, idx_var); // store 'for_init' value.
 				// create extra BasicBlock for vm_OP_FORLOOP_*
 				snprintf(tmp,128,"op_block_%s_%d_loop_test",luaP_opnames[opcode],i);

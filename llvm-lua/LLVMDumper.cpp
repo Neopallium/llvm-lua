@@ -197,14 +197,12 @@ void LLVMDumper::dump(const char *output, lua_State *L, Proto *p, int stripping)
 		}
 		// Compile all Lua prototypes to LLVM IR
 		compiler->compileAll(L, p);
-		//M->dump();
 		if(LuaModule) {
 			// Dump proto info to static variable and create 'luaopen_<mod_name>' function.
 			dump_lua_module(p, output);
 		} else {
 			// Dump proto info to global for standalone exe.
 			dump_standalone(p);
-			//M->dump();
 			// link with liblua_main.bc
 			if(!NoMain) {
 				liblua_main = load_liblua_main(getCtx(), true);
@@ -215,7 +213,6 @@ void LLVMDumper::dump(const char *output, lua_State *L, Proto *p, int stripping)
 				}
 			}
 		}
-		//M->dump();
 		llvm::verifyModule(*M);
 		llvm::WriteBitcodeToFile(M, *out);
 		delete out;

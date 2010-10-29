@@ -86,8 +86,8 @@ set(LLVM_LUA_LIBS)
 # llvm-lua static library.
 add_library(llvm-lua_static STATIC ${LLVM_LUA_LIB_SRC})
 add_target_properties(llvm-lua_static COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
-add_target_properties(llvm-lua_static LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
-target_link_libraries(llvm-lua_static ${LIBS})
+add_target_properties(llvm-lua_static LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS} ${LLVM_LFLAGS}")
+target_link_libraries(llvm-lua_static ${LIBS} ${LLVM_ALL_LIBS})
 set(LLVM_LUA_MAIN_LIB llvm-lua_static)
 if(WANT_STATIC_LIBRARY)
 	# lua static library without LLVM JIT support.
@@ -103,8 +103,8 @@ if(WANT_SHARED_LIBRARY)
 	# llvm-lua dynamic library
 	add_library(llvm-lua_dynamic SHARED ${LLVM_LUA_LIB_SRC})
 	add_target_properties(llvm-lua_dynamic COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
-	add_target_properties(llvm-lua_dynamic LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
-	target_link_libraries(llvm-lua_dynamic ${LIBS})
+	add_target_properties(llvm-lua_dynamic LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS} ${LLVM_LFLAGS}")
+	target_link_libraries(llvm-lua_dynamic ${LIBS} ${LLVM_ALL_LIBS})
 	set_target_properties(llvm-lua_dynamic PROPERTIES OUTPUT_NAME llvm-lua)
 
 	# lua dynamic library without LLVM JIT support.
@@ -124,7 +124,7 @@ endif(WANT_SHARED_LIBRARY)
 #
 if(NOT CROSS_COMPILE)
 	add_library(lua_main STATIC lua_main.c ${NO_JIT_SRC})
-	add_target_properties(lua_main COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
+	add_target_properties(lua_main COMPILE_FLAGS "${COMMON_CFLAGS}")
 	add_target_properties(lua_main LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
 	set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} lua_main)
 endif(NOT CROSS_COMPILE)
