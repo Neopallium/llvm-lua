@@ -54,7 +54,7 @@ static llvm::cl::opt<bool> NoMain("no-main",
 // Dump a compilable bitcode module.
 //===----------------------------------------------------------------------===//
 
-LLVMDumper::LLVMDumper(LLVMCompiler *compiler) : compiler(compiler) {
+LLVMDumper::LLVMDumper(LLVMCompiler *compiler_) : compiler(compiler_) {
 	std::vector<const llvm::Type *> fields;
 	llvm::TargetData *type_info;
 	const llvm::Type *value_type;

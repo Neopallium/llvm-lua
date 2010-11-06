@@ -123,31 +123,6 @@ static llvm::cl::opt<bool> OptLevelO3("O3",
 #define BRANCH_COND -1
 #define BRANCH_NONE -2
 
-class OPValues {
-private:
-	int len;
-	llvm::Value **values;
-
-public:
-	OPValues(int len) : len(len), values(new llvm::Value *[len]) {
-		for(int i = 0; i < len; ++i) {
-			values[i] = NULL;
-		}
-	}
-
-	~OPValues() {
-		delete[] values;
-	}
-	void set(int idx, llvm::Value *val) {
-		assert(idx >= 0 && idx < len);
-		values[idx] = val;
-	}
-	llvm::Value *get(int idx) {
-		assert(idx >= 0 && idx < len);
-		return values[idx];
-	}
-};
-
 //===----------------------------------------------------------------------===//
 // Lua bytecode to LLVM IR compiler
 //===----------------------------------------------------------------------===//
@@ -231,6 +206,14 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	lua_to_llvm = new llvm::Timer("lua_to_llvm");
 	codegen = new llvm::Timer("codegen");
 	strip_code = false;
+
+	// initialize opcode data arrays.
+	opcode_data_len = 0;
+	op_hints = NULL;
+	op_values = NULL;
+	op_blocks = NULL;
+	need_op_block = NULL;
+	resize_opcode_data(MaxFunctionSize);
 
 	if(llvm::TimePassesIsEnabled) load_ops.startTimer();
 
@@ -462,6 +445,8 @@ LLVMCompiler::~LLVMCompiler() {
 		print_opcode_stats(vm_op_run_count, "Compiled OpCode counts");
 	}
 
+	resize_opcode_data(0);
+
 	delete lua_to_llvm;
 	delete codegen;
 	if(TheFPM) delete TheFPM;
@@ -492,6 +477,47 @@ LLVMCompiler::~LLVMCompiler() {
 	if(M) {
 		delete M;
 		M = NULL;
+	}
+}
+
+void LLVMCompiler::resize_opcode_data(int code_len) {
+	// free old arrays.
+	if(opcode_data_len > 0) {
+		// free old data.
+		clear_opcode_data(opcode_data_len);
+		if(op_hints) delete[] op_hints;
+		if(op_values) delete[] op_values;
+		if(op_blocks) delete[] op_blocks;
+		if(need_op_block) delete[] need_op_block;
+	}
+	// allocate new arrays
+	opcode_data_len = code_len;
+	if(code_len == 0) return;
+	op_hints = new hint_t[code_len];
+	op_values = new OPValues *[code_len];
+	op_blocks = new llvm::BasicBlock *[code_len];
+	need_op_block = new bool[code_len];
+	for(int i = 0; i < code_len; i++) {
+		op_hints[i] = HINT_NONE;
+		op_values[i] = NULL;
+		op_blocks[i] = NULL;
+		need_op_block[i] = false;
+	}
+}
+
+void LLVMCompiler::clear_opcode_data(int code_len) {
+	if(code_len > opcode_data_len) {
+		resize_opcode_data(code_len);
+		return;
+	}
+	for(int i = 0; i < code_len; i++) {
+		op_hints[i] = HINT_NONE;
+		if(op_values[i]) {
+			delete op_values[i];
+			op_values[i] = NULL;
+		}
+		op_blocks[i] = NULL;
+		need_op_block[i] = false;
 	}
 }
 
@@ -528,7 +554,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	llvm::CallInst *call=NULL;
 	std::vector<llvm::CallInst *> inlineList;
 	std::string name;
-	char tmp[128];
+	char name_buf[128];
 	//char locals[LUAI_MAXVARS];
 	bool inline_call=false;
 	int strip_ops=0;
@@ -562,8 +588,8 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		}
 		name[n] = '_';
 	}
-	snprintf(tmp,128,"_%d_%d",p->linedefined, p->lastlinedefined);
-	name += tmp;
+	snprintf(name_buf,128,"_%d_%d",p->linedefined, p->lastlinedefined);
+	name += name_buf;
 	func = llvm::Function::Create(lua_func_type, llvm::Function::ExternalLinkage, name, M);
 	// name arg1 = "L"
 	func_L = func->arg_begin();
@@ -580,15 +606,6 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	func_k=call;
 
 	// pre-create basic blocks.
-	hint_t op_hints[code_len];
-	OPValues *op_values[code_len];
-	llvm::BasicBlock *op_blocks[code_len];
-	bool need_op_block[code_len];
-	for(i = 0; i < code_len; i++) {
-		need_op_block[i] = false;
-		op_values[i] = NULL;
-		op_hints[i] = HINT_NONE;
-	}
 	// find all jump/branch destinations and create a new basic block at that opcode.
 	// also build hints for some opcodes.
 	for(i = 0; i < code_len; i++) {
@@ -783,8 +800,8 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		if(need_op_block[i]) {
 			op_intr=code[i];
 			opcode = GET_OPCODE(op_intr);
-			snprintf(tmp,128,"op_block_%s_%d",luaP_opnames[opcode],i);
-			op_blocks[i] = llvm::BasicBlock::Create(getCtx(),tmp, func);
+			snprintf(name_buf,128,"op_block_%s_%d",luaP_opnames[opcode],i);
+			op_blocks[i] = llvm::BasicBlock::Create(getCtx(),name_buf, func);
 		} else {
 			op_blocks[i] = NULL;
 		}
@@ -913,8 +930,8 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				}
 				Builder.CreateStore(next_idx, idx_var); // store 'for_init' value.
 				// create extra BasicBlock for vm_OP_FORLOOP_*
-				snprintf(tmp,128,"op_block_%s_%d_loop_test",luaP_opnames[opcode],i);
-				loop_test = llvm::BasicBlock::Create(getCtx(),tmp, func);
+				snprintf(name_buf,128,"op_block_%s_%d_loop_test",luaP_opnames[opcode],i);
+				loop_test = llvm::BasicBlock::Create(getCtx(),name_buf, func);
 				// create unconditional jmp from current block to loop test block
 				Builder.CreateBr(loop_test);
 				// create unconditional jmp from forprep block to loop test block
@@ -1130,8 +1147,8 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 						set_func = vm_set_long;
 					}
 					// create extra BasicBlock
-					snprintf(tmp,128,"op_block_%s_%d_set_for_idx",luaP_opnames[opcode],i);
-					idx_block = llvm::BasicBlock::Create(getCtx(),tmp, func);
+					snprintf(name_buf,128,"op_block_%s_%d_set_for_idx",luaP_opnames[opcode],i);
+					idx_block = llvm::BasicBlock::Create(getCtx(),name_buf, func);
 					Builder.SetInsertPoint(idx_block);
 					// copy idx value to Lua-stack.
 					call2=Builder.CreateCall3(set_func,func_L,
@@ -1274,7 +1291,12 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	if(llvm::TimePassesIsEnabled) codegen->startTimer();
 	// finished.
 	if(TheExecutionEngine != NULL) {
-		p->jit_func = (lua_CFunction)TheExecutionEngine->getPointerToFunction(func);
+		union {
+			void *ptr;
+			lua_CFunction func;
+		} jit_func;
+		jit_func.ptr = TheExecutionEngine->getPointerToFunction(func);
+		p->jit_func = jit_func.func;
 	} else {
 		p->jit_func = NULL;
 	}
@@ -1285,10 +1307,16 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 void LLVMCompiler::free(lua_State *L, Proto *p)
 {
 	llvm::Function *func;
+	union {
+		void *ptr;
+		lua_CFunction func;
+	} jit_func;
+	(void)L;
 
 	if(TheExecutionEngine == NULL) return;
 
-	func=(llvm::Function *)TheExecutionEngine->getGlobalValueAtAddress((void *)p->jit_func);
+	jit_func.func = p->jit_func;
+	func=(llvm::Function *)TheExecutionEngine->getGlobalValueAtAddress(jit_func.ptr);
 	if(func != NULL) {
 		TheExecutionEngine->freeMachineCodeForFunction(func);
 		func->removeFromParent();

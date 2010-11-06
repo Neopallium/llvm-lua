@@ -58,12 +58,37 @@ private:
 		llvm::Function *func;
 		OPFunc *next;
 
-		OPFunc(const vm_func_info *info, OPFunc *next) :
-				info(info), compiled(false), func(NULL), next(next) {}
+		OPFunc(const vm_func_info *info_, OPFunc *next_) :
+				info(info_), compiled(false), func(NULL), next(next_) {}
 		~OPFunc() {
 			if(next) delete next;
 		}
 	};
+	class OPValues {
+	private:
+		int len;
+		llvm::Value **values;
+	
+	public:
+		OPValues(int len_) : len(len_), values(new llvm::Value *[len_]) {
+			for(int i = 0; i < len; ++i) {
+				values[i] = NULL;
+			}
+		}
+	
+		~OPValues() {
+			delete[] values;
+		}
+		void set(int idx, llvm::Value *val) {
+			assert(idx >= 0 && idx < len);
+			values[idx] = val;
+		}
+		llvm::Value *get(int idx) {
+			assert(idx >= 0 && idx < len);
+			return values[idx];
+		}
+	};
+
 private:
 	llvm::LLVMContext Context;
 	llvm::Module *M;
@@ -103,6 +128,18 @@ private:
 	// timers
 	llvm::Timer *lua_to_llvm;
 	llvm::Timer *codegen;
+
+	// opcode hints/values/blocks/need_block arrays used in compile() method.
+	int opcode_data_len; // length of opcode arrays.
+	hint_t *op_hints;
+	OPValues **op_values;
+	llvm::BasicBlock **op_blocks;
+	bool *need_op_block;
+	// resize the opcode hint data arrays.
+	void resize_opcode_data(int code_len);
+	// reset/clear the opcode hint data arrays.
+	void clear_opcode_data(int code_len);
+
 public:
 	LLVMCompiler(int useJIT);
 	~LLVMCompiler();

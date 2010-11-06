@@ -59,7 +59,7 @@ typedef enum {
 	VAR_T_CL,
 	VAR_T_OP_VALUE_0,
 	VAR_T_OP_VALUE_1,
-	VAR_T_OP_VALUE_2,
+	VAR_T_OP_VALUE_2
 } val_t;
 
 typedef struct {
