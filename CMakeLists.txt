@@ -172,7 +172,7 @@ option(LUA_USE_APICHECK "Enable API checks." OFF)
 #
 option(LUA_CPP_SUPPORT "Enable c++ support" OFF)
 set(LLVM_CC "clang" CACHE STRING "Command to compile C-code to LLVM bitcode (clang or llvm-gcc)")
-set(LLVM_LD "llvm-ld" CACHE STRING "Command to link LLVM bitcode files into one bitcode file.")
+set(LLVM_LD "llvm-link" CACHE STRING "Command to link LLVM bitcode files into one bitcode file.")
 
 #
 # Cross-compile options.
