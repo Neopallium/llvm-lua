@@ -22,6 +22,8 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
+#include <stdio.h>
+
 #include "llvm-lua.h"
 #include "llvm_compiler.h"
 #include "lua_interpreter.h"

@@ -22,6 +22,8 @@
   MIT License: http://www.opensource.org/licenses/mit-license.php
 */
 
+#include <stdio.h>
+
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
 #include "llvm/PassManager.h"

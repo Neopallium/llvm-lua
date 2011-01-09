@@ -197,6 +197,12 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	const vm_func_info *func_info;
 	int opcode;
 
+	if(useJIT) {
+		llvm::GuaranteedTailCallOpt = true;
+		llvm::JITEmitDebugInfo = false;
+		llvm::JITExceptionHandling = false;
+	}
+
 	// set OptLevel
 	if(OptLevelO1) OptLevel = 1;
 	if(OptLevelO2) OptLevel = 2;
