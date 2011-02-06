@@ -1,6 +1,10 @@
-TODO:
+-- TODO list
+
+misc:
+* Port lua-compiler bash script to a Lua script.
 * handle coroutine c-stack alignment issues on x86_64 when compiling in DEBUG mode.
 * Add option to compile liblua_main.a without lua parser, lundump/ldump code.
+* Update to latest EGC patch.
 
 module naming issues:
 * change how the compiler names modules.
