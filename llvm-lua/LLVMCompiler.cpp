@@ -1291,6 +1291,9 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			delete op_values[i];
 			op_values[i] = NULL;
 		}
+		op_hints[i] = HINT_NONE;
+		op_blocks[i] = NULL;
+		need_op_block[i] = false;
 	}
 	if(llvm::TimePassesIsEnabled) lua_to_llvm->stopTimer();
 
