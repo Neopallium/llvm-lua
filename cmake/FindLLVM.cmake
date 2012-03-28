@@ -5,7 +5,7 @@
 #  LLVM_LIBRARIES   - List of libraries when using libev.
 #  LLVM_FOUND       - True if libev found.
 
-find_program(LLVM_CONFIG_EXECUTABLE NAMES llvm-config DOC "llvm-config executable")
+find_program(LLVM_CONFIG_EXECUTABLE NAMES "${LLVM_PATH}/bin/llvm-config" DOC "llvm-config executable")
 
 execute_process(
 	COMMAND ${LLVM_CONFIG_EXECUTABLE} --cppflags

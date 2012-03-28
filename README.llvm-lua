@@ -1,7 +1,7 @@
 README for llvm-lua
 
 === Requires ===
- * LLVM 2.6
+ * LLVM 2.8
  * Clang or llvm-gcc 4.2.x from llvm.org
 
 === Compile ===
