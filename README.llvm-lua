@@ -8,9 +8,9 @@ README for llvm-lua
  * mkdir build
  * cd build
  for Release build:
- * cmake .. -DCMAKE_BUILD_TYPE=Release
+ * cmake .. -DLLVM_PATH=<path to llvm+clan> -DCMAKE_BUILD_TYPE=Release
  for Debug build:
- * cmake .. -DCMAKE_BUILD_TYPE=Debug
+ * cmake .. -DLLVM_PATH=<path to llvm+clan> -DCMAKE_BUILD_TYPE=Debug
  * make
 
 === Install ===
