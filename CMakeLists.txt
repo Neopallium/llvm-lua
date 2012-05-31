@@ -17,6 +17,9 @@ include(FindLLVM)
 
 enable_testing()
 
+set(LLVM_LUA_NAME "llvm-lua")
+set(LLVM_LUA_COPYRIGHT "Copyright (C) 2008-2009 Robert G. Jakabosky, http://code.google.com/p/llvm-lua/")
+
 #
 # Lua version
 #
@@ -52,7 +55,7 @@ set(CPACK_SOURCE_GENERATOR "TGZ")
 set(CPACK_SOURCE_IGNORE_FILES
 "/\\\\.;/\\\\.git.*/;~$;build/;CMakeFiles/;CMakeCache;Testing/;cmake_install;CPack;Dart;Makefile$")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME
-	"${CMAKE_PROJECT_NAME}-${LLVM_LUA_VERSION_MAJOR}.${LLVM_LUA_VERSION_MINOR}.${LLVM_LUA_VERSION_PATCH}")
+	"${LLVM_LUA_NAME}-${LLVM_LUA_VERSION_MAJOR}.${LLVM_LUA_VERSION_MINOR}.${LLVM_LUA_VERSION_PATCH}")
 # MUST be after CPACK_* variables.
 include(CPack)
 

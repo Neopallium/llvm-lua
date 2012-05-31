@@ -1,0 +1,7 @@
+#ifndef llvm_config_h
+#define llvm_config_h
+
+#define LLVM_LUA_VERSION "@LLVM_LUA_NAME@ @LLVM_LUA_VERSION@"
+#define LLVM_LUA_COPYRIGHT "@LLVM_LUA_COPYRIGHT@"
+
+#endif

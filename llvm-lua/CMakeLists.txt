@@ -46,6 +46,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 				${PROJECT_SOURCE_DIR}/src
 				${CMAKE_CURRENT_BINARY_DIR})
 
+configure_file(
+	"${CMAKE_CURRENT_SOURCE_DIR}/llvm_lua_config.h.in"
+	"${CMAKE_CURRENT_BINARY_DIR}/llvm_lua_config.h"
+	@ONLY
+)
+
 add_executable(bin2c bin2c.c)
 
 # cflags for LLVM bitcode files.
