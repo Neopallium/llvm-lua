@@ -1043,9 +1043,9 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		}
 		// create call to opcode function.
 		if(func_info->ret_type != VAR_T_VOID) {
-			call=Builder.CreateCall(opfunc->func, args.begin(), args.end(), "retval");
+			call=Builder.CreateCall(opfunc->func, args, "retval");
 		} else {
-			call=Builder.CreateCall(opfunc->func, args.begin(), args.end());
+			call=Builder.CreateCall(opfunc->func, args);
 		}
 		inline_call = false;
 		// handle retval from opcode function.
