@@ -26,7 +26,6 @@
 #include "llvm/Module.h"
 #include "llvm/Target/TargetData.h"
 #include "llvm/Linker.h"
-#include "llvm/TypeSymbolTable.h"
 #include "llvm/Analysis/Verifier.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Support/CommandLine.h"
