@@ -55,22 +55,22 @@ private:
 	llvm::Module *M;
 
 	// types.
-	const llvm::Type *Ty_str_ptr;
-	const llvm::StructType *Ty_constant_value;
-	const llvm::StructType *Ty_constant_type;
-	const llvm::Type *Ty_constant_type_ptr;
-	const llvm::StructType *Ty_constant_num_type;
+	llvm::Type *Ty_str_ptr;
+	llvm::StructType *Ty_constant_value;
+	llvm::StructType *Ty_constant_type;
+	llvm::Type *Ty_constant_type_ptr;
+	llvm::StructType *Ty_constant_num_type;
 	llvm::Constant *num_padding;
-	const llvm::StructType *Ty_constant_bool_type;
+	llvm::StructType *Ty_constant_bool_type;
 	llvm::Constant *bool_padding;
-	const llvm::StructType *Ty_constant_str_type;
+	llvm::StructType *Ty_constant_str_type;
 	llvm::Constant *str_padding;
-	const llvm::StructType *Ty_jit_LocVar;
-	const llvm::Type *Ty_jit_LocVar_ptr;
-	const llvm::StructType *Ty_jit_proto;
-	const llvm::Type *Ty_jit_proto_ptr;
-	const llvm::FunctionType *lua_func_type;
-	const llvm::Type *lua_func_type_ptr;
+	llvm::StructType *Ty_jit_LocVar;
+	llvm::Type *Ty_jit_LocVar_ptr;
+	llvm::StructType *Ty_jit_proto;
+	llvm::Type *Ty_jit_proto_ptr;
+	llvm::FunctionType *lua_func_type;
+	llvm::Type *lua_func_type_ptr;
 
 public:
 	LLVMDumper(LLVMCompiler *compiler);

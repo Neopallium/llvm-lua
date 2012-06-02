@@ -97,12 +97,12 @@ private:
 	bool strip_code;
 
 	// struct types.
-	const llvm::Type *Ty_TValue;
-	const llvm::Type *Ty_TValue_ptr;
-	const llvm::Type *Ty_LClosure;
-	const llvm::Type *Ty_LClosure_ptr;
-	const llvm::Type *Ty_lua_State;
-	const llvm::Type *Ty_lua_State_ptr;
+	llvm::Type *Ty_TValue;
+	llvm::Type *Ty_TValue_ptr;
+	llvm::Type *Ty_LClosure;
+	llvm::Type *Ty_LClosure_ptr;
+	llvm::Type *Ty_lua_State;
+	llvm::Type *Ty_lua_State_ptr;
 	// common function types.
 	llvm::FunctionType *lua_func_type;
 	// functions to get LClosure & constants pointer.
@@ -165,9 +165,9 @@ public:
 	llvm::FunctionType *get_lua_func_type() {
 		return lua_func_type;
 	}
-	
-	const llvm::Type *get_var_type(val_t type, hint_t hints);
-	
+
+	llvm::Type *get_var_type(val_t type, hint_t hints);
+
 	llvm::Value *get_proto_constant(TValue *constant);
 	
 	/*

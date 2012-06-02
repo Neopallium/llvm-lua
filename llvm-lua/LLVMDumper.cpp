@@ -55,10 +55,10 @@ static llvm::cl::opt<bool> NoMain("no-main",
 //===----------------------------------------------------------------------===//
 
 LLVMDumper::LLVMDumper(LLVMCompiler *compiler_) : compiler(compiler_) {
-	std::vector<const llvm::Type *> fields;
+	std::vector<llvm::Type *> fields;
 	llvm::TargetData *type_info;
-	const llvm::Type *value_type;
-	const llvm::ArrayType *pad_type;
+	llvm::Type *value_type;
+	llvm::ArrayType *pad_type;
 	int num_size;
 	int ptr_size;
 	int max_size=0;
@@ -246,7 +246,7 @@ llvm::GlobalVariable *LLVMDumper::dump_constants(Proto *p) {
 	for(int i = 0; i < p->sizek; i++) {
 		int const_type = 0;
 		int const_length = 0;
-		const llvm::StructType *type;
+		llvm::StructType *type;
 		std::vector<llvm::Constant *> tmp_struct;
 		llvm::Constant *value;
 		TValue *tval = &(p->k[i]);
@@ -455,7 +455,7 @@ void LLVMDumper::dump_lua_module(Proto *p, std::string mod_name) {
 	llvm::BasicBlock *block=NULL;
 	llvm::Value *func_L;
 	llvm::CallInst *call=NULL;
-	std::vector<const llvm::Type*> func_args;
+	std::vector<llvm::Type*> func_args;
 	llvm::FunctionType *func_type;
 	std::string name = "luaopen_";
 	std::string tmp;

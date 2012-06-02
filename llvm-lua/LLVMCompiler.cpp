@@ -127,7 +127,7 @@ static llvm::cl::opt<bool> OptLevelO3("O3",
 // Lua bytecode to LLVM IR compiler
 //===----------------------------------------------------------------------===//
 
-const llvm::Type *LLVMCompiler::get_var_type(val_t type, hint_t hints) {
+llvm::Type *LLVMCompiler::get_var_type(val_t type, hint_t hints) {
 	switch(type) {
 	case VAR_T_VOID:
 		return llvm::Type::getVoidTy(getCtx());
@@ -193,7 +193,7 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	llvm::Timer load_jit("load_jit");
 	llvm::FunctionType *func_type;
 	llvm::Function *func;
-	std::vector<const llvm::Type*> func_args;
+	std::vector<llvm::Type*> func_args;
 	const vm_func_info *func_info;
 	int opcode;
 
