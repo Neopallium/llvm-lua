@@ -149,7 +149,7 @@ else
 	if [[ ! -z $CPU ]]; then
 		CFLAGS=" -march=$CPU $CFLAGS "
 	fi
-	OPT_FLAGS=" -O3 -std-compile-opts -tailcallelim -tailduplicate "
+	OPT_FLAGS=" -O3 -std-compile-opts -tailcallelim "
 	LLC_FLAGS=" -tailcallopt $LLC_FLAGS "
 fi
 if [[ ! -z $CPU && $FORCE_CPU == "1" ]]; then

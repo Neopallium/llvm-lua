@@ -397,8 +397,6 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 		// Dead code Elimination
 		TheFPM->add(llvm::createDeadCodeEliminationPass());
 		if(OptLevel > 2) {
-			// TailDuplication
-			TheFPM->add(llvm::createTailDuplicationPass());
 			// BlockPlacement
 			TheFPM->add(llvm::createBlockPlacementPass());
 			// Reassociate expressions.
