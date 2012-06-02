@@ -197,12 +197,6 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	const vm_func_info *func_info;
 	int opcode;
 
-	if(useJIT) {
-		llvm::GuaranteedTailCallOpt = true;
-		llvm::JITEmitDebugInfo = false;
-		llvm::JITExceptionHandling = false;
-	}
-
 	// set OptLevel
 	if(OptLevelO1) OptLevel = 1;
 	if(OptLevelO2) OptLevel = 2;
@@ -346,6 +340,13 @@ LLVMCompiler::LLVMCompiler(int useJIT) {
 	// Create the JIT.
 	if(useJIT) {
 		llvm::EngineBuilder engine(M);
+
+		llvm::TargetOptions options;
+		options.GuaranteedTailCallOpt = true;
+		options.JITEmitDebugInfo = false;
+		options.JITExceptionHandling = false;
+		engine.setTargetOptions(options);
+
 		llvm::CodeGenOpt::Level optLevel = llvm::CodeGenOpt::Aggressive;
 		if(Fast) {
 			optLevel = llvm::CodeGenOpt::Default;
