@@ -948,9 +948,9 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 				Builder.SetInsertPoint(current_block);
 				// Emit merge block
 				if(op_hints[i] & HINT_USE_LONG) {
-					PN = Builder.CreatePHI(llvm::Type::getInt64Ty(getCtx()), "idx");
+					PN = Builder.CreatePHI(llvm::Type::getInt64Ty(getCtx()), 2, "idx");
 				} else {
-					PN = Builder.CreatePHI(llvm::Type::getDoubleTy(getCtx()), "idx");
+					PN = Builder.CreatePHI(llvm::Type::getDoubleTy(getCtx()), 2, "idx");
 				}
 				PN->addIncoming(init, prep_block);
 				PN->addIncoming(next_idx, incr_block);
