@@ -252,7 +252,7 @@ llvm::GlobalVariable *LLVMDumper::dump_constants(Proto *p) {
 				if(str_padding != NULL) {
 					tmp_struct.push_back(str_padding);
 				}
-				value = llvm::ConstantStruct::get(getCtx(), tmp_struct, false);
+				value = llvm::ConstantStruct::getAnon(getCtx(), tmp_struct, false);
 				break;
 			case LUA_TBOOLEAN:
 				const_type = TYPE_BOOLEAN;
@@ -261,7 +261,7 @@ llvm::GlobalVariable *LLVMDumper::dump_constants(Proto *p) {
 				if(bool_padding != NULL) {
 					tmp_struct.push_back(bool_padding);
 				}
-				value = llvm::ConstantStruct::get(getCtx(), tmp_struct, false);
+				value = llvm::ConstantStruct::getAnon(getCtx(), tmp_struct, false);
 				break;
 			case LUA_TNUMBER:
 				const_type = TYPE_NUMBER;
@@ -270,7 +270,7 @@ llvm::GlobalVariable *LLVMDumper::dump_constants(Proto *p) {
 				if(num_padding != NULL) {
 					tmp_struct.push_back(num_padding);
 				}
-				value = llvm::ConstantStruct::get(getCtx(), tmp_struct, false);
+				value = llvm::ConstantStruct::getAnon(getCtx(), tmp_struct, false);
 				break;
 			case LUA_TNIL:
 			default:
@@ -280,7 +280,7 @@ llvm::GlobalVariable *LLVMDumper::dump_constants(Proto *p) {
 				if(bool_padding != NULL) {
 					tmp_struct.push_back(bool_padding);
 				}
-				value = llvm::ConstantStruct::get(getCtx(), tmp_struct, false);
+				value = llvm::ConstantStruct::getAnon(getCtx(), tmp_struct, false);
 				break;
 		}
 		tmp_struct.clear();
@@ -290,7 +290,7 @@ llvm::GlobalVariable *LLVMDumper::dump_constants(Proto *p) {
 		array_struct_fields.push_back(llvm::ConstantStruct::get(type, tmp_struct));
 	}
 
-	array_struct = llvm::ConstantStruct::get(getCtx(), array_struct_fields, false);
+	array_struct = llvm::ConstantStruct::getAnon(getCtx(), array_struct_fields, false);
 	constant = new llvm::GlobalVariable(*M, array_struct->getType(), true,
 		llvm::GlobalValue::InternalLinkage, array_struct, ".constants");
 	//constant->setAlignment(32);
@@ -312,7 +312,7 @@ llvm::GlobalVariable *LLVMDumper::dump_locvars(Proto *p) {
 		array_struct_fields.push_back(llvm::ConstantStruct::get(Ty_jit_LocVar, tmp_struct));
 	}
 
-	array_struct = llvm::ConstantStruct::get(getCtx(), array_struct_fields, false);
+	array_struct = llvm::ConstantStruct::getAnon(getCtx(), array_struct_fields, false);
 	constant = new llvm::GlobalVariable(*M, array_struct->getType(), true,
 		llvm::GlobalValue::InternalLinkage, array_struct, ".locvars");
 	//constant->setAlignment(32);
@@ -328,7 +328,7 @@ llvm::GlobalVariable *LLVMDumper::dump_upvalues(Proto *p) {
 		array_struct_fields.push_back(get_global_str(getstr(p->upvalues[i])));
 	}
 
-	array_struct = llvm::ConstantStruct::get(getCtx(), array_struct_fields, false);
+	array_struct = llvm::ConstantStruct::getAnon(getCtx(), array_struct_fields, false);
 	constant = new llvm::GlobalVariable(*M, array_struct->getType(), true,
 		llvm::GlobalValue::InternalLinkage, array_struct, ".upvalues");
 	//constant->setAlignment(32);
