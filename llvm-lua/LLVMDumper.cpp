@@ -220,7 +220,7 @@ llvm::Constant *LLVMDumper::get_ptr(llvm::Constant *val) {
 	std::vector<llvm::Constant *> idxList;
 	idxList.push_back(llvm::Constant::getNullValue(llvm::IntegerType::get(getCtx(), 32)));
 	idxList.push_back(llvm::Constant::getNullValue(llvm::IntegerType::get(getCtx(), 32)));
-	return llvm::ConstantExpr::getGetElementPtr(val, &idxList[0], 2);
+	return llvm::ConstantExpr::getGetElementPtr(val, idxList);
 }
 
 llvm::Constant *LLVMDumper::get_global_str(const char *str) {
