@@ -83,21 +83,18 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler_) : compiler(compiler_) {
 	// union.constant_value
 		// TODO: handle LUA_NUMBER types other then 'double'.
 	fields.push_back(llvm::Type::getDoubleTy(getCtx()));
-	Ty_constant_value = llvm::StructType::get(getCtx(), fields, false);
-	M->addTypeName("union.constant_value", Ty_constant_value);
+	Ty_constant_value = llvm::StructType::create(getCtx(), fields, "union.constant_value", false);
 
 	// struct.constant_type
 	fields.clear();
 	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // type
 	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // length
 	fields.push_back(Ty_constant_value);                    // val
-	Ty_constant_type = llvm::StructType::get(getCtx(), fields, false);
-	M->addTypeName("struct.constant_type", Ty_constant_type);
+	Ty_constant_type = llvm::StructType::create(getCtx(), fields, "struct.constant_type", false);
 	Ty_constant_type_ptr = llvm::PointerType::get(Ty_constant_type, 0);
 
 	// struct.constant_num_type
-	Ty_constant_num_type = Ty_constant_type;
-	M->addTypeName("struct.constant_num_type", Ty_constant_num_type);
+	Ty_constant_num_type = llvm::StructType::create(getCtx(), fields, "struct.constant_num_type", false);
 	num_padding = NULL;
 
 	// struct.constant_bool_type
@@ -116,8 +113,7 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler_) : compiler(compiler_) {
 	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // type
 	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // length
 	fields.push_back(value_type);                           // val (boolean)
-	Ty_constant_bool_type = llvm::StructType::get(getCtx(), fields, false);
-	M->addTypeName("struct.constant_bool_type", Ty_constant_bool_type);
+	Ty_constant_bool_type = llvm::StructType::create(getCtx(), fields, "struct.constant_bool_type", false);
 
 	// struct.constant_str_type
 	fields.clear();
@@ -135,8 +131,7 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler_) : compiler(compiler_) {
 	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // type
 	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // length
 	fields.push_back(value_type);                           // val (char *)
-	Ty_constant_str_type = llvm::StructType::get(getCtx(), fields, false);
-	M->addTypeName("struct.constant_str_type", Ty_constant_str_type);
+	Ty_constant_str_type = llvm::StructType::create(getCtx(), fields, "struct.constant_str_type", false);
 
 	//
 	// create jit_LocVar structure type.
@@ -145,14 +140,15 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler_) : compiler(compiler_) {
 	fields.push_back(Ty_str_ptr); // varname
 	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // startpc
 	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // endpc
-	Ty_jit_LocVar = llvm::StructType::get(getCtx(), fields, false);
-	M->addTypeName("struct.jit_LocVar", Ty_jit_LocVar);
+	Ty_jit_LocVar = llvm::StructType::create(getCtx(), fields, "struct.jit_LocVar", false);
 	Ty_jit_LocVar_ptr = llvm::PointerType::get(Ty_jit_LocVar, 0);
 
 	//
 	// create jit_proto structure type.
 	//
 	fields.clear();
+
+	Ty_jit_proto = llvm::StructType::create(getCtx(), "struct.jit_proto");
 	fields.push_back(Ty_str_ptr); // name
 	fields.push_back(lua_func_type_ptr); // jit_func
 	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // linedefined
@@ -170,14 +166,10 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler_) : compiler(compiler_) {
 	fields.push_back(Ty_constant_type_ptr); // k
 	fields.push_back(Ty_jit_LocVar_ptr); // locvars
 	fields.push_back(llvm::PointerType::get(Ty_str_ptr, 0)); // upvalues
-	llvm::PATypeHolder jit_proto_fwd = llvm::OpaqueType::get(getCtx());
-	fields.push_back(llvm::PointerType::get(jit_proto_fwd, 0)); // p
+	fields.push_back(llvm::PointerType::get(Ty_jit_proto, 0)); // p
 	fields.push_back(llvm::PointerType::get(llvm::IntegerType::get(getCtx(), 32), 0)); // code
 	fields.push_back(llvm::PointerType::get(llvm::IntegerType::get(getCtx(), 32), 0)); // lineinfo
-	Ty_jit_proto = llvm::StructType::get(getCtx(), fields, false);
-	M->addTypeName("struct.jit_proto", Ty_jit_proto);
-	llvm::cast<llvm::OpaqueType>(jit_proto_fwd.get())->refineAbstractTypeTo(Ty_jit_proto);
-	Ty_jit_proto = llvm::cast<llvm::StructType>(jit_proto_fwd.get());
+	Ty_jit_proto->setBody(fields, false);
 	Ty_jit_proto_ptr = llvm::PointerType::get(Ty_jit_proto, 0);
 }
 
