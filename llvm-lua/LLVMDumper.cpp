@@ -224,7 +224,7 @@ llvm::Constant *LLVMDumper::get_ptr(llvm::Constant *val) {
 }
 
 llvm::Constant *LLVMDumper::get_global_str(const char *str) {
-	llvm::Constant *str_const = llvm::ConstantArray::get(getCtx(), str, true);
+	llvm::Constant *str_const = llvm::ConstantDataArray::getString(getCtx(), str, true);
 	llvm::GlobalVariable *var_str = new llvm::GlobalVariable(*M, str_const->getType(), true,
 		llvm::GlobalValue::InternalLinkage, str_const, ".str");
 	return get_ptr(var_str);
