@@ -83,20 +83,27 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/liblua_main_bc.h
 # Lua library.
 #
 set(LLVM_LUA_LIBS)
-# llvm-lua static library.
-add_library(llvm-lua_static STATIC ${LLVM_LUA_LIB_SRC})
-add_target_properties(llvm-lua_static COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
-add_target_properties(llvm-lua_static LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS} ${LLVM_LFLAGS}")
-target_link_libraries(llvm-lua_static ${LIBS} ${LLVM_ALL_LIBS})
-set(LLVM_LUA_MAIN_LIB llvm-lua_static)
-if(WANT_STATIC_LIBRARY)
-	# lua static library without LLVM JIT support.
-	add_library(lua_static STATIC ${NO_JIT_SRC})
-	add_target_properties(lua_static COMPILE_FLAGS "${COMMON_CFLAGS}")
-	add_target_properties(lua_static LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
-	target_link_libraries(lua_static ${LIBS})
 
-	set(LLVM_LUA_LIBS llvm-lua_static lua_static)
+if(WANT_STATIC_LIBRARY)
+	# llvm-lua static library.
+	add_library(llvm-lua_static STATIC ${LLVM_LUA_LIB_SRC})
+	add_target_properties(llvm-lua_static COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
+	add_target_properties(llvm-lua_static LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS} ${LLVM_LFLAGS}")
+	target_link_libraries(llvm-lua_static ${LIBS} ${LLVM_ALL_LIBS})
+
+	# link lua interpreter with static library
+	set(LLVM_LUA_MAIN_LIB llvm-lua_static)
+	set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} llvm-lua_static)
+
+	if (WANT_NOJIT_LIBRARIES)
+		# lua static library without LLVM JIT support.
+		add_library(llvm-lua_nojit_static STATIC ${NO_JIT_SRC})
+		add_target_properties(llvm-lua_nojit_static COMPILE_FLAGS "${COMMON_CFLAGS}")
+		add_target_properties(llvm-lua_nojit_static LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
+		target_link_libraries(llvm-lua_nojit_static ${LIBS})
+
+		set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} llvm-lua_nojit_static)
+	endif (WANT_NOJIT_LIBRARIES)
 endif(WANT_STATIC_LIBRARY)
 
 if(WANT_SHARED_LIBRARY)
@@ -107,26 +114,31 @@ if(WANT_SHARED_LIBRARY)
 	target_link_libraries(llvm-lua_dynamic ${LIBS} ${LLVM_ALL_LIBS})
 	set_target_properties(llvm-lua_dynamic PROPERTIES OUTPUT_NAME llvm-lua)
 
-	# lua dynamic library without LLVM JIT support.
-	add_library(lua_dynamic SHARED ${NO_JIT_SRC})
-	add_target_properties(lua_dynamic COMPILE_FLAGS "${COMMON_CFLAGS}")
-	add_target_properties(lua_dynamic LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
-	target_link_libraries(lua_dynamic ${LIBS})
-	set_target_properties(lua_dynamic PROPERTIES OUTPUT_NAME lua)
-
 	# link lua interpreter with dynamic library
 	set(LLVM_LUA_MAIN_LIB llvm-lua_dynamic)
-	set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} llvm-lua_dynamic lua_dynamic)
+	set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} llvm-lua_dynamic)
+
+	if (WANT_NOJIT_LIBRARIES)
+		# lua dynamic library without LLVM JIT support.
+		add_library(llvm-lua_nojit_dynamic SHARED ${NO_JIT_SRC})
+		add_target_properties(llvm-lua_nojit_dynamic COMPILE_FLAGS "${COMMON_CFLAGS}")
+		add_target_properties(llvm-lua_nojit_dynamic LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
+		target_link_libraries(llvm-lua_nojit_dynamic ${LIBS})
+		set_target_properties(llvm-lua_nojit_dynamic PROPERTIES OUTPUT_NAME llvm-lua_nojit)
+
+		set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} llvm-lua_nojit_dynamic)
+	endif (WANT_NOJIT_LIBRARIES)
 endif(WANT_SHARED_LIBRARY)
 
 #
 # static library liblua_main.a
 #
 if(NOT CROSS_COMPILE)
-	add_library(lua_main STATIC lua_main.c ${NO_JIT_SRC})
-	add_target_properties(lua_main COMPILE_FLAGS "${COMMON_CFLAGS}")
-	add_target_properties(lua_main LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
-	set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} lua_main)
+	add_library(llvm-lua_main STATIC lua_main.c ${NO_JIT_SRC})
+	add_target_properties(llvm-lua_main COMPILE_FLAGS "${COMMON_CFLAGS}")
+	add_target_properties(llvm-lua_main LINK_FLAGS "${LD_FLAGS} ${COMMON_LDFLAGS}")
+
+	set(LLVM_LUA_LIBS ${LLVM_LUA_LIBS} llvm-lua_main)
 endif(NOT CROSS_COMPILE)
 
 # set library version & soversion
@@ -191,7 +203,7 @@ add_executable(llvm-luac ${LLVM_LUAC_SRC})
 add_target_properties(llvm-luac COMPILE_FLAGS "${COMMON_CFLAGS} ${LLVM_CFLAGS}")
 add_target_properties(llvm-luac LINK_FLAGS
 	"${LD_FLAGS} ${COMMON_LDFLAGS} ${LLVM_LFLAGS}")
-target_link_libraries(llvm-luac llvm-lua_static ${LLVM_ALL_LIBS})
+target_link_libraries(llvm-luac ${LLVM_LUA_MAIN_LIB} ${LLVM_ALL_LIBS})
 set(LLVM_LUA_BINS llvm-luac)
 
 #

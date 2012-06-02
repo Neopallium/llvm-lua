@@ -185,7 +185,7 @@ case "$MODE" in
 		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.c"
 		echo_cmd opt $OPT_FLAGS -o ${FILE}_opt.bc ${FILE}.bc
 		echo_cmd llc $LLC_FLAGS --march=c -o ${FILE}_run.c ${FILE}_opt.bc
-		echo_cmd $CC $EXPORT_SYMBOLS $CFLAGS $LIBS -o ${OUTPUT_FILE} ${FILE}_run.c -llua_main -lm -ldl
+		echo_cmd $CC $EXPORT_SYMBOLS $CFLAGS $LIBS -o ${OUTPUT_FILE} ${FILE}_run.c -lllvm-lua_main -lm -ldl
 		;;
 	c)
 		TMPS="$TMPS ${FILE}_opt.bc"

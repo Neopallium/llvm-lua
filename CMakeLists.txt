@@ -128,6 +128,8 @@ else(WIN32)
 	option(WANT_STATIC_LIBRARY "Set to ON to build static library." ON)
 endif(WIN32)
 
+option(WANT_NOJIT_LIBRARIES "Set to ON to build nojit libraries." ON)
+
 if(USE_RPATH)
 	set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" CACHE STRING "rpaths separated by semicolons.")
 	option(CMAKE_BUILD_WITH_INSTALL_RPATH "Set to YES to set the rpath or install_name on build instead of install." OFF)
