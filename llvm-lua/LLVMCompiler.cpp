@@ -610,7 +610,6 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	inlineList.push_back(call);
 	func_k=call;
 
-	// pre-create basic blocks.
 	// find all jump/branch destinations and create a new basic block at that opcode.
 	// also build hints for some opcodes.
 	for(i = 0; i < code_len; i++) {
@@ -801,6 +800,7 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		// update local variable type hints.
 		//vm_op_hint_locals(locals, p->maxstacksize, k, op_intr);
 	}
+	// pre-create basic blocks.
 	for(i = 0; i < code_len; i++) {
 		if(need_op_block[i]) {
 			op_intr=code[i];
@@ -1261,6 +1261,8 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 			current_block = NULL; // have terminator
 		}
 	}
+	// free opcode values and clear hints.
+	clear_opcode_data(code_len);
 	// strip Lua bytecode and debug info.
 	if(strip_code && strip_ops > 0) {
 		code_len -= strip_ops;
@@ -1284,15 +1286,6 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 		if(VerifyFunctions) verifyFunction(*func);
 		// Optimize the function.
 		if(TheFPM) TheFPM->run(*func);
-	}
-	for(i = 0; i < code_len; i++) {
-		if(op_values[i]) {
-			delete op_values[i];
-			op_values[i] = NULL;
-		}
-		op_hints[i] = HINT_NONE;
-		op_blocks[i] = NULL;
-		need_op_block[i] = false;
 	}
 	if(llvm::TimePassesIsEnabled) lua_to_llvm->stopTimer();
 
