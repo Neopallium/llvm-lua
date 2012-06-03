@@ -62,7 +62,7 @@ if(CROSS_COMPILE)
 		set(BC_CFLAGS ${BC_CFLAGS} -nostdinc -isystem=${CROSS_ISYSTEM})
 	endif(NOT CROSS_ISYSTEM STREQUAL "")
 	set(BC_CFLAGS ${BC_CFLAGS} -O2 -DFORCE_ALIGNMENT=${FORCE_ALIGNMENT})
-	set(BC_CFLAGS ${BC_CFLAGS} -triple=${CROSS_TRIPLE} -mcpu=${CROSS_CPU} -emit-llvm-bc -I../src)
+	set(BC_CFLAGS ${BC_CFLAGS} -triple=${CROSS_TRIPLE} -mcpu=${CROSS_CPU} -emit-llvm -I../src)
 	# don't need shared library support for cross-compiler
 	set(WANT_SHARED_LIBRARY FALSE)
 else(CROSS_COMPILE)
