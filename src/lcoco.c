@@ -690,4 +690,8 @@ int luaCOCO_cstacksize(int cstacksize)
   return oldsz;
 }
 
+int luaCOCO_mainthread(lua_State *L) {
+  return (G(L)->mainthread == L);
+}
+
 #endif

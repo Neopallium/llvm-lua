@@ -51,6 +51,7 @@ extern "C" {
 #include "lstate.h"
 #include "ldo.h"
 #include "lmem.h"
+#include "lcoco.h"
 #ifdef __cplusplus
 }
 #endif
@@ -570,6 +571,12 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	int i;
 	llvm::IRBuilder<> Builder(getCtx());
 
+#ifndef COCO_DISABLE
+	// Don't run the JIT from a coroutine.
+	if(!luaCOCO_mainthread(L)) {
+		return;
+	}
+#endif
 	if(code_len >= MaxFunctionSize) {
 		if(TheExecutionEngine != NULL && !CompileLargeFunctions) {
 			// don't JIT large functions.

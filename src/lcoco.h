@@ -17,6 +17,7 @@ LUAI_FUNC void luaCOCO_free(lua_State *L);
 LUAI_FUNC int luaCOCO_resume(lua_State *L, int nargs);
 LUAI_FUNC int luaCOCO_yield(lua_State *L);
 LUAI_FUNC int luaCOCO_cstacksize(int cstacksize);
+LUAI_FUNC int luaCOCO_mainthread(lua_State *L);
 
 /* Forward declaration. */
 typedef struct coco_State coco_State;
