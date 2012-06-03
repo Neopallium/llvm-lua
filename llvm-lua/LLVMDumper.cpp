@@ -93,6 +93,13 @@ LLVMDumper::LLVMDumper(LLVMCompiler *compiler_) : compiler(compiler_) {
 	Ty_constant_type_ptr = llvm::PointerType::get(Ty_constant_type, 0);
 
 	// struct.constant_num_type
+	fields.clear();
+	fields.push_back(llvm::Type::getDoubleTy(getCtx()));    // double
+	value_type = llvm::StructType::get(getCtx(), fields, false);
+	fields.clear();
+	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // type
+	fields.push_back(llvm::IntegerType::get(getCtx(), 32)); // length
+	fields.push_back(value_type);                           // val (double)
 	Ty_constant_num_type = llvm::StructType::create(getCtx(), fields, "struct.constant_num_type", false);
 	num_padding = NULL;
 
