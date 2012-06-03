@@ -570,9 +570,16 @@ void LLVMCompiler::compile(lua_State *L, Proto *p)
 	int i;
 	llvm::IRBuilder<> Builder(getCtx());
 
-	// don't JIT large functions.
-	if(code_len >= MaxFunctionSize && TheExecutionEngine != NULL && !CompileLargeFunctions) {
-		return;
+	if(code_len >= MaxFunctionSize) {
+		if(TheExecutionEngine != NULL && !CompileLargeFunctions) {
+			// don't JIT large functions.
+			return;
+		} else {
+			// make sure there is room to compile large functions.
+			if(code_len > opcode_data_len) {
+				resize_opcode_data(code_len);
+			}
+		}
 	}
 
 	if(llvm::TimePassesIsEnabled) lua_to_llvm->startTimer();
