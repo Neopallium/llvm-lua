@@ -63,12 +63,10 @@ if(CROSS_COMPILE)
 	endif(NOT CROSS_ISYSTEM STREQUAL "")
 	set(BC_CFLAGS ${BC_CFLAGS} -O2 -DFORCE_ALIGNMENT=${FORCE_ALIGNMENT})
 	set(BC_CFLAGS ${BC_CFLAGS} -ccc-host-triple ${CROSS_TRIPLE} -march=${CROSS_CPU})
-	set(BC_CFLAGS ${BC_CFLAGS} -std=gnu89 -c -emit-llvm -I../src)
 	# don't need shared library support for cross-compiler
 	set(WANT_SHARED_LIBRARY FALSE)
-else(CROSS_COMPILE)
-	set(BC_CFLAGS ${BC_CFLAGS} -std=gnu89 -c -emit-llvm -I../src)
 endif(CROSS_COMPILE)
+set(BC_CFLAGS ${BC_CFLAGS} -std=gnu89 -c -emit-llvm -I../src)
 
 #
 # Embedded LLVM bitcode files

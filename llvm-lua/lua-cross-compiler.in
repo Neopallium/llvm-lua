@@ -27,6 +27,13 @@ KEEP_TMPS="0"
 MODE="asm"
 EXTRA_ARGS=
 
+function echo_cmd() {
+	CMD="$1"
+	shift 1
+	echo "$CMD" "$@"
+	$CMD "$@"
+}
+
 function version() {
 	$LLVM_LUAC -version
 	exit 0;
@@ -102,7 +109,7 @@ if [[ $DEBUG == "1" ]]; then
 	LLC_FLAGS=" "
 else
 	LUA_FLAGS=" -O3 -s "
-	OPT_FLAGS=" -O3 -std-compile-opts -tailcallelim -tailduplicate "
+	OPT_FLAGS=" -O3 -std-compile-opts -tailcallelim "
 	LLC_FLAGS=" -tailcallopt "
 fi
 LLC_FLAGS=" -mcpu=$CPU $LLC_FLAGS "
@@ -110,8 +117,7 @@ LLC_FLAGS=" -mcpu=$CPU $LLC_FLAGS "
 #
 # run llvm-luac to compile Lua source/bytecode to LLVM bitcode.
 #
-echo "$LLVM_LUAC $EXTRA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILES}"
-$LLVM_LUAC $EXTRA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILES} || {
+echo_cmd $LLVM_LUAC $EXTRA_ARGS $LUA_FLAGS -bc -o ${FILE}.bc ${FILES} || {
 	echo "llvm-luac: failed to compile Lua code into LLVM bitcode."
 	exit 1;
 }
@@ -120,18 +126,15 @@ TMPS="${FILE}.bc"
 # use one of the compile modes.
 case "$MODE" in
 	cbe)
-		TMPS="$TMPS ${FILE}_opt.bc"
-		echo "opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc"
-		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc
-		echo "llc $LLC_FLAGS -f -march=c -o ${FILE}.c ${FILE}_opt.bc"
-		llc $LLC_FLAGS -f -march=c -o ${MODE_OUT} ${FILE}_opt.bc
+		TMPS="$TMPS ${FILE}_opt.bc ${FILE}_run.c"
+		echo_cmd opt $OPT_FLAGS -o ${FILE}_opt.bc ${FILE}.bc
+		echo_cmd llc $LLC_FLAGS --march=c -o ${FILE}_run.c ${FILE}_opt.bc
+		echo_cmd $CC $EXPORT_SYMBOLS $CFLAGS $LIBS -o ${OUTPUT_FILE} ${FILE}_run.c -lllvm-lua_main -lm -ldl
 		;;
 	asm)
 		TMPS="$TMPS ${FILE}_opt.bc"
-		echo "opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc"
-		opt $OPT_FLAGS -f -o ${FILE}_opt.bc ${FILE}.bc
-		echo "llc -march=$ARCH $LLC_FLAGS -f -filetype=asm -o ${FILE}.s ${FILE}_opt.bc"
-		llc -march=$ARCH $LLC_FLAGS -f -filetype=asm -o ${MODE_OUT} ${FILE}_opt.bc
+		echo_cmd opt $OPT_FLAGS -o ${FILE}_opt.bc ${FILE}.bc
+		echo_cmd llc -march=$ARCH $LLC_FLAGS -filetype=asm -o ${MODE_OUT} ${FILE}_opt.bc
 		;;
 	*)
 		echo "Invalid compile mode: $MODE"
@@ -140,16 +143,14 @@ esac
 
 # compile to stand-alone
 if [[ $MODULE == "0" && $NO_ASSEMBLE == "0" ]]; then
-	echo "${CC} -o ${OUTPUT_FILE} ${MODE_OUT} -lm -ldl"
-	${CC} -o ${OUTPUT_FILE} ${MODE_OUT} -lm -ldl && \
+	echo_cmd ${CC} -o ${OUTPUT_FILE} ${MODE_OUT} -lm -ldl && \
 	TMPS="$TMPS ${MODE_OUT}"
 fi
 
 # keep assembly/c-code output.
 if [[ $NO_ASSEMBLE == "1" && $MODE_OUT != $OUTPUT_FILE ]]; then
 	echo "1 no-asm=$NO_ASSEMBLE, mode_out=$MODE_OUT, out=$OUTPUT_FILE"
-	echo "mv $MODE_OUT $OUTPUT_FILE"
-	mv $MODE_OUT $OUTPUT_FILE
+	echo_cmd mv $MODE_OUT $OUTPUT_FILE
 else
 	echo "2 no-asm=$NO_ASSEMBLE, mode_out=$MODE_OUT, out=$OUTPUT_FILE"
 fi
