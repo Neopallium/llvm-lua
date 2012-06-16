@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2004-2009 Mike Pall. All rights reserved.
+** Copyright (C) 2004-2012 Mike Pall. All rights reserved.
 **
 ** Permission is hereby granted, free of charge, to any person obtaining
 ** a copy of this software and associated documentation files (the
@@ -169,7 +169,9 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
   buf[7] = (void *)0; \
   stack[0] = 0xdeadc0c0deadc0c0;  /* Dummy return address. */ \
 
-#elif __mips && _MIPS_SIM == _MIPS_SIM_ABI32 && !defined(__mips_eabi)
+#elif __mips && !defined(__mips_eabi) && \
+      ((defined(_ABIO32) && _MIPS_SIM == _ABIO32) || \
+       (defined(_MIPS_SIM_ABI32) && _MIPS_SIM == _MIPS_SIM_ABI32))
 
 /* No way to avoid the function prologue with inline assembler. So use this: */
 static const unsigned int coco_switch[] = {
@@ -467,6 +469,15 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
   stack[0] = (size_t)(a0);
 #define COCO_STACKADJUST	2
 #define COCO_MAIN_PARAM		int _a, int _b, int _c, int _d, lua_State *L
+#elif defined(__APPLE__)	/* arm-ios */
+#define __JMP_BUF_SP  7   /* r4 r5 r6 r7 r8 r10 fp sp lr sig ... */
+#define COCO_PATCHCTX(coco, buf, func, stack, a0) \
+  buf[__JMP_BUF_SP+1] = (int)(func); /* lr */ \
+  buf[__JMP_BUF_SP] = (int)(stack); /* sp */ \
+  buf[__JMP_BUF_SP-1] = 0; /* fp */ \
+  stack[0] = (size_t)(a0);
+#define COCO_STACKADJUST 2
+#define COCO_MAIN_PARAM int _a, int _b, int _c, int _d, lua_State *L
 #endif
 
 #endif /* arch check */
