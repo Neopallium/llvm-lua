@@ -96,7 +96,11 @@ case "$MODE" in
 	asm) OUTPUT_EXT=".s" ;;
 esac
 if [[ -z "$OUTPUT_FILE" ]]; then
-	OUTPUT_FILE="${FILE}${OUTPUT_EXT}"
+	if [[ $MODULE == "0" && $NO_ASSEMBLE == "0" ]]; then
+		OUTPUT_FILE="${FILE}"
+	else
+		OUTPUT_FILE="${FILE}${OUTPUT_EXT}"
+	fi
 else
 	FILE=${OUTPUT_FILE}
 fi
@@ -149,10 +153,7 @@ fi
 
 # keep assembly/c-code output.
 if [[ $NO_ASSEMBLE == "1" && $MODE_OUT != $OUTPUT_FILE ]]; then
-	echo "1 no-asm=$NO_ASSEMBLE, mode_out=$MODE_OUT, out=$OUTPUT_FILE"
 	echo_cmd mv $MODE_OUT $OUTPUT_FILE
-else
-	echo "2 no-asm=$NO_ASSEMBLE, mode_out=$MODE_OUT, out=$OUTPUT_FILE"
 fi
 
 if [[ $KEEP_TMPS == "0" ]]; then
