@@ -459,6 +459,9 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
 #elif defined(__arm__) || defined(__ARM__)
 
 #if __GLIBC__ == 2 || defined(__UCLIBC__)	/* arm-linux-glibc2 */
+#if defined(__ARM_EABI__)
+#define __JMP_BUF_SP	8
+#endif
 #ifndef __JMP_BUF_SP
 #define __JMP_BUF_SP	((sizeof(__jmp_buf)/sizeof(int))-2)
 #endif
