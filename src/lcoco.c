@@ -535,7 +535,10 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
 #endif
 
 #define COCO_FILL(coco, NL, mainfunc) \
-  getcontext(&coco->ctx); \
+  if(getcontext(&coco->ctx) < 0) { \
+    luaL_error(OL, "getcontext() failed!  ucontext is broken on this system."); \
+    return NULL; \
+  } \
   coco->ctx.uc_link = NULL;  /* We never exit from coco_main. */ \
   coco->ctx.uc_stack.ss_sp = coco->allocptr; \
   coco->ctx.uc_stack.ss_size = (char *)coco - (char *)(coco->allocptr); \
