@@ -169,6 +169,36 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
   buf[7] = (void *)0; \
   stack[0] = 0xdeadc0c0deadc0c0;  /* Dummy return address. */ \
 
+#elif defined(__arm__)
+
+static void coco_wrap_main(void)
+{
+  __asm__ __volatile__ ("\tmov r0, r4\n\tbx r3\n");
+}
+
+typedef void *coco_ctx[5];  /* pc, r3, r4, sp, lr */
+static inline void coco_switch(coco_ctx from, coco_ctx to)
+{
+  __asm__ __volatile__ (
+		"adr r2, 1f\n\t"
+    "stmia %0, {r2, r3, r4, sp, lr}\n\t"
+    "ldmia %1, {r2, r3, r4, sp, lr}\n\t"
+		"bx r2\n\t"
+		"1:\n\t"
+    : "+r" (from), "+r" (to) :
+    : "r2", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "memory");
+}
+
+#define COCO_CTX		coco_ctx
+#define COCO_SWITCH(from, to)	coco_switch(from, to);
+#define COCO_MAKECTX(coco, buf, func, stack, a0) \
+  buf[0] = (void *)(coco_wrap_main); \
+  buf[1] = (void *)(func); \
+  buf[2] = (void *)(a0); \
+  buf[3] = (void *)(stack); \
+  buf[4] = (void *)0xdeadc0c0;  /* Dummy return address. */ \
+  stack[0]= 0xdeadc0c0;  /* Dummy return address. */
+
 #elif __mips && !defined(__mips_eabi) && \
       ((defined(_ABIO32) && _MIPS_SIM == _ABIO32) || \
        (defined(_MIPS_SIM_ABI32) && _MIPS_SIM == _MIPS_SIM_ABI32))
