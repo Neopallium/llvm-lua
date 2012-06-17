@@ -185,9 +185,11 @@ set(LLVM_LD "${LLVM_PATH}/bin/llvm-link" CACHE STRING "Command to link LLVM bitc
 #
 option(CROSS_COMPILE "Build llvm-luac as a cross-compiler" OFF)
 set(CROSS_ARCH "arm" CACHE STRING "Cross-compiler target.")
-set(CROSS_TRIPLE "arm-apple-darwin9" CACHE STRING "Cross-compiler target triple.")
-set(CROSS_CPU "arm1176jzf-s" CACHE STRING "Cross-compiler target cpu name.")
-set(CROSS_ISYSTEM "" CACHE STRING "Path to target system includes.")
+set(CROSS_TRIPLE "arm-linux-gnueabi" CACHE STRING "Cross-compiler target triple.")
+set(CROSS_CPU "arm926ej-s" CACHE STRING "Cross-compiler target cpu name.")
+set(CROSS_ISYSTEM
+	"/usr/lib/gcc/arm-linux-gnueabi/4.6.3/include:/usr/lib/gcc/arm-linux-gnueabi/4.6.3/include-fixed:/usr/arm-linux-gnueabi/usr/include/"
+	CACHE STRING "Path to target system includes.")
 
 #
 # LuaCoco options
