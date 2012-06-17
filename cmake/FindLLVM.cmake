@@ -28,6 +28,4 @@ execute_process(
 	OUTPUT_VARIABLE LLVM_ALL_LIBS
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-message("llvm jit libs: " ${LLVM_JIT_LIBS})
-message("llvm all libs: " ${LLVM_ALL_LIBS})
 
