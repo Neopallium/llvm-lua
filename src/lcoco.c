@@ -186,7 +186,7 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
 		"bx r2\n\t"
 		"1:\n\t"
     : "+r" (from), "+r" (to) :
-    : "r2", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "memory");
+    : "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "memory");
 }
 
 #define COCO_CTX		coco_ctx
