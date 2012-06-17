@@ -188,7 +188,6 @@ set(CROSS_ARCH "arm" CACHE STRING "Cross-compiler target.")
 set(CROSS_TRIPLE "arm-apple-darwin9" CACHE STRING "Cross-compiler target triple.")
 set(CROSS_CPU "arm1176jzf-s" CACHE STRING "Cross-compiler target cpu name.")
 set(CROSS_ISYSTEM "" CACHE STRING "Path to target system includes.")
-set(FORCE_ALIGNMENT "4" CACHE STRING "Force byte alignment, for clang-cc hack.")
 
 #
 # LuaCoco options
@@ -237,7 +236,7 @@ if(LUA_ANSI)
 endif(LUA_ANSI)
 
 # readline support
-if(LUA_USE_READLINE)
+if(LUA_USE_READLINE AND NOT CROSS_COMPILE)
 	FIND_PATH(READLINE_INCLUDE_DIR readline/readline.h)
 	FIND_LIBRARY(READLINE_LIBRARY NAMES readline)
 	if(READLINE_LIBRARY)
@@ -245,16 +244,16 @@ if(LUA_USE_READLINE)
 		set(COMMON_LDFLAGS "${COMMON_LDFLAGS} -lreadline -lhistory")
 		include_directories(${READLINE_INCLUDE_DIR})
 	endif(READLINE_LIBRARY)
-endif(LUA_USE_READLINE)
+endif()
 
 # curses
-if(LUA_USE_CURSES)
+if(LUA_USE_CURSES AND NOT CROSS_COMPILE)
 	include(FindCurses)
 	if(CURSES_LIBRARY)
 		include_directories(${CURSES_INCLUDE_DIR})
 		set(LIBS ${LIBS} ${CURSES_LIBRARY})
 	endif(CURSES_LIBRARY)
-endif(LUA_USE_CURSES)
+endif()
 
 # LuaCoco flags
 if(COCO_DISABLE)

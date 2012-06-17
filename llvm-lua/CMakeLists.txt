@@ -59,14 +59,15 @@ string(REPLACE " " ";" BC_CFLAGS ${COMMON_CFLAGS})
 # setup cross-compiler flags.
 if(CROSS_COMPILE)
 	if(NOT CROSS_ISYSTEM STREQUAL "")
-		set(BC_CFLAGS ${BC_CFLAGS} -nostdinc -isystem=${CROSS_ISYSTEM})
-	endif(NOT CROSS_ISYSTEM STREQUAL "")
-	set(BC_CFLAGS ${BC_CFLAGS} -O2 -DFORCE_ALIGNMENT=${FORCE_ALIGNMENT})
-	set(BC_CFLAGS ${BC_CFLAGS} -ccc-host-triple ${CROSS_TRIPLE} -march=${CROSS_CPU})
+		set(BC_CFLAGS ${BC_CFLAGS} -nostdinc)
+		string(REGEX REPLACE ":([^:]+)" ";-isystem;\\1" ISYSTEM_FLAGS "${CROSS_ISYSTEM}")
+		set(BC_CFLAGS ${BC_CFLAGS} -Wno-gnu-designator -isystem ${ISYSTEM_FLAGS})
+	endif()
+	set(BC_CFLAGS ${BC_CFLAGS} -ccc-host-triple ${CROSS_TRIPLE} -mcpu=${CROSS_CPU})
 	# don't need shared library support for cross-compiler
 	set(WANT_SHARED_LIBRARY FALSE)
 endif(CROSS_COMPILE)
-set(BC_CFLAGS ${BC_CFLAGS} -std=gnu89 -c -emit-llvm -I../src)
+set(BC_CFLAGS ${BC_CFLAGS} -O2 -std=gnu89 -c -emit-llvm -I../src)
 
 #
 # Embedded LLVM bitcode files
