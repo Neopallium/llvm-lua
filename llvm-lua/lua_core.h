@@ -2,11 +2,6 @@
 #ifndef lua_core_h
 #define lua_core_h
 
-/* This is a hack to force 32bit alignment when compiling with clang-cc for the ARM architecture. */
-#ifdef FORCE_ALIGNMENT
-#pragma pack(FORCE_ALIGNMENT)
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
