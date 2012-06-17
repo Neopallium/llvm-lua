@@ -521,6 +521,7 @@ static inline void coco_switch(coco_ctx from, coco_ctx to)
 /* Note that WIN64 (which is LLP64) never comes here. See above. */
 #if defined(__LP64__) || defined(_LP64) || INT_MAX != LONG_MAX
 /* 64 bit CPU: split the pointer into two 32 bit ints. */
+#undef COCO_MAIN_PARAM
 #define COCO_MAIN_PARAM		unsigned int lo, unsigned int hi
 #define COCO_MAIN_GETL \
   lua_State *L = (lua_State *)((((unsigned long)hi)<<32)+(unsigned long)lo);
