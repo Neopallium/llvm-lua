@@ -44,6 +44,7 @@
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/TargetRegistry.h"
 #include "llvm/Target/TargetData.h"
 #include "llvm/Target/TargetMachine.h"
 
@@ -93,6 +94,8 @@ void print_version() {
 	printf(LLVM_LUA_VERSION " " LLVM_LUA_COPYRIGHT "\n");
 	printf(LUA_RELEASE "  " LUA_COPYRIGHT "\n");
 	llvm::cl::PrintVersionMessage();
+	printf("\n");
+	llvm::TargetRegistry::printRegisteredTargetsForVersion();
 }
 
 /*
@@ -112,10 +115,13 @@ int main(int argc, char ** argv) {
 
   // Initialize targets first.
   llvm::InitializeAllTargets();
+  llvm::InitializeAllTargetMCs();
   llvm::InitializeAllAsmPrinters();
+  llvm::InitializeAllAsmParsers();
 
 	llvm::cl::SetVersionPrinter(print_version);
-	llvm::cl::ParseCommandLineOptions(argc, argv, 0, true);
+
+	llvm::cl::ParseCommandLineOptions(argc, argv, "LLVM-Lua native compiler\n");
 	// Show version?
 	if(ShowVersion) {
 		print_version();

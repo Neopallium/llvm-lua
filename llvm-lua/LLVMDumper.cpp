@@ -204,13 +204,14 @@ void LLVMDumper::dump(const char *output, lua_State *L, Proto *p, int stripping)
 			// link with liblua_main.bc
 			if(!NoMain) {
 				liblua_main = load_liblua_main(getCtx(), true);
-				if(llvm::Linker::LinkModules(M, liblua_main, llvm::Linker::PreserveSource, &error)) {
+				if(llvm::Linker::LinkModules(M, liblua_main, llvm::Linker::DestroySource, &error)) {
 					fprintf(stderr, "Failed to link compiled Lua script with embedded 'liblua_main.bc': %s",
 						error.c_str());
 					exit(1);
 				}
 			}
 		}
+
 		llvm::verifyModule(*M);
 		llvm::WriteBitcodeToFile(M, *out);
 		delete out;

@@ -23,7 +23,6 @@
 */
 
 #include "LLVMCompiler.h"
-#include "LLVMDumper.h"
 #include "llvm-c/ExecutionEngine.h"
 #include "llvm-c/Target.h"
 #include "llvm_compiler.h"
